@@ -1,0 +1,27 @@
+version: '3'
+services:
+  fenix-postgres:
+    image: "postgres:9.6-alpine"
+    container_name: fenix-postgres
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=test
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1
+
+  fenix-app:
+    image: "parsesignal/draft:back_01.000.000"
+    container_name: fenix-app
+    ports:
+      - 8080:8080
+    links:
+      - fenix-postgres
+
+  fenix-ui:
+    image: "parsesignal/draft:ui_01.000.000"
+    container_name: fenix-ui
+    ports:
+      - 80:80
+    links:
+      - fenix-app
