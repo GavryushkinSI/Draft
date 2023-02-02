@@ -1,24 +1,26 @@
 package ru.app.draft.store;
 
 import com.google.common.cache.CacheBuilder;
+import com.google.protobuf.Timestamp;
 import lombok.extern.log4j.Log4j2;
-import ru.app.draft.models.CandleData;
-import ru.app.draft.models.Message;
-import ru.app.draft.models.Status;
-import ru.app.draft.models.UserCache;
+import ru.app.draft.annotations.Audit;
+import ru.app.draft.models.*;
 import ru.app.draft.services.MarketDataStreamService;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 
 @Log4j2
 public class Store {
 
     private final static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    public final static ConcurrentMap<String, CandleData> TEMP_STORE = CacheBuilder.newBuilder()
+            .maximumSize(10)
+            .<String, CandleData>build()
+            .asMap();
 
     public final static ConcurrentMap<String, Set<CandleData>> CANDLE_STORE = CacheBuilder.newBuilder()
             .maximumSize(10000)
@@ -30,6 +32,24 @@ public class Store {
             .<String, UserCache>build()
             .asMap();
 
+    public final static ConcurrentMap<String, Strategy> STRATEGY_STORE = CacheBuilder.newBuilder()
+            .maximumSize(100)
+            .<String, Strategy>build()
+            .asMap();
+
+    public static void updateLastPrice(Long newValue, Timestamp time) {
+        USER_STORE.computeIfPresent("Test", (s, data) -> {
+            Map<String, Long> map = data.getMap();
+            if (map.size() == 0) {
+                map.put("RIH3", newValue);
+            } else {
+                map.replace("RIH3", newValue);
+            }
+            data.setMap(map);
+            data.setUpdateTime(time);
+            return data;
+        });
+    }
 
     public static void addCandle(String key, CandleData value) {
         CANDLE_STORE.computeIfAbsent(key, s -> {
@@ -54,16 +74,16 @@ public class Store {
         String name = message.getSenderName();
         switch (message.getCommand()) {
             case "ADD_USER":
-                USER_STORE.computeIfAbsent(name, s -> new UserCache(name));
+//                USER_STORE.computeIfAbsent(name, s -> new UserCache(name));
                 break;
             case "SUBSCRIPTION_ON_TICKER":
                 USER_STORE.computeIfPresent(name, (s, user) -> {
                     log.info(String.format("User:%s", user));
-                    user.setTicker((String) message.getMessage());
+//                    user.setTicker((String) message.getMessage());
                     message.setSenderName("server");
                     message.setMessage(Store.CANDLE_STORE.get((String) message.getMessage()));
                     message.setStatus(Status.JOIN);
-                    streamService.sendDataToUser(Map.of(user.getUserName(), user), message);
+//                    streamService.sendDataToUser(Map.of(user.getUserName(), user), message);
                     return user;
                 });
                 break;

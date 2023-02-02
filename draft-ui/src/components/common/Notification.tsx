@@ -1,33 +1,36 @@
-import {Alert, Button} from "react-bootstrap";
-import * as React from "react";
-import {useEffect, useState} from "react";
-import Icon from "./Icon";
-import {useMountEffect} from "../../hooks/hooks";
+import React, { Dispatch } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {INotification} from "../../reducers/notificationReducers";
+import {IAppState} from "../../index";
+import { removeNotification } from "../../actions/notificationActions";
+import {Toast} from "react-bootstrap";
 
-interface IProps {
-    type: string;
-    text?:string;
-}
 
-const Notification = (props: IProps) => {
-    const [isShow, setShow] = useState(true);
+const Notifications: React.FC = () => {
+    const dispatch: Dispatch<any> = useDispatch();
+    const notifications: INotification[] = useSelector((state: IAppState) =>
+        state.notifications.notifications);
 
-    setTimeout(() => {
-        setShow(false)
-    }, 5000);
+    function closeNotification(id: number) {
+        dispatch(removeNotification(id));
+    }
 
-    return <Alert style={{width:350, float:"right"}} show={isShow} variant={props.type}>
-        <p>
-            <Icon icon={"bi bi-info-square"} size={20} title={''}/>
-            {props.text}
-        </p>
-        <hr/>
-        <div className="d-flex justify-content-end">
-            <Button onClick={() => {setShow(false)}} variant="outline-success">
-                Закрыть
-            </Button>
+    const notificationList = notifications.map((notification, index) => {
+        return (<Toast key={notification.id} className="mb-1" onClose={()=>{closeNotification(notification.id)}} delay={3000} autohide>
+            <Toast.Header>
+                <img src="holder.js/20x20?text=%20" className="rounded me-2" alt="" />
+                <strong className="me-auto">{notification.title}</strong>
+                <small>{notification.date.toLocaleTimeString(navigator.language, { hour: '2-digit', minute: '2-digit' })}</small>
+            </Toast.Header>
+            <Toast.Body>{notification.text}</Toast.Body>
+        </Toast>)
+    });
+
+    return (
+        <div className="toast-wrapper">
+            {notificationList}
         </div>
-    </Alert>
-}
+    );
+};
 
-export default Notification;
+export default Notifications;

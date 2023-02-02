@@ -1,17 +1,33 @@
+import {max, min} from "lodash";
+import {profitFactor} from "../utils/utils";
+
 export interface Message {
     message: any;
     status: any;
+    command: any;
+}
+
+export interface IAccount {
+    id: string;
+    cash: string;
+    figi:string;
+    balance:number;
 }
 
 export interface IStrategy {
-    id: string;
-    name: string | undefined;
-    producer: EProducer | undefined;
-    ticker: string;
-    position: number;
-    slippage: number;
-    consumer: EConsumer[];
-    isActive: boolean;
+    id?: string;
+    userName?:string;
+    name?: string | undefined;
+    producer?: EProducer | undefined;
+    ticker?: string;
+    quantity?: number;
+    slippage?: number;
+    consumer?: EConsumer[];
+    isActive?: boolean;
+    direction?: string;
+    figi?: string;
+    orders?:any[];
+    priceTv?:string;
 }
 
 export enum EProducer {
@@ -22,5 +38,13 @@ export enum EProducer {
 export enum EConsumer {
     EMAIL = "Почта",
     API = "Апи",
-    TEST = "Тест"
+    TEST = "test"
+}
+
+export interface IBackTestResultStartegy {
+    count: number;
+    sumProfit: number;
+    maxProfitOnOrder: number;
+    maxLossOnOrder: number;
+    profitFactor: string | undefined;
 }

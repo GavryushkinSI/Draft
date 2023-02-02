@@ -17,7 +17,7 @@ public class Logger {
         Object result = null;
         try {
             result = point.proceed();
-            log.info(String.format("Success time: %s ms", System.currentTimeMillis() - start));
+            log.info(String.format("Success time execute methodName %s: %s ms",point.getSignature().getName(), System.currentTimeMillis() - start));
         } catch (Throwable e) {
             e.printStackTrace();
         }

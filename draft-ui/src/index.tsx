@@ -1,19 +1,30 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {combineReducers, createStore, Store} from "redux";
+import {combineReducers, createStore} from "redux";
 import {devToolsEnhancer} from '@redux-devtools/extension';
 import {BrowserRouter, Route, Routes} from "react-router-dom";
 import {Provider} from "react-redux";
-import Renko from "./components/Renko";
+import Admin from "./components/Admin";
+import "./styles/common.css";
+import "./styles/sideBar.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css"
+import notificationReducer, {INotificationState} from "./reducers/notificationReducers";
+import {IStrategy} from "./models/models";
 
 const initial = {
     data: [],
+    lastTimeUpdate: undefined,
     isLoading: false,
 };
 
 export enum EActionTypes {
     SET_IS_LOADING = "SET_IS_LOADING",
     SET_DATA = "SET_DATA",
+    UPDATE_DATA="UPDATE_DATA",
+    SET_LAST_TIME_UPDATE = "SET_LAST_TIME_UPDATE",
+    SET_LAST_PRICE = "SET_LAST_PRICE",
+    GET_USER_INFO="GET_USER_INFO",
 }
 
 /**
@@ -38,10 +49,29 @@ const reducer = (state = initial, action: IAction): any => {
         case EActionTypes.SET_DATA: {
             return {...state, data: [...state.data, action.payload].flat()};
         }
+        case EActionTypes.SET_LAST_TIME_UPDATE: {
+            return {
+                ...state,
+                lastTimeUpdate: action.payload,
+            };
+        }
         default:
             return state;
     }
 };
+
+const reducer2 = (state = {data: null}, action: IAction): any => {
+    switch (action.type) {
+        case EActionTypes.SET_LAST_PRICE: {
+            return {
+                ...state,
+                data: action.payload,
+            };
+        }
+        default:
+            return state;
+    }
+}
 
 /**
  * @prop type Тип экшена.
@@ -54,6 +84,10 @@ export type TAction<T = string> = { type: T };
  */
 export interface IAppState {
     renko: any;
+    user:any;
+    lastPrice: any;
+    notifications: INotificationState;
+    strategy: any;
 }
 
 /**
@@ -63,7 +97,39 @@ export interface IAppState {
  */
 export interface IStrategyState {
     isLoading: boolean;
+    data: IStrategy[];
 }
+
+const strategyReducer = (state = {isLoading: false, data: []}, action: any): any => {
+    switch (action.type) {
+        case EActionTypes.SET_IS_LOADING: {
+            return {
+                ...state,
+                isLoading: action.payload,
+            };
+        }
+        case EActionTypes.SET_DATA: {
+            return {...state, data: action.payload};
+        }
+
+        default:
+            return state;
+    }
+};
+
+const userReducer = (state = {}, action: any): any => {
+    switch (action.type) {
+        case EActionTypes.GET_USER_INFO: {
+            return {
+                ...state,
+                data: action.payload,
+            };
+        }
+
+        default:
+            return state;
+    }
+};
 
 /**
  * Настройка redux-стора.
@@ -71,7 +137,12 @@ export interface IStrategyState {
 const configureStore = () => {
     return {
         ...createStore<IAppState, TAction, unknown, unknown>(
-            combineReducers<IAppState>({renko: reducer}),
+            combineReducers<IAppState>({
+                renko: reducer, lastPrice: reducer2,
+                notifications: notificationReducer,
+                strategy: strategyReducer,
+                user:userReducer,
+            }),
             devToolsEnhancer()
         )
     };
@@ -79,12 +150,14 @@ const configureStore = () => {
 
 const store = configureStore();
 
+
 function Root() {
     return (
         <Provider store={store}>
             <BrowserRouter>
                 <Routes>
-                    <Route path="/" element={<Renko/>}/>
+                    {/*<Route path="/" element={}/>*/}
+                    <Route path="/" element={<Admin/>}/>
                 </Routes>
             </BrowserRouter>
         </Provider>

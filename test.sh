@@ -1,8 +1,8 @@
-docker build -t parsesignal/draft:01.000.000 .
-docker push parsesignal/draft:01.000.000
+#docker build -t parsesignal/draft:01.000.000 .
+#docker push parsesignal/draft:01.000.000
 
-touch docker-compose.yml
-sudo nano docker-compose
+#touch docker-compose.yml
+#sudo nano docker-compose
 version: '3'
 services:
   draft:
@@ -12,3 +12,4 @@ services:
       - 8080:8080
 
 docker login -u parsesignal -p aspeka25y
+docker-compose up

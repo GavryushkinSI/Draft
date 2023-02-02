@@ -30,3 +30,5 @@ ALTER TABLE strategy
     ADD CONSTRAINT FK_STRATEGY_ON_USR FOREIGN KEY (usr_id) REFERENCES usr (id);
 
 --rollback DROP TABLE strategy
+
+

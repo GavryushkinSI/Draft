@@ -13,7 +13,7 @@ public class CandleData  implements Serializable, Comparable {
 
     private List<Long> y;
 
-    public CandleData(String x, List y) {
+    public CandleData(String x, List<Long> y) {
         this.x = x;
         this.y = y;
     }
@@ -26,11 +26,11 @@ public class CandleData  implements Serializable, Comparable {
         this.x = x;
     }
 
-    public List getY() {
+    public List<Long> getY() {
         return y;
     }
 
-    public void setY(List y) {
+    public void setY(List<Long> y) {
         this.y = y;
     }
 

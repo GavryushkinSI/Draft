@@ -12,6 +12,9 @@
     ]
   },
   "dependencies": {
+    "@material-ui/core": "^4.12.3",
+    "@paljs/icons": "1.0.5",
+    "@paljs/ui": "1.1.1",
     "babel-polyfill": "^6.26.0",
     "bootstrap": "^5.1.3",
     "lodash": "4.17.15",
@@ -39,7 +42,7 @@
     "@types/stompjs": "^2.3.5",
     "axios": "^0.27.2",
     "bootstrap-icons": "^1.9.1",
-    "cdbreact": "^1.5.3",
+    "cdbreact": "^1.5.4",
     "react-bootstrap-sidebar": "0.0.1",
     "react-chartjs-2": "4.3.1",
     "react-redux": "7.2.4",
