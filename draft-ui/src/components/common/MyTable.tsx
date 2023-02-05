@@ -9,8 +9,8 @@ import {IAppState} from "../../index";
 import {useActions} from "../../hooks/hooks";
 import {Service} from "../../services/Service";
 import {isEmpty} from "lodash";
-import {Chart} from "../Chart";
 import {calcDataForGraphProfit} from "../../utils/utils";
+import {Chart} from "../Chart";
 
 const columns = [
     {field: 'id', fieldName: '№'},
@@ -19,12 +19,14 @@ const columns = [
     {field: 'ticker', fieldName: 'Тикер'},
     {field: 'consumer', fieldName: 'Получатель'},
     {field: 'status', fieldName: 'Статус'},
+    {field: 'currentPosition', fieldName: 'Текущая позиция'},
     {field: '', fieldName: ''},
 ];
 
 const MyTable: React.FC = () => {
-    const userName=localStorage.getItem("userName");
-    const [showGraph, setShowGraph] = useState<any>({show:false, idStrategy: ""});
+    const userName = localStorage.getItem("userName");
+    const [showGraph, setShowGraph] = useState<any>({show: false, idStrategy: ""});
+    const [showDescriptionModal, setShowDescriptionModal] = useState<any>({show: false, name: undefined});
     const actions = useActions(Service);
     const dispatch: Dispatch<any> = useDispatch();
     const [hoverTable, setHoverTable] = useState(-1);
@@ -43,7 +45,7 @@ const MyTable: React.FC = () => {
         const {name, value} = e.target;
         if (name === 'isActive') {
             let changedRow: IStrategy = strategy.find(i => i.id === rowId)!;
-            actions.addOrUpdateStrategy(userName!,{...changedRow, [name]: !changedRow?.isActive}, () => {
+            actions.addOrUpdateStrategy(userName!, {...changedRow, [name]: !changedRow?.isActive}, () => {
                 dispatch(addNotification("Info", `Запись успешно сохранена!`))
             }, (error: any) => dispatch(addNotification("Info", error)));
         } else {
@@ -65,9 +67,8 @@ const MyTable: React.FC = () => {
         const hasError = Object.values(validation).some((i: any) => {
             return !!i;
         });
-        console.log(hasError, validation);
         if (!hasError) {
-            actions.addOrUpdateStrategy(userName!,editedRow, () => {
+            actions.addOrUpdateStrategy(userName!, editedRow, () => {
                 dispatch(addNotification("Info", `Запись успешно сохранена!`))
             }, (error: any) => dispatch(addNotification("Info", error)));
             setIsShowModal(false);
@@ -76,7 +77,7 @@ const MyTable: React.FC = () => {
 
     const acceptRemove = () => {
         if (showRemoveModal) {
-            actions.removeStrategy(userName!,editedRow?.name);
+            actions.removeStrategy(userName!, editedRow?.name);
             setIsRemoveModal(false);
         }
     }
@@ -164,7 +165,7 @@ const MyTable: React.FC = () => {
 
     const handleAddRow = () => {
         setEditedRow({
-            id:undefined,
+            id: undefined,
             name: undefined,
             producer: EProducer.TKS,
             ticker: '',
@@ -189,20 +190,69 @@ const MyTable: React.FC = () => {
         }
     }
     const handleRemove = (rowId: any) => {
-        setEditedRow(strategy.find((i:any)=>{return i.id===rowId}));
+        setEditedRow(strategy.find((i: any) => {
+            return i.id === rowId
+        }));
         setIsRemoveModal(true);
+    }
+
+    const renderDescriptionModal = () => {
+        const text = `{"direction": "{{strategy.order.action}}",
+                "name":"${showDescriptionModal.name}",
+                "userName":"${userName}",
+                "ticker": "RIH3",
+                "quantity": "{{strategy.position_size}}",
+                "consumer": ["test"],
+                "priceTv":"{{strategy.order.price}}"}`;
+        return <ModalView header={'Как добавить стратегию в Tradingview:'} show={showDescriptionModal.show}
+                          cancel={() => {
+                              setShowDescriptionModal({show: false, name: undefined})
+                          }} text={<div>
+            <h6 className="mt-3">Как мне создать оповещения для стратегии?</h6>
+            <ul>
+                <li>Нажать на <em>Добавить оповещение</em> в панели <em dir="ltr">Тестера стратегий.</em><br/>
+                    <img style={{width: 434, maxHeight: 100}}
+                         src="https://s3.amazonaws.com/cdn.freshdesk.com/data/helpdesk/attachments/production/43379926138/original/4XPI1kKX4FBOhwhvmKYybJPz3xhgXJKP2Q.jpg?1671202826"
+                         alt="альтернативный текст"/>
+                </li>
+                <li>Воспользоваться кнопкой <em>Добавить оповещение для&nbsp;</em>в выпадающем меню стратегии.<br/>
+                    <img style={{width: 434, maxHeight: 300}}
+                         src="https://s3.amazonaws.com/cdn.freshdesk.com/data/helpdesk/attachments/production/43379926209/original/sHYLtSKfhC0C-lJfgUJvX21ivo21maS8sA.jpg?1671202839"/>
+                </li>
+                <li>Выбрать свою стратегию в диалоговом окне создания оповещений.<br/>
+                    <img style={{width: 434, maxHeight: 480}}
+                         src="https://s3.amazonaws.com/cdn.freshdesk.com/data/helpdesk/attachments/production/43379926246/original/BNHxg5elv4wUq_R5vih05E9FTlZ__yNx1w.jpg?1671202849"/>
+                </li>
+                <li>
+                    Поле <em>Message</em> заполнить текстом ниже. <br/>
+                    <div className="mt-2 text-bg-success">{text}|</div>
+                    <br/>
+                    <Button className="me-2" onClick={(e: any) => {
+                        void navigator.clipboard.writeText(text);
+                        const x = document.getElementById('test');
+                        x!.innerText = 'Скопировано!'
+                    }} variant={"outline-success"}>
+                        Скопировать
+                    </Button>
+                    <span id="test"/>
+                </li>
+            </ul>
+        </div>}/>
     }
 
     return <>
         {showModal && renderEditModal()}
+        {showDescriptionModal.show && renderDescriptionModal()}
         {renderRemoveModal()}
-        {showGraph.show&&(<ModalView
+        {showGraph.show && (<ModalView
             show={showGraph.show}
-            cancel={()=>setShowGraph({show:false, idStrategy: undefined})}
+            cancel={() => setShowGraph({show: false, idStrategy: undefined})}
             header={'График доходности'}
-            text={<Chart data={calcDataForGraphProfit(strategy.find(i=>i.id===showGraph.idStrategy)!.orders!).graphResult}/>}
+            text={<Chart
+                data={calcDataForGraphProfit(strategy.find(i => i.id === showGraph.idStrategy)!.orders!).graphResult}/>}
         />)}
         <Button
+            style={{width:242}}
             className={"mb-1 ms-3"}
             onClick={handleAddRow}
             variant={"outline-secondary"}
@@ -210,7 +260,8 @@ const MyTable: React.FC = () => {
             <Icon icon={'bi bi-plus-square'} size={15} title={''} text={' Добавить стратегию'}/>
         </Button>
         <br/>
-        <Table style={{color: "rgb(140, 144, 154)"}} className={"ms-3 w-75"} bordered variant="outline">
+        <Table style={{color: "rgb(140, 144, 154)"}} className={"ms-3 w-75"} bordered
+               variant="outline">
             <thead>
             <tr key={"header"}>
                 {columns.map((column) => {
@@ -250,6 +301,10 @@ const MyTable: React.FC = () => {
                             }}
                         />
                     </td>
+                    <td style={row.currentPosition ? (row.currentPosition > 0 ? {backgroundColor: "lightgreen"} : row.currentPosition < 0 ? {backgroundColor: "lightpink"} : {backgroundColor: "lightgreen"}) : undefined}
+                        className={"align-middle text-center"}>
+                        {row.currentPosition || 0}
+                    </td>
                     <td>
                         <ButtonGroup className={"me-2"}>
                             <Button
@@ -261,16 +316,25 @@ const MyTable: React.FC = () => {
                                 <Icon icon={"bi bi-pencil-square"} size={15} title={''}/>
                             </Button>
                         </ButtonGroup>
-                        <ButtonGroup  className={"me-2"}>
+                        <ButtonGroup className={"me-2"}>
                             <Button onClick={() => {
                                 handleRemove(row?.id)
                             }} variant={"outline-danger"}>
                                 <Icon icon={"bi bi-trash"} size={15} title={''}/>
                             </Button>
                         </ButtonGroup>
-                        <ButtonGroup>
-                            <Button onClick={() => {setShowGraph({show:true, idStrategy: row.id})}} variant={"dark"}>
+                        <ButtonGroup className={"me-2"}>
+                            <Button onClick={() => {
+                                setShowGraph({show: true, idStrategy: row.id})
+                            }} variant={"dark"}>
                                 <Icon icon={"bi bi-graph-up"} size={15} title={'View Chart'}/>
+                            </Button>
+                        </ButtonGroup>
+                        <ButtonGroup>
+                            <Button onClick={() => {
+                                setShowDescriptionModal({show: true, name: row.name})
+                            }} variant={"dark"}>
+                                <Icon icon={"bi bi-info-circle"} size={15} title={''}/>
                             </Button>
                         </ButtonGroup>
                     </td>

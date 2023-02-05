@@ -3,7 +3,7 @@ import {Button, Modal} from "react-bootstrap";
 interface IProps {
     show: boolean;
     accept?: () => void;
-    cancel: () => void;
+    cancel?: () => void;
     text: JSX.Element | string;
     header?:string;
 }
@@ -12,9 +12,7 @@ const ModalView = (props: IProps) => {
 
     return (
         <>
-            <Modal show={props.show} onHide={() => {
-                props.cancel();
-            }}>
+            <Modal show={props.show} onHide={props.cancel&&(()=>{props.cancel?.()})}>
                 <Modal.Header style={{
                     backgroundColor: "#212529",
                     color: "#dee2e6"
@@ -29,11 +27,11 @@ const ModalView = (props: IProps) => {
                     backgroundColor: "#212529",
                     color: "#dee2e6"
                 }}>
-                    <Button variant="outline-light" onClick={() => {
-                        props.cancel();
+                    {props.cancel&&(<Button variant="outline-light" onClick={() => {
+                        props.cancel?.();
                     }}>
                         Отмена
-                    </Button>
+                    </Button>)}
                     <Button variant="outline-success" onClick={() => {
                         props.accept?.();
                     }}>

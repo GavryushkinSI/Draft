@@ -15,11 +15,11 @@ a:focus {
 
 .navbar {
     padding: 15px 10px;
-    background: #fff;
     border: none;
     border-radius: 0;
     margin-bottom: 40px;
     box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+    background-color: rgb(30 30 47 / 92%)!important;
 }
 
 .navbar-btn {
@@ -139,7 +139,7 @@ a.article:hover {
     padding: 20px;
     min-height: 100vh;
     transition: all 0.3s;
-    background-color: hsl(216deg 98% 52% / 25%);
+    background-color: #2e32df12;
 }
 
 /* ---------------------------------------------------

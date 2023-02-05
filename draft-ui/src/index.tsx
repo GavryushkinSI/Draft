@@ -11,6 +11,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css"
 import notificationReducer, {INotificationState} from "./reducers/notificationReducers";
 import {IStrategy} from "./models/models";
+import "./styles/notification.css";
 
 const initial = {
     data: [],

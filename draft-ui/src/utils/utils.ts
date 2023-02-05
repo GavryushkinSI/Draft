@@ -1,4 +1,4 @@
-import {max, min, sum} from "lodash";
+import {isEmpty, max, min, sum} from "lodash";
 import {IBackTestResultStartegy} from "../models/models";
 import moment from "moment";
 import {closeStrategy, trendMagicStrategy} from "../strategies/strategy";
@@ -242,16 +242,30 @@ export function calcDataForGraphProfit(orders: any[]) {
         return res;
     }, {});
 
-    let graphResult:any[] = [];
+    let graphResult: any[] = [];
     for (let i = 0; i < result.length; i++) {
-        if(graphResult[i-1]?.y) {
-            graphResult.push({x:i+1,label: moment(result[i].date).format('DD-MM hh:mm:ss'), y: graphResult[i - 1].y + result[i].profit});
-        }else{
-            graphResult.push({x:i+1,label: moment(result[i].date).format('DD-MM hh:mm:ss'), y: result[i].profit});
+        if (graphResult[i - 1]?.y) {
+            graphResult.push({
+                x: i + 1,
+                label: moment(result[i].date).format('DD-MM hh:mm:ss'),
+                y: graphResult[i - 1].y + result[i].profit
+            });
+        } else {
+            graphResult.push({x: i + 1, label: moment(result[i].date).format('DD-MM hh:mm:ss'), y: result[i].profit});
         }
     }
 
     return {result, graphResult};
+}
+
+/**
+ * Обрезать строку
+ * @param str строка
+ * @param length количество символов после которых обрезать строку
+ */
+export function stringTruncate(str: string, length: number): string {
+    const dots = str.length > length ? '...' : '';
+    return str.substring(0, length) + dots;
 }
 
 

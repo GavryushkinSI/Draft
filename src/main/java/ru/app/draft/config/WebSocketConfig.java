@@ -7,17 +7,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import ru.app.draft.models.LastPrice;
 import ru.app.draft.models.UserCache;
 import ru.app.draft.services.ApiService;
 import ru.tinkoff.piapi.core.InvestApi;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import static ru.app.draft.store.Store.USER_STORE;
+import static ru.app.draft.store.Store.*;
 
 @Log4j2
 @Configuration
@@ -40,8 +41,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     public InvestApi createApi(@Value("${token}") String token, @Qualifier("apiService") ApiService apiService) {
         InvestApi api = InvestApi.createSandbox(token);
-        USER_STORE.put("Test", new UserCache());
+//        USER_STORE.put("Test", new UserCache());
+        COMMON_INFO.put("Notifications", new ArrayList<>());
         List<String> tickers = apiService.getFigi(api, List.of("RIH3"));
+        LAST_PRICE.put("RIH3", new LastPrice(null, null));
 //        apiService.getHistoryByFigi(api, tickers);
 //        //Подписываемся на свечи
         apiService.setSubscriptionOnCandle(api, tickers);

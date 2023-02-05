@@ -7,11 +7,12 @@ interface IProps {
     title:string;
     text?:string;
     color?:any;
+    onClick?:any;
 }
 
 const Icon = (props: IProps) => {
     const [isHover, setIsHover] = useState(false);
-    return <i title={props.title} style={{fontSize: props.size, fontStyle:"normal", color:props.color, borderRadius:"unset"}} className={props.icon}
+    return <i onClick={props.onClick} title={props.title} style={{fontSize: props.size, fontStyle:"normal", color:props.color, borderRadius:"unset"}} className={props.icon}
               onMouseEnter={() => {
                   setIsHover(true)
               }}

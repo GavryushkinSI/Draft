@@ -13,14 +13,19 @@ import java.util.*;
 public class UserCache {
     private Map<String, Long> map = new HashMap<>();
     private List<Strategy> strategies = new ArrayList<>();
-    private List<String> logs=new ArrayList<>();
+    private List<String> logs = new ArrayList<>();
     private Timestamp updateTime;
+    private User user;
 
-    public void addLogs(String log){
+    public UserCache(User user) {
+        this.user = user;
+    }
+
+    public void addLogs(String log) {
         logs.add(log);
     }
 
-    public UserCache clearLog(){
+    public UserCache clearLog() {
         logs.clear();
         return this;
     }

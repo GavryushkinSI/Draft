@@ -28,6 +28,7 @@ export interface IStrategy {
     figi?: string;
     orders?:any[];
     priceTv?:string;
+    currentPosition?:number;
 }
 
 export enum EProducer {

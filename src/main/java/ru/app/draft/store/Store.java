@@ -37,6 +37,16 @@ public class Store {
             .<String, Strategy>build()
             .asMap();
 
+    public final static ConcurrentMap<String, List<Notification>> COMMON_INFO = CacheBuilder.newBuilder()
+            .maximumSize(100)
+            .<String, List<Notification>>build()
+            .asMap();
+
+    public final static ConcurrentMap<String, LastPrice> LAST_PRICE = CacheBuilder.newBuilder()
+            .maximumSize(100)
+            .<String, LastPrice>build()
+            .asMap();
+
     public static void updateLastPrice(Long newValue, Timestamp time) {
         USER_STORE.computeIfPresent("Test", (s, data) -> {
             Map<String, Long> map = data.getMap();

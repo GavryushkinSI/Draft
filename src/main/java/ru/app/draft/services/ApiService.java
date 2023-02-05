@@ -1,9 +1,6 @@
 package ru.app.draft.services;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import ru.app.draft.annotations.Audit;
 import ru.app.draft.models.*;
@@ -18,8 +15,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static ru.app.draft.store.Store.*;
 
@@ -31,8 +26,6 @@ public class ApiService {
     private final MarketDataStreamService streamService;
 
     public volatile static long balance = 0L;
-    public volatile static List<Order> orders = new ArrayList<>();
-    public volatile static List<Long> result = new ArrayList<>();
 
     public ApiService(MarketDataStreamService streamService) {
         this.streamService = streamService;
@@ -63,6 +56,7 @@ public class ApiService {
             } else if (response.hasTrade()) {
 //                log.info("Новые данные по сделкам: {}", response);
             } else if (response.hasLastPrice()) {
+                log.info("last price");
                 LastPrice lastPrice = response.getLastPrice();
                 updateLastPrice(lastPrice.getPrice().getUnits(), lastPrice.getTime());
 //                Message message = new Message();
@@ -100,13 +94,25 @@ public class ApiService {
             } else if (response.hasSubscribeLastPriceResponse()) {
                 var successCount = response.getSubscribeLastPriceResponse().getLastPriceSubscriptionsList().stream().filter(el -> el.getSubscriptionStatus().equals(SubscriptionStatus.SUBSCRIPTION_STATUS_SUCCESS)).count();
                 var errorCount = response.getSubscribeLastPriceResponse().getLastPriceSubscriptionsList().stream().filter(el -> !el.getSubscriptionStatus().equals(SubscriptionStatus.SUBSCRIPTION_STATUS_SUCCESS)).count();
+                if (successCount > 0) {
+                    COMMON_INFO.computeIfPresent("NOTIFICATIONS", (s, data) -> {
+                        data.add(new Notification("Стрим подключен!", "info", Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).getTime().toString()));
+                        return data;
+                    });
+                }
                 log.info("удачных подписок на последние цены: {}", successCount);
                 log.info("неудачных подписок на последние цены: {}", errorCount);
             }
         };
 
 //        api.getMarketDataStreamService().newStream("candles_stream", processor, log::error).subscribeCandles(figs);
-        api.getMarketDataStreamService().newStream("last_price_stream", processor, log::error).subscribeLastPrices(figs);
+        api.getMarketDataStreamService().newStream("last_price_stream", processor, message -> {
+            log.error(String.format("Error stream: %s", message));
+            COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
+                data.add(new Notification("Стрим разорван: "+message, "error", Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).getTime().toString()));
+                return data;
+            });
+        }).subscribeLastPrices(figs);
     }
 
     public void getHistoryByFigi(InvestApi api, List<String> figs) {
@@ -195,7 +201,7 @@ public class ApiService {
                 for (int i = 1; i <= Math.abs(position / minLot); i++) {
                     changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
                 }
-                userCache.addLogs(String.format("Покупка %s лотов по цене %s (priceTV:%s). Время %s.", Math.abs(position),v,strategy.getPriceTv(), time));
+                userCache.addLogs(String.format("Покупка %s лотов по цене %s (priceTV:%s). Время %s.", Math.abs(position), v, strategy.getPriceTv(), time));
             }
             if (strategy.getDirection().equals("sell")) {
                 long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
@@ -204,13 +210,13 @@ public class ApiService {
                 for (int i = 1; i <= Math.abs(position / minLot); i++) {
                     changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
                 }
-                userCache.addLogs(String.format("Продажа %s лотов по цене %s (priceTV:%s). Время %s.", Math.abs(position),v,strategy.getPriceTv(), time));
+                userCache.addLogs(String.format("Продажа %s лотов по цене %s (priceTV:%s). Время %s.", Math.abs(position), v, strategy.getPriceTv(), time));
             }
             if (strategy.getDirection().equals("hold")) {
                 if (changingStrategy.getCurrentPosition() != 0) {
                     long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
                     Date time = new Date();
-                    userCache.addLogs(String.format(changingStrategy.getCurrentPosition() < 0 ? "Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "Продажа %s лотов по цене %s (priceTV:%s). Время %s.", Math.abs(position),v,strategy.getPriceTv(), time));
+                    userCache.addLogs(String.format(changingStrategy.getCurrentPosition() < 0 ? "Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "Продажа %s лотов по цене %s (priceTV:%s). Время %s.", Math.abs(position), v, strategy.getPriceTv(), time));
                     changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
                     for (int i = 1; i <= Math.abs(position / minLot); i++) {
                         changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
@@ -293,6 +299,8 @@ public class ApiService {
         AccountDto accountDto = new AccountDto(listAccount.get(0).getId(), portfolioResponse.getTotalAmountCurrencies().getUnits());
         accountDto.setLogs(userCache.getLogs());
         accountDto.setLastPrice(USER_STORE.get("Test").getMap().get("RIH3"));
+        accountDto.setLastTimeUpdate(USER_STORE.get("Test").getUpdateTime() != null ? new SimpleDateFormat("MM/dd/yyyy HH:mm:ss").format(new java.util.Date(USER_STORE.get("Test").getUpdateTime().getSeconds() * 1000)) : null);
+        accountDto.setNotifications(COMMON_INFO.get("Notifications"));
 
 //        if (positionsResponse.getSecuritiesCount() != 0) {
 //            PositionsSecurities positionsSecurities = positionsResponse.getSecurities(0);

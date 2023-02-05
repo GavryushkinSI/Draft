@@ -21,6 +21,10 @@ export class Service {
         }
     }
 
+    public login(auth: any): Promise<any> {
+        return http.post('/login', {login: auth.login, password: auth.password});
+    }
+
     public setLoading(isLoading: boolean) {
         this.dispatch({type: EActionTypes.SET_IS_LOADING, payload: isLoading});
     }
@@ -29,12 +33,18 @@ export class Service {
         http.get('/test').then((i: any) => console.log(i)).catch((errors: any) => console.log(errors));
     }
 
-    public getUserInfo(userName:string) {
+    public getUserInfo(userName: string) {
         http.get(`/getUserInfo/${userName}`)
             .then((response: any) => {
                     this.dispatch({type: EActionTypes.GET_USER_INFO, payload: response.data[0]});
                 }
             ).catch((errors: any) => console.log(errors));
+    }
+
+    public reconnectStream(successCallback?: () => void, failCallback?: (error: any) => void) {
+        http.get(`/reconnect`).then(() => {
+            successCallback && successCallback()
+        }).catch((errors: any) => console.log(errors));
     }
 
     public getAllStrategyByUserName(userName: string, failCallback?: (error: any) => void) {
@@ -46,7 +56,7 @@ export class Service {
             ).catch((errors: any) => failCallback && failCallback(errors?.message));
     }
 
-    public addOrUpdateStrategy(userName:string,strategy: IStrategy, successCallback?: () => void, failCallback?: (error: any) => void) {
+    public addOrUpdateStrategy(userName: string, strategy: IStrategy, successCallback?: () => void, failCallback?: (error: any) => void) {
         http.post(`/editStrategy/${userName}`, strategy)
             .then((response: any) => {
                 successCallback && successCallback();
@@ -55,7 +65,7 @@ export class Service {
             .catch((errors: any) => failCallback && failCallback(errors?.message));
     }
 
-    public removeStrategy(userName:string,name: string, successCallback?: () => void, failCallback?: (error: any) => void) {
+    public removeStrategy(userName: string, name: string, successCallback?: () => void, failCallback?: (error: any) => void) {
         http.post(`/deleteStrategy/${userName}/${name}`, undefined)
             .then((response: any) => {
                     successCallback && successCallback();
@@ -69,12 +79,13 @@ export class Service {
         http.post(`/tv`, {...strategy, consumer: [EConsumer.TEST]})
             .then(() => {
                     successCallback && successCallback();
+                    this.getAllStrategyByUserName(strategy.userName!);
                 }
             )
             .catch((errors: any) => failCallback && failCallback(errors?.message));
     }
 
-    public clear(userName:string,successCallback?: () => void, failCallback?: (error: any) => void) {
+    public clear(userName: string, successCallback?: () => void, failCallback?: (error: any) => void) {
         http.get(`/clear/${userName}`)
             .then(() => {
                     successCallback && successCallback();
