@@ -32,11 +32,11 @@ const ModalView = (props: IProps) => {
                     }}>
                         Отмена
                     </Button>)}
-                    <Button variant="outline-success" onClick={() => {
+                    {props.accept&&(<Button variant="outline-success" onClick={() => {
                         props.accept?.();
                     }}>
                         ОК
-                    </Button>
+                    </Button>)}
                 </Modal.Footer>)}
             </Modal>
         </>

@@ -1,16 +1,14 @@
 package ru.app.draft.models;
 
+import com.google.protobuf.Timestamp;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.Date;
 
 @Getter
 @Setter
 @AllArgsConstructor
 public class LastPrice {
-
     Long price;
-    Date updateTime;
+    Timestamp updateTime;
 }

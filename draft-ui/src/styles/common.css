@@ -74,12 +74,57 @@ body {
 }
 
 .modal-header, .modal-body, .modal-footer {
-    background-color: rgb(30 30 47 / 92%)!important;
+    background-color: rgb(30 30 47 / 92%) !important;
 }
 
 .bg-custom-1 {
-    background-color: rgb(30 30 47 / 92%)!important;
+    background-color: rgb(30 30 47 / 92%) !important;
 }
-.bg-custom-2{
-background-color: rgb(13 110 253 / 25%)!important;
+
+.bg-custom-2 {
+    background-color: hwb(0deg 0% 100% / 8%) !important;
+}
+
+@media screen and (max-width: 500px) {
+    .test {
+        max-width: 410px;
+        max-height: 500px;
+        overflow: auto;
+    }
+}
+
+.css-13cymwt-control {
+    top: 3px;
+    max-height: 38px;
+}
+
+.css-qbdosj-Input {
+    padding-bottom: 0 !important;
+    padding-top: 0 !important;
+}
+
+.btn-primary {
+    --bs-btn-bg: none !important;
+    --bs-btn-border-color: none !important;
+    --bs-btn-hover-bg: none !important;
+    --bs-btn-focus-shadow-rgb: none !important;
+    --bs-btn-active-bg: none !important;
+    --bs-btn-hover-color: rgba(24, 156, 234, 0.64) !important;
+}
+
+.custom-text {
+    color: rgb(140, 144, 154) !important;
+}
+
+.css-10wo9uf-option{
+    color:black!important;
+}
+
+.css-1nmdiq5-menu{
+    color:black!important;
+}
+
+.offcanvas-body{
+    overflow-y: unset!important;
+    height: 550px!important;
 }

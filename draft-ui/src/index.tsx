@@ -26,6 +26,7 @@ export enum EActionTypes {
     SET_LAST_TIME_UPDATE = "SET_LAST_TIME_UPDATE",
     SET_LAST_PRICE = "SET_LAST_PRICE",
     GET_USER_INFO="GET_USER_INFO",
+    GET_TICKER="GET_TICKER",
 }
 
 /**
@@ -74,6 +75,19 @@ const reducer2 = (state = {data: null}, action: IAction): any => {
     }
 }
 
+const tickerReducer = (state = {data: null}, action: IAction): any => {
+    switch (action.type) {
+        case EActionTypes.GET_TICKER: {
+            return {
+                ...state,
+                data: action.payload,
+            };
+        }
+        default:
+            return state;
+    }
+}
+
 /**
  * @prop type Тип экшена.
  */
@@ -87,6 +101,7 @@ export interface IAppState {
     renko: any;
     user:any;
     lastPrice: any;
+    ticker:any;
     notifications: INotificationState;
     strategy: any;
 }
@@ -139,7 +154,9 @@ const configureStore = () => {
     return {
         ...createStore<IAppState, TAction, unknown, unknown>(
             combineReducers<IAppState>({
-                renko: reducer, lastPrice: reducer2,
+                renko: reducer,
+                lastPrice: reducer2,
+                ticker:tickerReducer,
                 notifications: notificationReducer,
                 strategy: strategyReducer,
                 user:userReducer,

@@ -1,7 +1,7 @@
-import React, {Dispatch, useState} from "react";
+import React, {Dispatch, useMemo, useState} from "react";
 import Icon from "./Icon";
 import {Button, ButtonGroup, Col, Form, Offcanvas, Row, Table} from "react-bootstrap";
-import {EProducer, IStrategy} from "../../models/models";
+import {EConsumer, EProducer, IStrategy} from "../../models/models";
 import ModalView from "./ModalView";
 import {useDispatch, useSelector} from "react-redux";
 import {addNotification} from "../../actions/notificationActions";
@@ -9,8 +9,9 @@ import {IAppState} from "../../index";
 import {useActions} from "../../hooks/hooks";
 import {Service} from "../../services/Service";
 import {isEmpty} from "lodash";
-import {calcDataForGraphProfit} from "../../utils/utils";
+import {calcDataForGraphProfit, copyTextToClipboard} from "../../utils/utils";
 import {Chart} from "../Chart";
+import SelectFilter from "./SelectFilter";
 
 const columns = [
     {field: 'id', fieldName: '№'},
@@ -20,6 +21,7 @@ const columns = [
     {field: 'consumer', fieldName: 'Получатель'},
     {field: 'status', fieldName: 'Статус'},
     {field: 'currentPosition', fieldName: 'Текущая позиция'},
+    {filed: 'fixProfit', fieldName: 'Тек. доход'},
     {field: '', fieldName: ''},
 ];
 
@@ -43,6 +45,7 @@ const MyTable: React.FC = () => {
 
     const handleChangeEdit = (e: any, rowId?: any) => {
         const {name, value} = e.target;
+        console.log(name, value);
         if (name === 'isActive') {
             let changedRow: IStrategy = strategy.find(i => i.id === rowId)!;
             actions.addOrUpdateStrategy(userName!, {...changedRow, [name]: !changedRow?.isActive}, () => {
@@ -51,10 +54,15 @@ const MyTable: React.FC = () => {
         } else {
             if (!value) {
                 setValidation({...validation, [name]: 'Поле обязательно для заполнения!'});
+                setEditedRow({...editedRow, [name]: value});
                 return;
             }
             if (name === 'name' && (!!strategy.find(i => i.name === value))) {
                 setValidation({...validation, [name]: 'Такое наименование уже есть!'});
+                return;
+            }
+            if (name === 'customer-test') {
+                setEditedRow({...editedRow, customer: [EConsumer.TEST]});
                 return;
             }
             setValidation({...validation, [name]: undefined});
@@ -85,7 +93,7 @@ const MyTable: React.FC = () => {
     const renderRemoveModal = () => {
         return <Row>
             <Col className={'pt-2'}>
-                {showRemoveModal && <ModalView text={'Вы действительно хотите удалить стратегию?'} show={true}
+                {showRemoveModal && <ModalView text={`Вы действительно хотите удалить стратегию?`} show={true}
                                                accept={acceptRemove} cancel={() => {
                     setIsRemoveModal(false)
                 }}/>}
@@ -103,7 +111,7 @@ const MyTable: React.FC = () => {
                               setIsShowModal(false)
                           }}>
             <Offcanvas.Header closeButton>
-                <Offcanvas.Title>{`Редактирование стратегии №:${editedRow?.id}`}</Offcanvas.Title>
+                <Offcanvas.Title>{editedRow.id?`Редактирование стратегии №:${editedRow.id}`:'Добавление новой стратегии'}</Offcanvas.Title>
             </Offcanvas.Header>
             <Offcanvas.Body>
                 <Form>
@@ -122,18 +130,11 @@ const MyTable: React.FC = () => {
                         isInvalid={!isEmpty(validation?.name)}
                     />
                     <Form.Control.Feedback type="invalid">{validation.name}</Form.Control.Feedback>
-                    <br/>
-                    <Form.Control
-                        style={{width: 300}}
-                        name='ticker'
-                        defaultValue={editedRow?.ticker}
-                        onChange={handleChangeEdit}
-                        type="text"
-                        placeholder="Тикер"
-                        isInvalid={!isEmpty(validation?.ticker)}
-                    />
-                    <Form.Control.Feedback type="invalid">{validation.ticker}</Form.Control.Feedback>
-                    <br/>
+                    <SelectFilter value={editedRow?.ticker ? {value: editedRow.ticker, label: editedRow.ticker} : null}
+                                  onChange={handleChangeEdit} errorMsg={validation.ticker}/>
+                    <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
+                        <Form.Control placeholder={'Описание стратегии'} as="textarea" rows={3}/>
+                    </Form.Group>
                     <Form.Check
                         type="switch"
                         name='customer-terminal'
@@ -145,9 +146,11 @@ const MyTable: React.FC = () => {
                     <Form.Check
                         type="switch"
                         name='customer-test'
-                        id="custom-switch"
+                        id="custom2-switch"
                         onChange={handleChangeEdit}
                         label="Эмуляция"
+                        disabled
+                        checked
                     />
                     <br/>
                     <Button className={"me-2"} variant="outline-light" onClick={() => {
@@ -171,8 +174,8 @@ const MyTable: React.FC = () => {
             ticker: '',
             position: 0,
             slippage: 0,
-            consumer: [],
-            isActive: false,
+            consumer: [EConsumer.TEST],
+            isActive: true,
         });
         setValidation({
             name: 'Поле обязательно для заполнения!',
@@ -228,7 +231,7 @@ const MyTable: React.FC = () => {
                     <div className="mt-2 text-bg-success">{text}|</div>
                     <br/>
                     <Button className="me-2" onClick={(e: any) => {
-                        void navigator.clipboard.writeText(text);
+                        void copyTextToClipboard(text);
                         const x = document.getElementById('test');
                         x!.innerText = 'Скопировано!'
                     }} variant={"outline-success"}>
@@ -240,6 +243,8 @@ const MyTable: React.FC = () => {
         </div>}/>
     }
 
+    const calcChart = calcDataForGraphProfit(strategy);
+
     return <>
         {showModal && renderEditModal()}
         {showDescriptionModal.show && renderDescriptionModal()}
@@ -248,11 +253,12 @@ const MyTable: React.FC = () => {
             show={showGraph.show}
             cancel={() => setShowGraph({show: false, idStrategy: undefined})}
             header={'График доходности'}
-            text={<Chart
-                data={calcDataForGraphProfit(strategy.find(i => i.id === showGraph.idStrategy)!.orders!).graphResult}/>}
+            text={<Chart data={calcChart.find((i: any) => {
+                return i.id === Number(showGraph.idStrategy)
+            })?.graphResult || []}/>}
         />)}
         <Button
-            style={{width:242}}
+            style={{width: 240}}
             className={"mb-1 ms-3"}
             onClick={handleAddRow}
             variant={"outline-secondary"}
@@ -304,6 +310,11 @@ const MyTable: React.FC = () => {
                     <td style={row.currentPosition ? (row.currentPosition > 0 ? {backgroundColor: "lightgreen"} : row.currentPosition < 0 ? {backgroundColor: "lightpink"} : {backgroundColor: "lightgreen"}) : undefined}
                         className={"align-middle text-center"}>
                         {row.currentPosition || 0}
+                    </td>
+                    <td className={"align-middle text-center"}>
+                        {calcChart.find((i: any) => {
+                            return i.id === Number(row.id)
+                        })?.graphResult?.slice(-1)[0]?.y || 0}
                     </td>
                     <td>
                         <ButtonGroup className={"me-2"}>

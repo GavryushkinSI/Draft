@@ -17,12 +17,12 @@ const Notifications: React.FC = () => {
 
     const notificationList = notifications.map((notification, index) => {
         return (<Toast key={notification.id} className="mb-1" onClose={()=>{closeNotification(notification.id)}} delay={3000} autohide>
-            <Toast.Header>
+            <Toast.Header style={{backgroundColor:"rgb(30 30 47 / 92%)"}}>
                 <img src="holder.js/20x20?text=%20" className="rounded me-2" alt="" />
                 <strong className="me-auto">{notification.title}</strong>
                 <small>{notification.date.toLocaleTimeString(navigator.language, { hour: '2-digit', minute: '2-digit' })}</small>
             </Toast.Header>
-            <Toast.Body>{notification.text}</Toast.Body>
+            <Toast.Body style={{backgroundColor:"#2e32df12"}}>{notification.text}</Toast.Body>
         </Toast>)
     });
 

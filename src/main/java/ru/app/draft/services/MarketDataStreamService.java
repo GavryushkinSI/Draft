@@ -17,11 +17,7 @@ public class MarketDataStreamService {
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
-    public void sendDataToUser(Map<String, UserCache> activeUsers, Message message) {
-//        if (activeUsers.size() != 0) {
-//            activeUsers.forEach((k, v) -> {
-//                simpMessagingTemplate.convertAndSendToUser(v.getUserName(), "/private", message);
-//            });
-//        }
+    public void sendDataToUser(String userName, Message message) {
+        simpMessagingTemplate.convertAndSendToUser(userName, "/private", message);
     }
 }

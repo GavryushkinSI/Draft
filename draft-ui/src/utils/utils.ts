@@ -1,5 +1,5 @@
 import {isEmpty, max, min, sum} from "lodash";
-import {IBackTestResultStartegy} from "../models/models";
+import {IBackTestResultStartegy, IStrategy} from "../models/models";
 import moment from "moment";
 import {closeStrategy, trendMagicStrategy} from "../strategies/strategy";
 
@@ -214,48 +214,54 @@ function applyStrategy(strategy: string, data: any[], paramsTs: any, isCommissio
     }
 }
 
-export function calcDataForGraphProfit(orders: any[]) {
-    const buy = orders.filter(i => i.direction === 'buy');
-    const sell = orders.filter(i => i.direction === 'sell');
+export function calcDataForGraphProfit(strategy:any[]) {
+    const total: { id: number; result: any[]; graphResult: any[]; }[]=[];
+    strategy.forEach((item:IStrategy, index)=>{
+        const orders=item?.orders||[];
+        const buy = orders.filter(i => i.direction === 'buy');
+        const sell = orders.filter(i => i.direction === 'sell');
 
-    const len = buy.length > sell.length ? sell.length : buy.length;
-    let array = [];
-    for (let i = 0; i < len; i++) {
-        array.push({
-            openDate: moment(buy[i].date) > moment(sell[i].date) ? sell[i].date : buy[i].date,
-            closeDate: moment(buy[i].date) > moment(sell[i].date) ? buy[i].date : sell[i].date,
-            profit: buy[i].price * (-1) + sell[i].price,
-        });
-    }
-
-    let result: any[] = [];
-    array.reduce((res, value) => {
-        // @ts-ignore
-        if (!res[value.closeDate]) {
-            // @ts-ignore
-            res[value.closeDate] = {closeDate: value.closeDate, profit: 0};
-            // @ts-ignore
-            result.push(res[value.closeDate])
-        }
-        // @ts-ignore
-        res[value.closeDate].profit += value.profit;
-        return res;
-    }, {});
-
-    let graphResult: any[] = [];
-    for (let i = 0; i < result.length; i++) {
-        if (graphResult[i - 1]?.y) {
-            graphResult.push({
-                x: i + 1,
-                label: moment(result[i].date).format('DD-MM hh:mm:ss'),
-                y: graphResult[i - 1].y + result[i].profit
+        const len = buy.length > sell.length ? sell.length : buy.length;
+        let array = [];
+        for (let i = 0; i < len; i++) {
+            array.push({
+                openDate: moment(buy[i].date) > moment(sell[i].date) ? sell[i].date : buy[i].date,
+                closeDate: moment(buy[i].date) > moment(sell[i].date) ? buy[i].date : sell[i].date,
+                profit: buy[i].price * (-1) + sell[i].price,
             });
-        } else {
-            graphResult.push({x: i + 1, label: moment(result[i].date).format('DD-MM hh:mm:ss'), y: result[i].profit});
         }
-    }
 
-    return {result, graphResult};
+        let result: any[] = [];
+        array.reduce((res, value) => {
+            // @ts-ignore
+            if (!res[value.closeDate]) {
+                // @ts-ignore
+                res[value.closeDate] = {closeDate: value.closeDate, profit: 0};
+                // @ts-ignore
+                result.push(res[value.closeDate])
+            }
+            // @ts-ignore
+            res[value.closeDate].profit += value.profit;
+            return res;
+        }, {});
+
+        let graphResult: any[] = [];
+        for (let i = 0; i < result.length; i++) {
+            if (graphResult[i - 1]?.y) {
+                graphResult.push({
+                    x: i + 1,
+                    label: moment(result[i].closeDate).format('DD-MM hh:mm:ss'),
+                    y: graphResult[i - 1].y + result[i].profit
+                });
+            } else {
+                graphResult.push({x: i + 1, label: moment(result[i].closeDate).format('DD-MM hh:mm:ss'), y: result[i].profit});
+            }
+        }
+
+        total.push({id:index, result, graphResult});
+    });
+
+    return total;
 }
 
 /**
@@ -266,6 +272,13 @@ export function calcDataForGraphProfit(orders: any[]) {
 export function stringTruncate(str: string, length: number): string {
     const dots = str.length > length ? '...' : '';
     return str.substring(0, length) + dots;
+}
+export async function copyTextToClipboard(text:string) {
+    if ('clipboard' in navigator) {
+        return await navigator.clipboard.writeText(text);
+    } else {
+        return document.execCommand('copy', true, text);
+    }
 }
 
 

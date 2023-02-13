@@ -7,7 +7,9 @@ import ru.app.draft.models.*;
 import ru.app.draft.models.Order;
 import ru.app.draft.store.Store;
 import ru.tinkoff.piapi.contract.v1.*;
+import ru.tinkoff.piapi.contract.v1.LastPrice;
 import ru.tinkoff.piapi.core.InvestApi;
+import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 import ru.tinkoff.piapi.core.stream.StreamProcessor;
 
 import java.text.SimpleDateFormat;
@@ -15,6 +17,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static ru.app.draft.store.Store.*;
 
@@ -40,6 +43,19 @@ public class ApiService {
         }, ArrayList::addAll);
     }
 
+    public List<Ticker> getAllTickers(InvestApi api) {
+        List<Ticker> tickers = api.getInstrumentsService().getAllFuturesSync().stream().map(i -> new Ticker(i.getTicker(), i.getTicker(),i.getFigi(),i.getClassCode(), i.getLot())).collect(Collectors.toList());
+        tickers.addAll(api.getInstrumentsService()
+                .getAllSharesSync()
+                .stream()
+                .filter(i -> i.getClassCode().equals("TQBR"))
+                .map(i -> new Ticker(i.getTicker(), i.getTicker(),i.getFigi(), i.getClassCode(), i.getLot()))
+                .collect(Collectors.toList()));
+
+        TICKERS.replace("tickers", tickers);
+        return tickers;
+    }
+
     @Audit
     public void setSubscriptionOnCandle(InvestApi api, List<String> figs) {
         StreamProcessor<MarketDataResponse> processor = (response) -> {
@@ -56,9 +72,9 @@ public class ApiService {
             } else if (response.hasTrade()) {
 //                log.info("Новые данные по сделкам: {}", response);
             } else if (response.hasLastPrice()) {
-                log.info("last price");
                 LastPrice lastPrice = response.getLastPrice();
-                updateLastPrice(lastPrice.getPrice().getUnits(), lastPrice.getTime());
+                //log.info("ticker " + lastPrice.getFigi() + " last price: " + lastPrice.getPrice().getUnits() + " " + new SimpleDateFormat("MM/dd/yyyy HH:mm:ss").format(new java.util.Date(lastPrice.getTime().getSeconds() * 1000)));
+                updateLastPrice(lastPrice.getFigi(), lastPrice.getPrice().getUnits(), lastPrice.getTime());
 //                Message message = new Message();
 //                message.setSenderName("server");
 //                message.setMessage(lastPrice.getPrice().getUnits());
@@ -94,25 +110,38 @@ public class ApiService {
             } else if (response.hasSubscribeLastPriceResponse()) {
                 var successCount = response.getSubscribeLastPriceResponse().getLastPriceSubscriptionsList().stream().filter(el -> el.getSubscriptionStatus().equals(SubscriptionStatus.SUBSCRIPTION_STATUS_SUCCESS)).count();
                 var errorCount = response.getSubscribeLastPriceResponse().getLastPriceSubscriptionsList().stream().filter(el -> !el.getSubscriptionStatus().equals(SubscriptionStatus.SUBSCRIPTION_STATUS_SUCCESS)).count();
+                log.info("success subscribe on last price: {}", successCount);
                 if (successCount > 0) {
-                    COMMON_INFO.computeIfPresent("NOTIFICATIONS", (s, data) -> {
-                        data.add(new Notification("Стрим подключен!", "info", Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).getTime().toString()));
+                    COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
+                        data.add(new Notification("Стрим подключен! Тикеры:" + figs, "info_success", Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).getTime().toString()));
                         return data;
                     });
                 }
-                log.info("удачных подписок на последние цены: {}", successCount);
-                log.info("неудачных подписок на последние цены: {}", errorCount);
+                log.info("fail subscribe on last price: {}", errorCount);
             }
         };
 
-//        api.getMarketDataStreamService().newStream("candles_stream", processor, log::error).subscribeCandles(figs);
-        api.getMarketDataStreamService().newStream("last_price_stream", processor, message -> {
-            log.error(String.format("Error stream: %s", message));
+        try {
+            for (String itemFigs : figs) {
+                api.getMarketDataStreamService().newStream(itemFigs, processor, message -> {
+                    throw new RuntimeException(message);
+                }).subscribeLastPrices(figs);
+            }
+        } catch (Exception e) {
+            log.error(String.format("Error stream: %s", e.getMessage()));
+            Map<String, MarketDataSubscriptionService> subscriptionServiceMap = api.getMarketDataStreamService().getAllStreams();
             COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
-                data.add(new Notification("Стрим разорван: "+message, "error", Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).getTime().toString()));
+                data.add(new Notification("Стрим разорван: " + subscriptionServiceMap.size(), "error", Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).getTime().toString()));
+                List<String> reconnectStreamList = new ArrayList<>();
+                LAST_PRICE.forEach((k, v) -> {
+                    if (!subscriptionServiceMap.containsKey(k)) {
+                        reconnectStreamList.add(k);
+                    }
+                });
+                this.setSubscriptionOnCandle(api, reconnectStreamList);
                 return data;
             });
-        }).subscribeLastPrices(figs);
+        }
     }
 
     public void getHistoryByFigi(InvestApi api, List<String> figs) {
@@ -175,15 +204,10 @@ public class ApiService {
         }
     }
 
-    @Audit
     public void sendOrder(InvestApi api, Strategy strategy) {
         //Выставляем заявку
-        var accounts = api.getUserService().getAccountsSync();
-        var mainAccountId = accounts.get(0).getId();
-        var lastPrice = api.getMarketDataService().getLastPricesSync(List.of(strategy.getFigi())).get(0).getPrice();
-        var minPriceIncrement = api.getInstrumentsService().getInstrumentByFigiSync(strategy.getFigi()).getMinPriceIncrement();
-//        var price = Quotation.newBuilder().setUnits(lastPrice.getUnits() - minPriceIncrement.getUnits() * 100)
-//                .setNano(lastPrice.getNano() - minPriceIncrement.getNano() * 100).build();
+//        var accounts = api.getUserService().getAccountsSync();
+//        var mainAccountId = accounts.get(0).getId();
         var price = Quotation.newBuilder().setUnits(0L).setNano(0).build();
         var minLot = 1L;
         UserCache userCache = USER_STORE.get(strategy.getUserName());
@@ -191,8 +215,8 @@ public class ApiService {
         Strategy changingStrategy = strategyList
                 .stream()
                 .filter(str -> str.getName().equals(strategy.getName())).findFirst().get();
-        if (strategy.getConsumer().get(0).equals("test")) {
-            Long v = userCache.getMap().get("RIH3");
+        if (changingStrategy.getConsumer().get(0).equals("test")) {
+            Long v = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
 //            v = Math.abs((long) new Random().nextInt(100));
             if (strategy.getDirection().equals("buy")) {
                 long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
@@ -201,7 +225,7 @@ public class ApiService {
                 for (int i = 1; i <= Math.abs(position / minLot); i++) {
                     changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
                 }
-                userCache.addLogs(String.format("Покупка %s лотов по цене %s (priceTV:%s). Время %s.", Math.abs(position), v, strategy.getPriceTv(), time));
+                userCache.addLogs(String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time));
             }
             if (strategy.getDirection().equals("sell")) {
                 long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
@@ -210,17 +234,17 @@ public class ApiService {
                 for (int i = 1; i <= Math.abs(position / minLot); i++) {
                     changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
                 }
-                userCache.addLogs(String.format("Продажа %s лотов по цене %s (priceTV:%s). Время %s.", Math.abs(position), v, strategy.getPriceTv(), time));
+                userCache.addLogs(String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time));
             }
             if (strategy.getDirection().equals("hold")) {
                 if (changingStrategy.getCurrentPosition() != 0) {
                     long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
                     Date time = new Date();
-                    userCache.addLogs(String.format(changingStrategy.getCurrentPosition() < 0 ? "Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "Продажа %s лотов по цене %s (priceTV:%s). Время %s.", Math.abs(position), v, strategy.getPriceTv(), time));
-                    changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
+                    userCache.addLogs(String.format(changingStrategy.getCurrentPosition() < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "Стратегия %s=>Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time));
                     for (int i = 1; i <= Math.abs(position / minLot); i++) {
-                        changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
+                        changingStrategy.addOrder(new Order(v, minLot, changingStrategy.getCurrentPosition() < 0 ? "buy" : "sell", time));
                     }
+                    changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
                 }
             }
             strategyList.set(Integer.parseInt(changingStrategy.getId()), changingStrategy);
@@ -231,25 +255,26 @@ public class ApiService {
                     strategy.getDirection().equals("sell") ? OrderDirection.ORDER_DIRECTION_SELL : (balance > 0 ? OrderDirection.ORDER_DIRECTION_SELL : OrderDirection.ORDER_DIRECTION_BUY);
             Long quantity = strategy.getDirection().equals("hold") ? Math.abs(balance) : strategy.getQuantity();
             //Выставляем заявку на покупку по лимитной цене
-            var orderId = api.getOrdersService()
-                    .postOrderSync(
-                            strategy.getFigi(),
-                            quantity,
-                            price,
-                            direction,
-                            mainAccountId,
-                            OrderType.ORDER_TYPE_MARKET,
-                            UUID.randomUUID().toString()).getOrderId();
+//            var orderId = api.getOrdersService()
+//                    .postOrderSync(
+//                            strategy.getFigi(),
+//                            quantity,
+//                            price,
+//                            direction,
+//                            mainAccountId,
+//                            OrderType.ORDER_TYPE_MARKET,
+//                            UUID.randomUUID().toString()).getOrderId();
 
-            getOrders(api, mainAccountId);
-            getPosition(api, mainAccountId);
-            getPortfolio(api, mainAccountId);
-//        //Получаем список активных заявок, проверяем наличие нашей заявки в списке
-//        var orders = api.getOrdersService().getOrdersSync(mainAccountId);
-//        if (orders.stream().anyMatch(el -> orderId.equals(el.getOrderId()))) {
-//            log.info("заявка с id {} есть в списке активных заявок", orderId);
-//        }
+//            getOrders(api, mainAccountId);
+//            getPosition(api, mainAccountId);
+//            getPortfolio(api, mainAccountId);
         }
+
+        Message message = new Message();
+        message.setSenderName("server");
+        message.setMessage(userCache.getStrategies());
+        message.setStatus(Status.JOIN);
+        streamService.sendDataToUser(strategy.getUserName(), message);
     }
 
     private static List<OrderState> getOrders(InvestApi api, String accountId) {

@@ -11,12 +11,15 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import ru.app.draft.models.LastPrice;
+import ru.app.draft.models.Notification;
 import ru.app.draft.models.UserCache;
 import ru.app.draft.services.ApiService;
 import ru.tinkoff.piapi.core.InvestApi;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 
 import static ru.app.draft.store.Store.*;
 
@@ -41,14 +44,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     public InvestApi createApi(@Value("${token}") String token, @Qualifier("apiService") ApiService apiService) {
         InvestApi api = InvestApi.createSandbox(token);
-//        USER_STORE.put("Test", new UserCache());
         COMMON_INFO.put("Notifications", new ArrayList<>());
-        List<String> tickers = apiService.getFigi(api, List.of("RIH3"));
-        LAST_PRICE.put("RIH3", new LastPrice(null, null));
-//        apiService.getHistoryByFigi(api, tickers);
-//        //Подписываемся на свечи
-        apiService.setSubscriptionOnCandle(api, tickers);
-
+        COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
+            data.add(new Notification("Привет!..", "info", null));
+            return data;
+        });
+        TICKERS.put("tickers", new ArrayList<>());
+        apiService.getAllTickers(api);
         return api;
     }
 }

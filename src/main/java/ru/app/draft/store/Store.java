@@ -27,14 +27,10 @@ public class Store {
             .<String, Set<CandleData>>build()
             .asMap();
 
+//    Текущие актуальный сторы
     public final static ConcurrentMap<String, UserCache> USER_STORE = CacheBuilder.newBuilder()
-            .maximumSize(100)
+            .maximumSize(1000)
             .<String, UserCache>build()
-            .asMap();
-
-    public final static ConcurrentMap<String, Strategy> STRATEGY_STORE = CacheBuilder.newBuilder()
-            .maximumSize(100)
-            .<String, Strategy>build()
             .asMap();
 
     public final static ConcurrentMap<String, List<Notification>> COMMON_INFO = CacheBuilder.newBuilder()
@@ -43,20 +39,19 @@ public class Store {
             .asMap();
 
     public final static ConcurrentMap<String, LastPrice> LAST_PRICE = CacheBuilder.newBuilder()
-            .maximumSize(100)
+            .maximumSize(250)
             .<String, LastPrice>build()
             .asMap();
 
-    public static void updateLastPrice(Long newValue, Timestamp time) {
-        USER_STORE.computeIfPresent("Test", (s, data) -> {
-            Map<String, Long> map = data.getMap();
-            if (map.size() == 0) {
-                map.put("RIH3", newValue);
-            } else {
-                map.replace("RIH3", newValue);
-            }
-            data.setMap(map);
+    public final static ConcurrentMap<String, List<Ticker>> TICKERS = CacheBuilder.newBuilder()
+            .maximumSize(2000)
+            .<String, List<Ticker>>build()
+            .asMap();
+
+    public static void updateLastPrice(String figi,Long newValue, Timestamp time) {
+        LAST_PRICE.computeIfPresent(figi, (s, data) -> {
             data.setUpdateTime(time);
+            data.setPrice(newValue);
             return data;
         });
     }
