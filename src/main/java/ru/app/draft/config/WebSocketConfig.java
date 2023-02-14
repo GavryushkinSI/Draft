@@ -1,19 +1,32 @@
 package ru.app.draft.config;
 
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.stereotype.Component;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+import org.telegram.telegrambots.meta.generics.BotOptions;
+import org.telegram.telegrambots.meta.generics.LongPollingBot;
+import org.telegram.telegrambots.meta.generics.TelegramBot;
+import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import ru.app.draft.models.LastPrice;
 import ru.app.draft.models.Notification;
 import ru.app.draft.models.UserCache;
 import ru.app.draft.services.ApiService;
+import ru.app.draft.services.TelegramBotService;
 import ru.tinkoff.piapi.core.InvestApi;
 
 import java.util.ArrayList;
@@ -52,5 +65,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         TICKERS.put("tickers", new ArrayList<>());
         apiService.getAllTickers(api);
         return api;
+    }
+
+    @Bean
+    public TelegramBotsApi initTelegramBot(TelegramBotService service) {
+        TelegramBotsApi telegramBotsApi = null;
+        try {
+            telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
+            telegramBotsApi.registerBot(service);
+        } catch (TelegramApiException e) {
+            log.error("Error occurred: " + e.getMessage());
+        }
+
+        return telegramBotsApi;
     }
 }

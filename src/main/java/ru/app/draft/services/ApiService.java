@@ -323,8 +323,8 @@ public class ApiService {
 //        GetMarginAttributesResponse marginAttributesResponse=api.getUserService().getMarginAttributesSync(listAccount.get(0).getId());
         AccountDto accountDto = new AccountDto(listAccount.get(0).getId(), portfolioResponse.getTotalAmountCurrencies().getUnits());
         accountDto.setLogs(userCache.getLogs());
-        accountDto.setLastPrice(USER_STORE.get("Test").getMap().get("RIH3"));
-        accountDto.setLastTimeUpdate(USER_STORE.get("Test").getUpdateTime() != null ? new SimpleDateFormat("MM/dd/yyyy HH:mm:ss").format(new java.util.Date(USER_STORE.get("Test").getUpdateTime().getSeconds() * 1000)) : null);
+//        accountDto.setLastPrice(USER_STORE.get("Test").getMap().get("RIH3"));
+//        accountDto.setLastTimeUpdate(USER_STORE.get("Test").getUpdateTime() != null ? new SimpleDateFormat("MM/dd/yyyy HH:mm:ss").format(new java.util.Date(USER_STORE.get("Test").getUpdateTime().getSeconds() * 1000)) : null);
         accountDto.setNotifications(COMMON_INFO.get("Notifications"));
 
 //        if (positionsResponse.getSecuritiesCount() != 0) {

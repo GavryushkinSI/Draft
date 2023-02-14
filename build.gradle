@@ -22,11 +22,11 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt:0.9.1'
     //springboot starters
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-//    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
-//    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.session:spring-session-core'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -34,11 +34,14 @@ dependencies {
     //Платежи
     implementation 'com.qiwi:bill-payments-java-sdk:1.5.0'
 
+    //Телеграмм
+    implementation 'org.telegram:telegrambots:5.6.0'
+
 //  верисионирование бд+кэш
-//    implementation("org.liquibase:liquibase-core:4.4.3")
-//    implementation("org.hibernate:hibernate-jcache:5.4.29.Final")
+    implementation("org.liquibase:liquibase-core:4.4.3")
+    implementation("org.hibernate:hibernate-jcache:5.4.29.Final")
     runtimeOnly("org.ehcache:ehcache:3.9.2")
-//    runtimeOnly("org.postgresql:postgresql:42.2.19")
+    runtimeOnly("org.postgresql:postgresql:42.2.19")
     //Защита
 //    implementation 'org.springframework.boot:spring-boot-starter-security'
 
