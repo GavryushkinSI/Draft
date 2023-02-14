@@ -27,6 +27,7 @@ const Admin: React.FC = () => {
     const [showLogs, setShowLogs] = useState(false);
     const [handleStrategy, setHandleStrategy] = useState<any>();
     const [showFeedBack, setFeedBack] = useState(false);
+    const [textFeedBack, setTextFeedBack]=useState<any>();
     const user: any = useSelector((state: IAppState) =>
         state.user.data);
     const strategy: IStrategy[] = useSelector((state: IAppState) =>
@@ -99,14 +100,16 @@ const Admin: React.FC = () => {
             }
         }
     }, [userName]);
+    let ref:string=' '
 
     return (
         <div className="wrapper">
             <Notifications/>
-            <ModalView cancel={() => setFeedBack(false)} header={'Задать вопрос:'} show={showFeedBack} text={
+            <ModalView accept={()=>{void actions.feedback(textFeedBack, userName!);
+            setFeedBack(false)}} cancel={() => setFeedBack(false)} header={'Задать вопрос:'} show={showFeedBack} text={
                 <Form>
                     <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
-                        <Form.Control placeholder={'Вопрос или предложение...'} as="textarea" rows={3}/>
+                        <Form.Control value={textFeedBack} onChange={(e:any)=>{setTextFeedBack(e.target.value)}} placeholder={'Вопрос или предложение...'} as="textarea" rows={3}/>
                     </Form.Group>
                 </Form>}/>
             <nav id="sidebar" className={expendedSideBar ? "" : "active"}>

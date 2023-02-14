@@ -1,34 +1,32 @@
 --liquibase formatted sql
 
 --changeset draft:1
-CREATE TABLE usr
+CREATE TABLE USERS
 (
-    id         VARCHAR(255) NOT NULL,
-    name       VARCHAR(255),
-    email      VARCHAR(255),
+    id         BIGINT             NOT NULL,
+    login      VARCHAR(20) UNIQUE NOT NULL,
+    password   VARCHAR(255)       NOT NULL,
+    chartId    VARCHAR(255),
+    email      VARCHAR(255)       NOT NULL,
     last_visit TIMESTAMP WITHOUT TIME ZONE,
-    is_active  BOOLEAN,
-    CONSTRAINT pk_usr PRIMARY KEY (id)
+    CONSTRAINT PK_USER PRIMARY KEY (id)
 );
---rollback DROP TABLE usr
+--rollback DROP TABLE USERS
 
 --changeset draft:2
-CREATE TABLE strategy
+CREATE TABLE STRATEGY
 (
-    id        BIGINT NOT NULL,
-    producer  VARCHAR(255),
+    id        BIGINT  NOT NULL,
+    user_id   BIGINT  NOT NULL,
+    name      VARCHAR(20),
     ticker    VARCHAR(255),
-    position  VARCHAR(255),
-    slippage  VARCHAR(255),
-    consumer  VARCHAR(255),
-    is_active VARCHAR(255),
-    usr_id    VARCHAR(255),
-    CONSTRAINT pk_strategy PRIMARY KEY (id)
+    figi      VARCHAR(255),
+    position  INTEGER NOT NULL DEFAULT '0',
+    direction VARCHAR(10),
+    active    BOOLEAN NOT NULL DEFAULT 'false',
+    CONSTRAINT PK_STRATEGY PRIMARY KEY (id)
 );
 
-ALTER TABLE strategy
-    ADD CONSTRAINT FK_STRATEGY_ON_USR FOREIGN KEY (usr_id) REFERENCES usr (id);
-
---rollback DROP TABLE strategy
-
-
+ALTER TABLE STRATEGY
+    ADD CONSTRAINT FK_STRATEGY_ON_USR_1 FOREIGN KEY (user_id) REFERENCES USERS (id);
+--rollback DROP TABLE STRATEGY

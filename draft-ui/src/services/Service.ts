@@ -21,6 +21,10 @@ export class Service {
         }
     }
 
+    public feedback(text:string, userName:string){
+        return http.post(`/feedback/${userName}`, text);
+    }
+
     public login(auth: any, status: any): Promise<any> {
         return http.post(`/login/${status}`, auth);
     }

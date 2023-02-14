@@ -11,7 +11,6 @@ import java.util.*;
 @Setter
 @ToString
 public class UserCache {
-    private Map<String, Long> map = new HashMap<>();
     private List<Strategy> strategies = new ArrayList<>();
     private List<String> logs = new ArrayList<>();
     private Timestamp updateTime;

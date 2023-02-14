@@ -10,10 +10,18 @@ import java.io.Serializable;
 @ToString
 @Getter
 @Setter
-@AllArgsConstructor
 public class User implements Serializable {
 
     private String login;
     private String password;
     private String email;
+    private String chatId;
+    private String lastVisit;
+
+    public User(String login, String password, String email, String chatId) {
+        this.login = login;
+        this.password = password;
+        this.email = email;
+        this.chatId = chatId;
+    }
 }

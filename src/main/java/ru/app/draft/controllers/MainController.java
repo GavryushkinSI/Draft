@@ -1,6 +1,5 @@
 package ru.app.draft.controllers;
 
-import com.google.protobuf.Timestamp;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -11,17 +10,13 @@ import org.springframework.web.bind.annotation.*;
 import ru.app.draft.annotations.Audit;
 import ru.app.draft.models.*;
 import ru.app.draft.services.ApiService;
+import ru.app.draft.services.DbService;
 import ru.app.draft.services.MarketDataStreamService;
-import ru.app.draft.store.Store;
+import ru.app.draft.services.TelegramBotService;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static ru.app.draft.store.Store.*;
 
@@ -30,11 +25,15 @@ import static ru.app.draft.store.Store.*;
 public class MainController {
 
     private final MarketDataStreamService marketDataStreamService;
+    private final TelegramBotService telegramBotService;
+    private final DbService dbService;
     private final ApiService apiService;
     private final InvestApi api;
 
-    public MainController(MarketDataStreamService marketDataStreamService, ApiService apiService, InvestApi api) {
+    public MainController(MarketDataStreamService marketDataStreamService, TelegramBotService telegramBotService, DbService dbService, ApiService apiService, InvestApi api) {
         this.marketDataStreamService = marketDataStreamService;
+        this.telegramBotService = telegramBotService;
+        this.dbService = dbService;
         this.apiService = apiService;
         this.api = api;
     }
@@ -42,13 +41,20 @@ public class MainController {
     @Audit
     @MessageMapping("/message")
     public void registrationUserOnContent(@Payload Message message) {
-      log.info("test");
+        log.info("test");
     }
 
     @Audit
     @GetMapping("/app/getUserInfo/{userName}")
     public ResponseEntity<List<AccountDto>> getUserInfo(@PathVariable String userName) {
         return ResponseEntity.ok(apiService.getAccountInfo(api, userName));
+    }
+
+    @PostMapping("/app/feedback/{name}")
+    public void feedback(@PathVariable String name, @RequestBody String text) {
+        telegramBotService.sendMessage(
+                Long.parseLong(USER_STORE.get("Admin").getUser().getChatId()),
+                String.format("Сообщение от пользователя %s:%s", name, text));
     }
 
     @Audit
@@ -64,13 +70,16 @@ public class MainController {
     }
 
     @GetMapping("/app/reconnect")
+    @Audit
     public void reconnectStream() {
-        List<String> tickers = apiService.getFigi(api, List.of("RIH3"));
-        MarketDataSubscriptionService service = api.getMarketDataStreamService().getStreamById("last_price_stream");
-        if (service != null) {
-            service.unsubscribeLastPrices(tickers);
-        }
-        apiService.setSubscriptionOnCandle(api, tickers);
+        Map<String, MarketDataSubscriptionService> subscriptionServiceMap = api.getMarketDataStreamService().getAllStreams();
+        List<String> reconnectStreamList = new ArrayList<>();
+        LAST_PRICE.forEach((k, v) -> {
+            if (!subscriptionServiceMap.containsKey(k)) {
+                reconnectStreamList.add(k);
+            }
+        });
+        apiService.setSubscriptionOnCandle(api, reconnectStreamList);
     }
 
     @PostMapping("/app/tv")
@@ -152,9 +161,18 @@ public class MainController {
         return ResponseEntity.ok(new ArrayList<>(0));
     }
 
-//    @Audit
-//    @Scheduled(fixedDelay = 500000)
-//    public void getAllTickersTask() {
-//        apiService.getAllTickers(api);
-//    }
+    @Audit
+    @Scheduled(fixedDelay = 500000)
+    public void getAllTickersTask() {
+        List<UserCache> userCaches =new ArrayList<>();
+        User user =new User("1", "2", "vvr", "rvbrbr");
+        UserCache userCache=new UserCache(user);
+        userCache.setStrategies(List.of(new Strategy(
+                "0","1","test", "buy", 0L, "tbt", "btb", true,
+                null, null
+        )));
+        userCaches.add(userCache);
+        //dbService.saveUsers(userCaches);
+        dbService.getAllUsers();
+    }
 }
