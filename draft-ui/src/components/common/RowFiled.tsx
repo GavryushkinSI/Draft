@@ -1,13 +1,26 @@
-import {Row} from "react-bootstrap";
+import {Col, Row} from "react-bootstrap";
+import React, {ReactNode} from "react";
 
-const RowFiled = (children: any): JSX.Element => {
-    let html = [];
+interface IProps {
+    children: ReactNode | ReactNode[];
+    isAdaptive?: boolean;
+}
 
-    return <Row>
-        {children?.map((item: any) => {
-            return html.push(item);
-        })}
-    </Row>
+const RowFiled: React.FC<IProps> = (props) => {
+    const content: React.ReactNode[] = React.Children.toArray(props.children);
+    const html = [];
+
+    props.isAdaptive?content.map((i, index)=>{
+        html.push(<Row key={index}>
+            <Col className="ps-4">
+                {i}
+            </Col>
+        </Row>)
+    }):html.push(<Col className="ps-4">
+                {content}
+           </Col>);
+
+    return <>{props.isAdaptive?<>{html}</>:<Row>{html}</Row>}</>;
 }
 
 export default RowFiled;

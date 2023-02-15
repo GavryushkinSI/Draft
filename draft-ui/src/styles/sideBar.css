@@ -45,12 +45,22 @@ a:focus {
     align-items: stretch;
 }
 
-#sidebar {
-    min-width: 250px;
-    max-width: 250px;
+.sidebar {
+    min-height: 100px;
     background: rgb(30 30 47 / 92%);
     color: #fff;
-    transition: all 0.3s;
+    transition: all 1s;
+    border-bottom: 2px solid black;
+}
+
+#mySideBar {
+    transform: translateX(-100%);
+    animation: ani 0.5s forwards;
+}
+
+@keyframes ani {
+    0% {transform: translateX(-100%);}
+    100% {transform: translateX(0);}
 }
 
 #sidebar.active {
@@ -134,26 +144,26 @@ a.article:hover {
     CONTENT STYLE
 ----------------------------------------------------- */
 
-#content {
-    width: 100%;
-    padding: 20px;
-    min-height: 100vh;
-    transition: all 0.3s;
-    background-color: #2e32df12;
-}
+/*#content {*/
+/*    width: 100%;*/
+/*    padding: 20px;*/
+/*    min-height: 100vh;*/
+/*    transition: all 0.3s;*/
+/*    background-color: #2e32df12;*/
+/*}*/
 
-/* ---------------------------------------------------
-    MEDIAQUERIES
------------------------------------------------------ */
+/*!* ---------------------------------------------------*/
+/*    MEDIAQUERIES*/
+/*----------------------------------------------------- *!*/
 
-@media (max-width: 768px) {
-    #sidebar {
-        margin-left: -250px;
-    }
-    #sidebar.active {
-        margin-left: 0;
-    }
-    #sidebarCollapse span {
-        display: none;
-    }
-}
+/*@media (max-width: 768px) {*/
+/*    #sidebar {*/
+/*        margin-left: -250px;*/
+/*    }*/
+/*    #sidebar.active {*/
+/*        margin-left: 0;*/
+/*    }*/
+/*    #sidebarCollapse span {*/
+/*        display: none;*/
+/*    }*/
+/*}*/

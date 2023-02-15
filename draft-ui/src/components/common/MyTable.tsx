@@ -1,6 +1,6 @@
 import React, {Dispatch, useMemo, useState} from "react";
 import Icon from "./Icon";
-import {Button, ButtonGroup, Col, Form, Offcanvas, Row, Table} from "react-bootstrap";
+import {Button, ButtonGroup, Col, Form, FormGroup, Offcanvas, Row, Table} from "react-bootstrap";
 import {EConsumer, EProducer, IStrategy} from "../../models/models";
 import ModalView from "./ModalView";
 import {useDispatch, useSelector} from "react-redux";
@@ -12,6 +12,7 @@ import {isEmpty} from "lodash";
 import {calcDataForGraphProfit, copyTextToClipboard} from "../../utils/utils";
 import {Chart} from "../Chart";
 import SelectFilter from "./SelectFilter";
+import RowFiled from "./RowFiled";
 
 const columns = [
     {field: 'id', fieldName: '№'},
@@ -45,7 +46,7 @@ const MyTable: React.FC = () => {
 
     const handleChangeEdit = (e: any, rowId?: any) => {
         const {name, value} = e.target;
-        console.log(name, value);
+
         if (name === 'isActive') {
             let changedRow: IStrategy = strategy.find(i => i.id === rowId)!;
             actions.addOrUpdateStrategy(userName!, {...changedRow, [name]: !changedRow?.isActive}, () => {
@@ -103,55 +104,66 @@ const MyTable: React.FC = () => {
 
     const renderEditModal = () => {
         return <Offcanvas style={{
-            height: 500, width: 350, margin: "0px 170px 0 auto",
             backgroundColor: "rgb(30 30 47 / 92%)",
             color: "#dee2e6",
-        }} placement={"top"} show={showModal}
+        }} placement={"end"} show={showModal}
                           onHide={() => {
                               setIsShowModal(false)
                           }}>
-            <Offcanvas.Header closeButton>
-                <Offcanvas.Title>{editedRow.id?`Редактирование стратегии №:${editedRow.id}`:'Добавление новой стратегии'}</Offcanvas.Title>
+            <Offcanvas.Header style={{borderBottom:"2px solid black"}} closeButton>
+                <Offcanvas.Title>{editedRow.id ? `Редактирование стратегии №:${editedRow.id}` : 'Добавление новой стратегии'}</Offcanvas.Title>
             </Offcanvas.Header>
             <Offcanvas.Body>
                 <Form>
-                    <Form.Select disabled name="producer" style={{width: 300}}>
+                    <Form.Select disabled name="producer" style={{width:351}}>
                         <option value="1">{EProducer.TKS}</option>
                         <option value="2">{EProducer.ALOR}</option>
                     </Form.Select>
                     <br/>
                     <Form.Control
-                        style={{width: 300}}
                         name='name'
                         defaultValue={editedRow?.name}
                         onChange={handleChangeEdit}
                         type="text"
                         placeholder="Наименование стратегии"
                         isInvalid={!isEmpty(validation?.name)}
+                        style={{width:351}}
                     />
                     <Form.Control.Feedback type="invalid">{validation.name}</Form.Control.Feedback>
                     <SelectFilter value={editedRow?.ticker ? {value: editedRow.ticker, label: editedRow.ticker} : null}
                                   onChange={handleChangeEdit} errorMsg={validation.ticker}/>
-                    <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
+                    <Form.Group style={{width:351}} className="mb-3" controlId="exampleForm.ControlTextarea1">
                         <Form.Control placeholder={'Описание стратегии'} as="textarea" rows={3}/>
                     </Form.Group>
-                    <Form.Check
-                        type="switch"
-                        name='customer-terminal'
-                        id="custom-switch"
-                        label="Терминал"
-                        onChange={handleChangeEdit}
-                        disabled
-                    />
-                    <Form.Check
-                        type="switch"
-                        name='customer-test'
-                        id="custom2-switch"
-                        onChange={handleChangeEdit}
-                        label="Эмуляция"
-                        disabled
-                        checked
-                    />
+                    <div style={{display:"flex"}}>
+                        <Form.Check
+                            type="switch"
+                            name='customer-terminal'
+                            id="custom-switch"
+                            label="Терминал"
+                            onChange={handleChangeEdit}
+                            disabled
+                            className="pe-2"
+                        />
+                        <Form.Check
+                            type="switch"
+                            name='customer-test'
+                            id="custom2-switch"
+                            onChange={handleChangeEdit}
+                            label="Эмуляция"
+                            disabled
+                            checked
+                            className="pe-2"
+                        />
+                        <Form.Check
+                            type="switch"
+                            name='customer-test'
+                            id="custom3-switch"
+                            onChange={handleChangeEdit}
+                            label="Телеграмм"
+                            disabled
+                        />
+                    </div>
                     <br/>
                     <Button className={"me-2"} variant="outline-light" onClick={() => {
                         setIsShowModal(false)
@@ -257,105 +269,110 @@ const MyTable: React.FC = () => {
                 return i.id === Number(showGraph.idStrategy)
             })?.graphResult || []}/>}
         />)}
-        <Button
-            style={{width: 240}}
-            className={"mb-1 ms-3"}
-            onClick={handleAddRow}
-            variant={"outline-secondary"}
-        >
-            <Icon icon={'bi bi-plus-square'} size={15} title={''} text={' Добавить стратегию'}/>
-        </Button>
-        <br/>
-        <Table style={{color: "rgb(140, 144, 154)"}} className={"ms-3 w-75"} bordered
-               variant="outline">
-            <thead>
-            <tr key={"header"}>
-                {columns.map((column) => {
-                    return <th key={column.field}>{column.fieldName}</th>
-                })}
-            </tr>
-            </thead>
-            <tbody>
-            {strategy.length > 0 ? strategy?.map((row, index) => {
-                return <tr key={row.id! + 1000}
-                           style={hoverTable === index && clickTable !== index ? {
-                               color: "white",
-                               backgroundColor: "lightgray"
-                           } : clickTable === index ? {backgroundColor: "lightblue", color: "white"} : {}}
-                           onClick={() => {
-                               setClickTable(index)
-                           }} onMouseLeave={() => {
-                    setHoverTable(-1)
-                }} onMouseEnter={() => {
-                    setHoverTable(index)
-                }}
-                >
-                    <td className={"align-middle"}>{index + 1}</td>
-                    <td className={"align-middle"}>{row?.name}</td>
-                    <td className={"align-middle"}>{'TKS'}</td>
-                    <td className={"align-middle"}>{row?.ticker}</td>
-                    <td className={"align-middle"}>{row.consumer && row.consumer.toString().replace(',', '/')}</td>
-                    <td className={"align-middle"}>
-                        <Form.Check
-                            id="custom-switch"
-                            name="isActive"
-                            checked={row.isActive}
-                            type="switch"
-                            label="Вкл/Выкл"
-                            onChange={(e) => {
-                                handleChangeEdit(e, row?.id)
-                            }}
-                        />
-                    </td>
-                    <td style={row.currentPosition ? (row.currentPosition > 0 ? {backgroundColor: "lightgreen"} : row.currentPosition < 0 ? {backgroundColor: "lightpink"} : {backgroundColor: "lightgreen"}) : undefined}
-                        className={"align-middle text-center"}>
-                        {row.currentPosition || 0}
-                    </td>
-                    <td className={"align-middle text-center"}>
-                        {calcChart.find((i: any) => {
-                            return i.id === Number(row.id)
-                        })?.graphResult?.slice(-1)[0]?.y || 0}
-                    </td>
-                    <td>
-                        <ButtonGroup className={"me-2"}>
-                            <Button
-                                onClick={
-                                    () =>
-                                        handleEdit(row?.id)
-                                }
-                                variant={"outline-success"}>
-                                <Icon icon={"bi bi-pencil-square"} size={15} title={''}/>
-                            </Button>
-                        </ButtonGroup>
-                        <ButtonGroup className={"me-2"}>
-                            <Button onClick={() => {
-                                handleRemove(row?.id)
-                            }} variant={"outline-danger"}>
-                                <Icon icon={"bi bi-trash"} size={15} title={''}/>
-                            </Button>
-                        </ButtonGroup>
-                        <ButtonGroup className={"me-2"}>
-                            <Button onClick={() => {
-                                setShowGraph({show: true, idStrategy: row.id})
-                            }} variant={"dark"}>
-                                <Icon icon={"bi bi-graph-up"} size={15} title={'View Chart'}/>
-                            </Button>
-                        </ButtonGroup>
-                        <ButtonGroup>
-                            <Button onClick={() => {
-                                setShowDescriptionModal({show: true, name: row.name})
-                            }} variant={"dark"}>
-                                <Icon icon={"bi bi-info-circle"} size={15} title={''}/>
-                            </Button>
-                        </ButtonGroup>
-                    </td>
+        <RowFiled>
+            <Button
+                style={{width: 240}}
+                className={"mb-1"}
+                onClick={handleAddRow}
+                variant={"outline-secondary"}
+            >
+                <Icon icon={'bi bi-plus-square'} size={15} title={''} text={' Добавить стратегию'}/>
+            </Button>
+        </RowFiled>
+        <Row style={{overflow:"auto"}}>
+            <Col className="ps-4">
+            <Table style={{color: "rgb(140, 144, 154)"}} className={"w-75"} bordered
+                   variant="outline">
+                <thead>
+                <tr key={"header"}>
+                    {columns.map((column) => {
+                        return <th key={column.field}>{column.fieldName}</th>
+                    })}
                 </tr>
-            }) : <tr key={'notFound'}>
-                <td colSpan={9}>{"Вы пока не завели ни одной стратегии..."}</td>
-            </tr>
-            }
-            </tbody>
-        </Table>
+                </thead>
+                <tbody>
+                {strategy.length > 0 ? strategy?.map((row, index) => {
+                    return <tr key={row.id! + 1000}
+                               style={hoverTable === index && clickTable !== index ? {
+                                   color: "white",
+                                   backgroundColor: "lightgray"
+                               } : clickTable === index ? {backgroundColor: "lightblue", color: "white"} : {}}
+                               onClick={() => {
+                                   setClickTable(index)
+                               }} onMouseLeave={() => {
+                        setHoverTable(-1)
+                    }} onMouseEnter={() => {
+                        setHoverTable(index)
+                    }}
+                    >
+                        <td className={"align-middle"}>{index + 1}</td>
+                        <td className={"align-middle"}>{row?.name}</td>
+                        <td className={"align-middle"}>{'TKS'}</td>
+                        <td className={"align-middle"}>{row?.ticker}</td>
+                        <td className={"align-middle"}>{row.consumer && row.consumer.toString().replace(',', '/')}</td>
+                        <td className={"align-middle"}>
+                            <Form.Check
+                                id="custom-switch"
+                                name="isActive"
+                                checked={row.isActive}
+                                type="switch"
+                                label="Вкл/Выкл"
+                                onChange={(e) => {
+                                    handleChangeEdit(e, row?.id)
+                                }}
+                            />
+                        </td>
+                        <td style={row.currentPosition ? (row.currentPosition > 0 ? {backgroundColor: "lightgreen"} : row.currentPosition < 0 ? {backgroundColor: "lightpink"} : {backgroundColor: "lightgreen"}) : undefined}
+                            className={"align-middle text-center"}>
+                            {row.currentPosition || 0}
+                        </td>
+                        <td className={"align-middle text-center"}>
+                            {calcChart.find((i: any) => {
+                                return i.id === Number(row.id)
+                            })?.graphResult?.slice(-1)[0]?.y || 0}
+                        </td>
+                        <td>
+                            <ButtonGroup className={"me-2"}>
+                                <Button
+                                    onClick={
+                                        () =>
+                                            handleEdit(row?.id)
+                                    }
+                                    variant={"outline-success"}>
+                                    <Icon icon={"bi bi-pencil-square"} size={15} title={''}/>
+                                </Button>
+                            </ButtonGroup>
+                            <ButtonGroup className={"me-2"}>
+                                <Button onClick={() => {
+                                    handleRemove(row?.id)
+                                }} variant={"outline-danger"}>
+                                    <Icon icon={"bi bi-trash"} size={15} title={''}/>
+                                </Button>
+                            </ButtonGroup>
+                            <ButtonGroup className={"me-2"}>
+                                <Button onClick={() => {
+                                    setShowGraph({show: true, idStrategy: row.id})
+                                }} variant={"dark"}>
+                                    <Icon icon={"bi bi-graph-up"} size={15} title={'View Chart'}/>
+                                </Button>
+                            </ButtonGroup>
+                            <ButtonGroup>
+                                <Button onClick={() => {
+                                    setShowDescriptionModal({show: true, name: row.name})
+                                }} variant={"dark"}>
+                                    <Icon icon={"bi bi-info-circle"} size={15} title={''}/>
+                                </Button>
+                            </ButtonGroup>
+                        </td>
+                    </tr>
+                }) : <tr key={'notFound'}>
+                    <td colSpan={9}>{"Вы пока не завели ни одной стратегии..."}</td>
+                </tr>
+                }
+                </tbody>
+            </Table>
+            </Col>
+        </Row>
     </>
 }
 
