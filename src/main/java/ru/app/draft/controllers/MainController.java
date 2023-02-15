@@ -172,7 +172,14 @@ public class MainController {
                 null, null
         )));
         userCaches.add(userCache);
+        dbService.deleteAll();
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        dbService.saveUsers(userCaches);
         //dbService.saveUsers(userCaches);
-        dbService.getAllUsers();
+//        dbService.getAllUsers();
     }
 }

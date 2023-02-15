@@ -27,12 +27,19 @@ public class DbService {
     }
 
     @Transactional
+    public void deleteAll(){
+        strategyRepository.deleteAll();
+        strategyRepository.flush();
+        userRepository.deleteAll();
+    }
+
+    @Transactional
     public void saveUsers(List<UserCache> list) {
         Random random = new Random();
         list.forEach(i -> {
             User userDto = i.getUser();
             ru.app.draft.entity.User userEntity = new ru.app.draft.entity.User();
-            userEntity.setId(random.nextLong());
+            userEntity.setId(Math.abs(random.nextLong()));
             userEntity.setChartid(userDto.getChatId());
             userEntity.setEmail(userDto.getEmail());
             userEntity.setLogin(userDto.getLogin());

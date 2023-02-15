@@ -94,7 +94,7 @@ body {
 }
 
 .css-13cymwt-control {
-    top: 3px;
+    top:3px;
     max-height: 38px;
 }
 
@@ -116,15 +116,22 @@ body {
     color: rgb(140, 144, 154) !important;
 }
 
-.css-10wo9uf-option{
-    color:black!important;
+.css-10wo9uf-option {
+    color: black !important;
 }
 
-.css-1nmdiq5-menu{
-    color:black!important;
+.css-1nmdiq5-menu {
+    color: black !important;
 }
 
-.offcanvas-body{
-    overflow-y: unset!important;
-    height: 550px!important;
+.offcanvas-body {
+    overflow-y: unset !important;
+    height: 550px !important;
+}
+
+@media (max-width: 650px) {
+    .ml {
+        margin-left: 12px;
+        margin-top: 8px!important;
+    }
 }
