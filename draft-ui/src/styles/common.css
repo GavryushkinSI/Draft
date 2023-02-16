@@ -94,7 +94,7 @@ body {
 }
 
 .css-13cymwt-control {
-    top:3px;
+    top: 3px;
     max-height: 38px;
 }
 
@@ -129,9 +129,68 @@ body {
     height: 550px !important;
 }
 
-@media (max-width: 650px) {
-    .ml {
-        margin-left: 12px;
-        margin-top: 8px!important;
+@media (max-width: 576px) {
+    .font-size-sm {
+        font-size: 13px;
+    }
+}
+
+.table th:first-child, .table th:nth-child(2) {
+    position: sticky;
+    left: 0;
+    background-color: rgba(178, 222, 170, 0.84);
+    color: #373737;
+}
+
+.resp > .table td:first-child, .table td:nth-child(2) {
+    position: sticky;
+    left: 0;
+    background-color: rgba(178, 222, 170, 0.84);
+    color: #373737;
+}
+
+.table td {
+    white-space: nowrap;
+}
+
+.table {
+    border-radius: 0.2rem;
+}
+
+
+.an {
+    font: 400 1.4rem/2rem Fira Sans, sans-serif;
+    color: #fff;
+    font-family: monospace, monospace;
+    user-select: none;
+    --animation-duration: 500ms;
+    display: block;
+    position: absolute;
+    width: 100%;
+    top: 50%;
+    margin-top: 8rem;
+    font-size: 1.4rem;
+    animation-name: move;
+    animation-duration: calc(var(--animation-duration) * 8);
+    animation-timing-function: ease-in-out;
+    -webkit-animation-iteration-count: infinite;
+    animation-delay: calc(var(--animation-duration) * 1);
+}
+
+.an:nth-child(1){
+    animation-delay: calc(var(--animation-duration) * 1)
+}
+
+@keyframes move {
+    0% {
+        transform: translateY(0);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-850%);
     }
 }

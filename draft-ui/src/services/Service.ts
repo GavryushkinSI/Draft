@@ -21,8 +21,10 @@ export class Service {
         }
     }
 
-    public feedback(text:string, userName:string){
-        return http.post(`/feedback/${userName}`, text);
+    public feedback(text: string, userName: string, successCallback?: () => void) {
+        return http.post(`/feedback/${userName}`, text).then(() => {
+            successCallback && successCallback();
+        });
     }
 
     public login(auth: any, status: any): Promise<any> {
@@ -105,11 +107,20 @@ export class Service {
             .catch((errors: any) => failCallback && failCallback(errors?.message));
     }
 
-    public getAllTickers(successCallback?: () => void, failCallback?: (error: any) => void){
+    public getAllTickers(successCallback?: () => void, failCallback?: (error: any) => void) {
         http.get(`/getAllTickers`)
             .then((response) => {
                     successCallback && successCallback();
-                this.dispatch({type: EActionTypes.GET_TICKER, payload: response.data})
+                    this.dispatch({type: EActionTypes.GET_TICKER, payload: response.data})
+                }
+            )
+            .catch((errors: any) => failCallback && failCallback(errors?.message));
+    }
+
+    public saveDataInTable(userName?: string, successCallback?: () => void, failCallback?: (error: any) => void) {
+        http.get(`/saveDataInTable/${userName}`)
+            .then((response) => {
+                    successCallback && successCallback();
                 }
             )
             .catch((errors: any) => failCallback && failCallback(errors?.message));

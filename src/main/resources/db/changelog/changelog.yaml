@@ -2,3 +2,6 @@ databaseChangeLog:
   - include:
       file: sql/01.000.00/1.sql
       relativeToChangelogFile: true
+  - include:
+      file: sql/01.000.00/2.sql
+      relativeToChangelogFile: true

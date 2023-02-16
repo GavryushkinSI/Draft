@@ -38,7 +38,7 @@ const Admin: React.FC = () => {
     const actions: Service = useActions(Service);
     const [userName, setUserName] = useState(localStorage.getItem("userName"));
     const dispatch: Dispatch<any> = useDispatch();
-    const [expendedSideBar, setExpendedSidebar] = useState(true);
+    const [expendedSideBar, setExpendedSidebar] = useState(!userName);
     const [showLogs, setShowLogs] = useState(false);
     const [handleStrategy, setHandleStrategy] = useState<any>();
     const [showFeedBack, setFeedBack] = useState(false);
@@ -102,6 +102,7 @@ const Admin: React.FC = () => {
                 if (box.style.opacity === '1') {
                     box.style.height = "0px"
                     box.style.opacity = "0"
+                    box.style.zIndex = "0"
                 }
             }
         });
@@ -128,13 +129,13 @@ const Admin: React.FC = () => {
     return <Container fluid>
         <Notifications/>
         <ModalView accept={() => {
-            void actions.feedback(textFeedBack, userName!)
+            void actions.feedback(textFeedBack, userName!, () => {
+                dispatch(addNotification("Info", 'Ваш вопрос принят! ожидайте ответа...'));
+                setFeedBack(false);
+            });
         }} cancel={() => setFeedBack(false)} header={'Задать вопрос:'} show={showFeedBack} text={
             <Form>
                 <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
-                    {!userName && (<Form.Control onChange={(e: any) => {
-                        setTextFeedBack(e.target.value)
-                    }} placeholder={'Email'}/>)}
                     <Form.Control value={textFeedBack} onChange={(e: any) => {
                         setTextFeedBack(e.target.value)
                     }} placeholder={'Вопрос или предложение...'} as="textarea" rows={3}/>
@@ -179,6 +180,15 @@ const Admin: React.FC = () => {
                                     <Icon icon={"bi bi-ethernet"} size={15} title={'Clear'}/>
                                     {" Переподключить стрим"}
                                 </Button>
+                                {userName === 'Admin' && (<Button className="ps-3" onClick={() => {
+                                    actions.saveDataInTable(userName!, () => {
+                                            dispatch(addNotification("Info", 'Успешно!'));
+                                        },
+                                        (error: any) => dispatch(addNotification("Info", error)))
+                                }}>
+                                    <Icon icon={"bi bi-save"} size={15} title={'Save'}/>
+                                    {" Сохранить юзеров в БД"}
+                                </Button>)}
                             </Col>
                         </Row>
                     </>
@@ -220,11 +230,13 @@ const Admin: React.FC = () => {
                                             if (box.style.opacity === '1') {
                                                 box.style.height = "0px"
                                                 box.style.opacity = "0"
+                                                box.style.zIndex = "0"
                                             } else {
                                                 box.style.height = "auto"
                                                 box.style.maxHeight = "500px"
                                                 box.style.opacity = "1";
                                                 box.style.overflowY = "auto";
+                                                box.style.zIndex = "10000"
                                             }
                                         }}>
                                             <Icon icon={"bi bi-bell"}
@@ -246,7 +258,7 @@ const Admin: React.FC = () => {
                                                   hoverColor={'lightgreen'}/>
                                             <span>{userName ? 'Выйти' : "Войти"}</span>
                                         </ButtonLink>
-                                        <div className="notifications" id="box">
+                                        <div className="notifications bg-custom-2" id="box">
                                             <h2>Всего уведомлений: <span
                                                 className="badge rounded-pill bg-danger">{user?.notifications?.length}</span>
                                             </h2>
@@ -430,7 +442,7 @@ const Admin: React.FC = () => {
                     <Offcanvas.Header closeButton>
                         <Offcanvas.Title className="text-white">Отказ от ответственности</Offcanvas.Title>
                     </Offcanvas.Header>
-                    <Offcanvas.Body className="text-white">
+                    <Offcanvas.Body className="text-white font-size-sm">
                         {
                             'Информация, содержащаяся на этом сайте, предоставляется только в образовательных целях и не должна рассматриваться как финансовый совет.\n' +
                             'Торговля сопряжена со значительным риском убытков, и вы должны знать о рисках и быть готовыми принять их, чтобы инвестировать в рынки.\n' +

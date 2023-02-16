@@ -16,7 +16,7 @@ const RowFiled: React.FC<IProps> = (props) => {
                 {i}
             </Col>
         </Row>)
-    }):html.push(<Col className="ps-4">
+    }):html.push(<Col key={1000} className="ps-4">
                 {content}
            </Col>);
 

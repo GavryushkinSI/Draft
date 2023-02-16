@@ -1,6 +1,7 @@
 package ru.app.draft.controllers;
 
 import lombok.extern.log4j.Log4j2;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -8,6 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import ru.app.draft.annotations.Audit;
+import ru.app.draft.exceptions.AuthorizationException;
 import ru.app.draft.models.*;
 import ru.app.draft.services.ApiService;
 import ru.app.draft.services.DbService;
@@ -16,6 +18,7 @@ import ru.app.draft.services.TelegramBotService;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 
 import static ru.app.draft.store.Store.*;
@@ -154,32 +157,54 @@ public class MainController {
     }
 
     @GetMapping("/app/getAllStrategy/{userName}")
-    public ResponseEntity<Collection<Strategy>> getAllStrategyByUser(@PathVariable String userName) {
+    public ResponseEntity<Collection<Strategy>> getAllStrategyByUser(@PathVariable String userName, HttpServletRequest request) {
+//        if(request.getHeader("Authorization")==null){
+//            throw new AuthorizationException();
+//        }
         if (USER_STORE.containsKey(userName)) {
             return ResponseEntity.ok(USER_STORE.get(userName).getStrategies());
         }
         return ResponseEntity.ok(new ArrayList<>(0));
     }
 
-    @Audit
-    @Scheduled(fixedDelay = 500000)
-    public void getAllTickersTask() {
-        List<UserCache> userCaches =new ArrayList<>();
-        User user =new User("1", "2", "vvr", "rvbrbr");
-        UserCache userCache=new UserCache(user);
-        userCache.setStrategies(List.of(new Strategy(
-                "0","1","test", "buy", 0L, "tbt", "btb", true,
-                null, null
-        )));
-        userCaches.add(userCache);
-        dbService.deleteAll();
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    @GetMapping("/app/saveDataInTable/{userName}")
+    public void saveDataInTable(@PathVariable String userName) {
+        Optional<UserCache> userCache = USER_STORE.values().stream().filter(i -> i.getUser().getLogin().equals(userName)).findFirst();
+        if (userCache.isPresent() && userCache.get().getUser().getIsAdmin()) {
+            dbService.deleteAll();
+            dbService.saveUsers(new ArrayList<>(USER_STORE.values()));
+        } else {
+            throw new RuntimeException();
         }
-        dbService.saveUsers(userCaches);
-        //dbService.saveUsers(userCaches);
-//        dbService.getAllUsers();
     }
+
+//    @Audit
+//    @Scheduled(fixedDelay = 500000)
+//    public void getAllTickersTask() {
+//        List<UserCache> userCaches =new ArrayList<>();
+////        User user =new User("1", "2", "vvr", "rvbrbr");
+////        UserCache userCache=new UserCache(user);
+////        userCache.setStrategies(List.of(new Strategy(
+////                "0","1","test", "buy", 0L, "tbt", "btb", true,
+////                null, null
+////        )));
+////        userCaches.add(userCache);
+//        dbService.deleteAll();
+////        try {
+////            Thread.sleep(3000);
+////        } catch (InterruptedException e) {
+////            e.printStackTrace();
+////        }
+//        dbService.saveUsers(userCaches);
+//        //dbService.saveUsers(userCaches);
+////        dbService.getAllUsers();
+//    }
+
+
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<?> handleException(Exception e) {
+//            return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
+//    }
 }
+
+
