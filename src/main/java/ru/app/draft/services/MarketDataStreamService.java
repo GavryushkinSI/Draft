@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.app.draft.models.Message;
 import ru.app.draft.models.UserCache;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -17,7 +18,7 @@ public class MarketDataStreamService {
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
-    public void sendDataToUser(String userName, Message message) {
-        simpMessagingTemplate.convertAndSendToUser(userName, "/private", message);
+    public void sendDataToUser(List<String> userNameList, Message message) {
+        userNameList.forEach(i->simpMessagingTemplate.convertAndSendToUser(i, "/private", message));
     }
 }

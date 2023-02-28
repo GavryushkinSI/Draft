@@ -50,7 +50,7 @@ dependencies {
     implementation 'com.google.guava:guava:31.1-jre'
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
     //Тинкофф API
-    implementation 'ru.tinkoff.piapi:java-sdk-core:1.0.12'
+    implementation 'ru.tinkoff.piapi:java-sdk-core:1.3'
 }
 
 tasks.named('test') {

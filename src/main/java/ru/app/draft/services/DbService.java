@@ -56,6 +56,8 @@ public class DbService {
                 strategy.setTicker(s.getTicker());
                 strategy.setFigi(s.getFigi());
                 strategy.setPosition(Math.toIntExact(s.getCurrentPosition()));
+                strategy.setDescription(s.getDescription());
+                strategy.setMinLot(Math.toIntExact(s.getMinLot()));
                 strategyEntity.add(strategy);
             });
             strategyRepository.saveAll(strategyEntity);
@@ -72,9 +74,9 @@ public class DbService {
             strategyEntity.forEach(n -> {
                 strategyList.add(new Strategy(String.valueOf(n.getId()), n.getUsers().getLogin(),
                         n.getName(), n.getDirection(), 0L, n.getFigi(), n.getTicker(),
-                        n.getActive(), null, null));
+                        n.getActive(), null, null, n.getDescription(), (long) n.getMinLot()));
             });
-            if (user.equals("Admin")) {
+            if (user.getLogin().equals("Admin")) {
                 user.setIsAdmin(true);
             }
             UserCache userCache = new UserCache(user);

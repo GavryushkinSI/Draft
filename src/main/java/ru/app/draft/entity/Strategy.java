@@ -22,6 +22,9 @@ public class Strategy {
     @Column(name = "figi")
     private String figi;
 
+    @Column(name = "description")
+    private String description;
+
     @Column(name = "\"position\"", nullable = false)
     private Integer position;
 
@@ -30,6 +33,9 @@ public class Strategy {
 
     @Column(name = "active", nullable = false)
     private Boolean active = false;
+
+    @Column(name = "minlot")
+    private Integer minLot;
 
     public Boolean getActive() {
         return active;
@@ -93,5 +99,21 @@ public class Strategy {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Integer getMinLot() {
+        return minLot;
+    }
+
+    public void setMinLot(Integer minLot) {
+        this.minLot = minLot;
     }
 }

@@ -15,8 +15,8 @@ services:
     container_name: draft-back
     ports:
       - 8080:8080
-#    links:
-#      - fenix-postgres
+    extra_hosts:
+      - "5.23.48.204:localhost"
 
   draft-ui:
     image: "parsesignal/draft:ui_01.000.000"

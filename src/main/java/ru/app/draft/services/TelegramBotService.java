@@ -61,10 +61,15 @@ public class TelegramBotService extends TelegramLongPollingBot {
         if (update.getCallbackQuery() != null) {
             String x[] = update.getCallbackQuery().getData().split(" ");
             if (x[0].equals("YES")) {
-                Optional<UserCache> optionalUserCache = USER_STORE.values().stream().filter(i -> i.getUser().getChatId().equals(x[1])).findFirst();
-                UserCache userCache = optionalUserCache.get();
-                User user = userCache.getUser();
-                sendMessage(Long.parseLong(x[1]), "Вы подписаны на уведомления!");
+                Optional<UserCache> optionalUserCache = USER_STORE.values().stream().filter(i -> i.getUser().getLogin().equals(x[2])).findFirst();
+                if (optionalUserCache.isPresent()) {
+                    UserCache userCache = optionalUserCache.get();
+                    User user = userCache.getUser();
+                    user.setChatId(x[1]);
+                    userCache.setUser(user);
+                    USER_STORE.replace(name, userCache);
+                    sendMessage(Long.parseLong(x[1]), "Вы подписаны на уведомления!");
+                }
             } else {
                 sendMessage(Long.parseLong(x[1]), "OK!");
             }
@@ -84,17 +89,18 @@ public class TelegramBotService extends TelegramLongPollingBot {
 
 
     private void registerUser(long chatId, String name) {
-        Optional<UserCache> optionalUserCache = USER_STORE.values().stream().filter(i -> i.getUser().getLogin().equals(name)).findFirst();
-        if (optionalUserCache.isEmpty()) {
+        Optional<UserCache> optionalUserCache1 = USER_STORE.values().stream().filter(i -> i.getUser().getLogin().equals(name)).findFirst();
+        Optional<UserCache> optionalUserCache2 = USER_STORE.values().stream().filter(i -> i.getUser().getChatId().equals(String.valueOf(chatId))).findFirst();
+        if (optionalUserCache1.isEmpty()) {
             sendMessage(chatId, NOT_FOUND_USER);
-        } else {
-            UserCache userCache = optionalUserCache.get();
-            User user = userCache.getUser();
-            user.setChatId(String.valueOf(chatId));
-            userCache.setUser(user);
-            USER_STORE.replace(name, userCache);
-            register(chatId, name);
+            return;
         }
+        if (optionalUserCache2.isPresent()) {
+            sendMessage(Long.parseLong(optionalUserCache2.get().getUser().getChatId()), "Пользователь уже зарегистрирован на получение уведомлений в телеграмм.");
+            return;
+        }
+
+        register(chatId, name);
     }
 
     private void register(long chatId, String name) {
@@ -108,7 +114,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
         var yesButton = new InlineKeyboardButton();
 
         yesButton.setText("Yes");
-        yesButton.setCallbackData("YES" + " " + chatId);
+        yesButton.setCallbackData("YES" + " " + chatId + " " + name);
 
         var noButton = new InlineKeyboardButton();
 

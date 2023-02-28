@@ -14,5 +14,5 @@ public class Ticker implements Serializable {
     private String label;
     private String figi;
     private String classCode;
-    private Integer minLot;
+    private Long minLot;
 }

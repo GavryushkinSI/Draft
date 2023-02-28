@@ -40,14 +40,22 @@
     top: 63px;
     right: 62px;
     border-radius: 5px 0px 5px 5px;
+    background-color: #ffffff;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+@media screen and (max-width: 500px) {
+    .notifications {
+    right: 0;
+    }
 }
 
 .notifications h2 {
     font-size: 14px;
     padding: 10px;
     border-bottom: 1px solid #eee;
-    color: #999
+    color: white;
+    background-color: rgb(30 30 47 / 92%);
 }
 
 .notifications-item {

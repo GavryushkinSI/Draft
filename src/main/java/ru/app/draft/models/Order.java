@@ -8,7 +8,9 @@ import java.util.Date;
 public class Order {
     private Long price;
 
-    public Order(Long price, Long quantity, String direction, Date date) {
+    public Order() {}
+
+    public Order(Long price, Long quantity, String direction, String date) {
         this.price = price;
         this.quantity = quantity;
         this.direction = direction;
@@ -17,5 +19,5 @@ public class Order {
 
     private Long quantity;
     private String direction;
-    private Date date;
+    private String date;
 }

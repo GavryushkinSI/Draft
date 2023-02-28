@@ -9,7 +9,6 @@ import ru.app.draft.store.Store;
 import ru.tinkoff.piapi.contract.v1.*;
 import ru.tinkoff.piapi.contract.v1.LastPrice;
 import ru.tinkoff.piapi.core.InvestApi;
-import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 import ru.tinkoff.piapi.core.stream.StreamProcessor;
 
 import java.text.SimpleDateFormat;
@@ -27,31 +26,28 @@ public class ApiService {
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private final MarketDataStreamService streamService;
+    private final TelegramBotService telegramBotService;
 
     public volatile static long balance = 0L;
 
-    public ApiService(MarketDataStreamService streamService) {
+    public ApiService(MarketDataStreamService streamService, TelegramBotService telegramBotService) {
         this.streamService = streamService;
+        this.telegramBotService = telegramBotService;
     }
 
-    public List<String> getFigi(InvestApi api, List<String> tickers) {
-        List<Future> list = api.getInstrumentsService().getAllFuturesSync();
-        return list.stream().collect(ArrayList::new, (l, item) -> {
-            if (tickers.contains(item.getTicker())) {
-                l.add(item.getFigi());
-            }
-        }, ArrayList::addAll);
+    public Ticker getFigi(InvestApi api, List<String> tickers) {
+        return TICKERS.get("tickers").stream().filter(i->i.getValue().equals(tickers.get(0))).findFirst().get();
     }
 
-    public List<Ticker> getAllTickers(InvestApi api) {
-        List<Ticker> tickers = api.getInstrumentsService().getAllFuturesSync().stream().map(i -> new Ticker(i.getTicker(), i.getTicker(),i.getFigi(),i.getClassCode(), i.getLot())).collect(Collectors.toList());
+    public List<Ticker> getAllTickers(InvestApi api, List<String> filter) {
+        List<Ticker> tickers = api.getInstrumentsService().getAllFuturesSync().stream().map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), (long) i.getLot())).collect(Collectors.toList());
         tickers.addAll(api.getInstrumentsService()
                 .getAllSharesSync()
                 .stream()
                 .filter(i -> i.getClassCode().equals("TQBR"))
-                .map(i -> new Ticker(i.getTicker(), i.getTicker(),i.getFigi(), i.getClassCode(), i.getLot()))
+                .map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), (long) i.getLot()))
                 .collect(Collectors.toList()));
-
+        tickers = tickers.stream().filter(i -> filter.contains(i.getValue())).collect(Collectors.toList());
         TICKERS.replace("tickers", tickers);
         return tickers;
     }
@@ -73,18 +69,7 @@ public class ApiService {
 //                log.info("Новые данные по сделкам: {}", response);
             } else if (response.hasLastPrice()) {
                 LastPrice lastPrice = response.getLastPrice();
-                //log.info("ticker " + lastPrice.getFigi() + " last price: " + lastPrice.getPrice().getUnits() + " " + new SimpleDateFormat("MM/dd/yyyy HH:mm:ss").format(new java.util.Date(lastPrice.getTime().getSeconds() * 1000)));
                 updateLastPrice(lastPrice.getFigi(), lastPrice.getPrice().getUnits(), lastPrice.getTime());
-//                Message message = new Message();
-//                message.setSenderName("server");
-//                message.setMessage(lastPrice.getPrice().getUnits());
-//                message.setStatus(Status.JOIN);
-//                message.setCommand("newLastPrice");
-//                Map<String, UserCache> map = Store.USER_STORE.entrySet().stream().filter(stringUserCacheEntry -> Objects.equals(stringUserCacheEntry.getValue().getTicker(), lastPrice.getFigi())).collect(Collectors.toMap(
-//                        Map.Entry::getKey,
-//                        Map.Entry::getValue
-//                ));
-//                streamService.sendDataToUser(map, message);
             } else if (response.hasOrderbook()) {
                 log.info("Новые данные по стакану: {}", response);
             } else if (response.hasSubscribeCandlesResponse()) {
@@ -111,37 +96,25 @@ public class ApiService {
                 var successCount = response.getSubscribeLastPriceResponse().getLastPriceSubscriptionsList().stream().filter(el -> el.getSubscriptionStatus().equals(SubscriptionStatus.SUBSCRIPTION_STATUS_SUCCESS)).count();
                 var errorCount = response.getSubscribeLastPriceResponse().getLastPriceSubscriptionsList().stream().filter(el -> !el.getSubscriptionStatus().equals(SubscriptionStatus.SUBSCRIPTION_STATUS_SUCCESS)).count();
                 log.info("success subscribe on last price: {}", successCount);
-                if (successCount > 0) {
-                    COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
-                        data.add(new Notification("Стрим подключен! Тикеры:" + figs, "info_success", Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).getTime().toString()));
-                        return data;
-                    });
-                }
                 log.info("fail subscribe on last price: {}", errorCount);
             }
         };
 
-        try {
-            for (String itemFigs : figs) {
-                api.getMarketDataStreamService().newStream(itemFigs, processor, message -> {
-                    throw new RuntimeException(message);
-                }).subscribeLastPrices(figs);
+        api.getMarketDataStreamService().newStream("stream", processor, message -> {
+//            COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
+//                data.add(new Notification("Описание ошибки", "Стрим разорван!", "error",
+//                        "modal",
+//                        Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).getTime().toString(), true));
+//                return data;
+//            });
+            try {
+                throw new Exception(message);
+            } catch (Exception e) {
+                List<String> figsList = new ArrayList<>();
+                TICKERS.get("tickers").forEach(i -> figsList.add(i.getFigi()));
+                this.setSubscriptionOnCandle(api, figsList);
             }
-        } catch (Exception e) {
-            log.error(String.format("Error stream: %s", e.getMessage()));
-            Map<String, MarketDataSubscriptionService> subscriptionServiceMap = api.getMarketDataStreamService().getAllStreams();
-            COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
-                data.add(new Notification("Стрим разорван: " + subscriptionServiceMap.size(), "error", Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).getTime().toString()));
-                List<String> reconnectStreamList = new ArrayList<>();
-                LAST_PRICE.forEach((k, v) -> {
-                    if (!subscriptionServiceMap.containsKey(k)) {
-                        reconnectStreamList.add(k);
-                    }
-                });
-                this.setSubscriptionOnCandle(api, reconnectStreamList);
-                return data;
-            });
-        }
+        }).subscribeLastPrices(figs);
     }
 
     public void getHistoryByFigi(InvestApi api, List<String> figs) {
@@ -208,39 +181,54 @@ public class ApiService {
         //Выставляем заявку
 //        var accounts = api.getUserService().getAccountsSync();
 //        var mainAccountId = accounts.get(0).getId();
-        var price = Quotation.newBuilder().setUnits(0L).setNano(0).build();
-        var minLot = 1L;
+//        var price = Quotation.newBuilder().setUnits(0L).setNano(0).build();
+        var minLot = strategy.getMinLot();
         UserCache userCache = USER_STORE.get(strategy.getUserName());
         List<Strategy> strategyList = userCache.getStrategies();
         Strategy changingStrategy = strategyList
                 .stream()
                 .filter(str -> str.getName().equals(strategy.getName())).findFirst().get();
+        if (!changingStrategy.getIsActive()) {
+            return;
+        }
         if (changingStrategy.getConsumer().get(0).equals("test")) {
             Long v = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
 //            v = Math.abs((long) new Random().nextInt(100));
             if (strategy.getDirection().equals("buy")) {
                 long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
                 changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
-                Date time = new Date();
+                String time = dateFormat.format(new Date());
                 for (int i = 1; i <= Math.abs(position / minLot); i++) {
                     changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
                 }
-                userCache.addLogs(String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time));
+                String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time);
+                userCache.addLogs(text);
+                if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                    telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+                }
             }
             if (strategy.getDirection().equals("sell")) {
                 long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
                 changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
-                Date time = new Date();
+                String time = dateFormat.format(new Date());
                 for (int i = 1; i <= Math.abs(position / minLot); i++) {
                     changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
                 }
-                userCache.addLogs(String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time));
+                String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time);
+                userCache.addLogs(text);
+                if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                    telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+                }
             }
             if (strategy.getDirection().equals("hold")) {
                 if (changingStrategy.getCurrentPosition() != 0) {
                     long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
-                    Date time = new Date();
-                    userCache.addLogs(String.format(changingStrategy.getCurrentPosition() < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "Стратегия %s=>Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time));
+                    String time = dateFormat.format(new Date());
+                    String text = String.format(changingStrategy.getCurrentPosition() < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s=> Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time);
+                    userCache.addLogs(text);
+                    if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                        telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+                    }
                     for (int i = 1; i <= Math.abs(position / minLot); i++) {
                         changingStrategy.addOrder(new Order(v, minLot, changingStrategy.getCurrentPosition() < 0 ? "buy" : "sell", time));
                     }
@@ -273,8 +261,9 @@ public class ApiService {
         Message message = new Message();
         message.setSenderName("server");
         message.setMessage(userCache.getStrategies());
+        message.setCommand("strategy");
         message.setStatus(Status.JOIN);
-        streamService.sendDataToUser(strategy.getUserName(), message);
+        streamService.sendDataToUser(List.of(strategy.getUserName()), message);
     }
 
     private static List<OrderState> getOrders(InvestApi api, String accountId) {
@@ -325,7 +314,12 @@ public class ApiService {
         accountDto.setLogs(userCache.getLogs());
 //        accountDto.setLastPrice(USER_STORE.get("Test").getMap().get("RIH3"));
 //        accountDto.setLastTimeUpdate(USER_STORE.get("Test").getUpdateTime() != null ? new SimpleDateFormat("MM/dd/yyyy HH:mm:ss").format(new java.util.Date(USER_STORE.get("Test").getUpdateTime().getSeconds() * 1000)) : null);
-        accountDto.setNotifications(COMMON_INFO.get("Notifications"));
+        List<Notification> notificationList = COMMON_INFO.get("Notifications");
+        if (!userName.equals("Admin")) {
+            notificationList = notificationList.stream().filter(i -> !i.getForAdmin()).collect(Collectors.toList());
+        }
+        accountDto.setNotifications(notificationList.stream().limit(1000).collect(Collectors.toList()));
+        accountDto.setTelegramSubscriptionExist(userCache.getUser().getChatId() != null);
 
 //        if (positionsResponse.getSecuritiesCount() != 0) {
 //            PositionsSecurities positionsSecurities = positionsResponse.getSecurities(0);

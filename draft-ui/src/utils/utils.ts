@@ -214,10 +214,11 @@ function applyStrategy(strategy: string, data: any[], paramsTs: any, isCommissio
     }
 }
 
-export function calcDataForGraphProfit(strategy:any[]) {
-    const total: { id: number; result: any[]; graphResult: any[]; }[]=[];
-    strategy.forEach((item:IStrategy, index)=>{
-        const orders=item?.orders||[];
+export function calcDataForGraphProfit(strategy: any[]) {
+    const total: { id: number; result: any[]; graphResult: any[]; }[] = [];
+
+    strategy.forEach((item: IStrategy, index) => {
+        const orders = item?.orders || [];
         const buy = orders.filter(i => i.direction === 'buy');
         const sell = orders.filter(i => i.direction === 'sell');
 
@@ -247,18 +248,19 @@ export function calcDataForGraphProfit(strategy:any[]) {
 
         let graphResult: any[] = [];
         for (let i = 0; i < result.length; i++) {
+            let time = moment(result[i].closeDate).toDate();
             if (graphResult[i - 1]?.y) {
                 graphResult.push({
-                    x: i + 1,
-                    label: moment(result[i].closeDate).format('DD-MM hh:mm:ss'),
+                    x: i+1,
+                    label: time,
                     y: graphResult[i - 1].y + result[i].profit
                 });
             } else {
-                graphResult.push({x: i + 1, label: moment(result[i].closeDate).format('DD-MM hh:mm:ss'), y: result[i].profit});
+                graphResult.push({x: i+1, label: time, y: result[i].profit});
             }
         }
 
-        total.push({id:index, result, graphResult});
+        total.push({id: index, result, graphResult});
     });
 
     return total;
@@ -273,11 +275,20 @@ export function stringTruncate(str: string, length: number): string {
     const dots = str.length > length ? '...' : '';
     return str.substring(0, length) + dots;
 }
-export async function copyTextToClipboard(text:string) {
-    if ('clipboard' in navigator) {
-        return await navigator.clipboard.writeText(text);
-    } else {
-        return document.execCommand('copy', true, text);
+
+export async function copyTextToClipboard(text: string) {
+    let textarea = document.createElement("textarea");
+    textarea.textContent = text;
+    textarea.style.position = "fixed";  // Prevent scrolling to bottom of page in Microsoft Edge.
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        return document.execCommand("copy");  // Security exception may be thrown by some browsers.
+    } catch (ex) {
+        console.warn("Copy to clipboard failed.", ex);
+        return prompt("Copy to clipboard: Ctrl+C, Enter", text);
+    } finally {
+        document.body.removeChild(textarea);
     }
 }
 

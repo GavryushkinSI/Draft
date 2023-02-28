@@ -53,16 +53,20 @@ const Login = (props: IProps) => {
                             props.setUserName(auth.login);
                             actions.getUserInfo(auth.login);
                         } else {
-                            setError("Пароль неверный!")
+                            setError("Логин или пароль неверный!")
                         }
                     });
                 }else{
                     props.setUserName(auth.login);
                     actions.getUserInfo(auth.login);
                 }
+                actions.setLoading(false);
+                setError(null);
             }
         ).catch((error) => {
-            setError(error.response.data.message);
+            console.log(error);
+            actions.setLoading(false);
+            setError(error.response.data);
         });
     }
 
@@ -126,7 +130,7 @@ const Login = (props: IProps) => {
     </>);
 
     return <ModalView
-        header={auth.status === "reg" ? 'Регистрация нового пользователя' : 'Вход'}
+        header={auth.status === "reg" ? 'Регистрация' : 'Вход'}
         show={!props.userName}
         text={content}/>;
 }

@@ -1,17 +1,17 @@
 package ru.app.draft.models;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.ArrayList;
+import java.io.Serializable;
 import java.util.List;
 
 @Getter
 @Setter
 @ToString
-public class Strategy {
+public class Strategy implements Serializable {
     private String id;
     private String userName;
     private String name;
@@ -24,8 +24,19 @@ public class Strategy {
     private List<Order> orders;
     private Long currentPosition = 0L;
     private Long priceTv;
+    @JsonIgnoreProperties
+    private String producer;
+    @JsonIgnoreProperties
+    private String position;
+    @JsonIgnoreProperties
+    private String slippage;
+    @JsonIgnoreProperties
+    private Long minLot;
+    private String description;
 
-    public Strategy(String id, String userName, String name, String direction, Long quantity, String figi, String ticker, Boolean isActive, List<String> consumer, List<Order> orders) {
+    public Strategy() {}
+
+    public Strategy(String id, String userName, String name, String direction, Long quantity, String figi, String ticker, Boolean isActive, List<String> consumer, List<Order> orders, String description, Long minLot) {
         this.id = id;
         this.userName = userName;
         this.name = name;
@@ -36,6 +47,8 @@ public class Strategy {
         this.isActive = isActive;
         this.consumer = consumer;
         this.orders = orders;
+        this.description=description;
+        this.minLot=minLot;
     }
 
     public void addOrder(Order order) {
