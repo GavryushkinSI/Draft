@@ -22,11 +22,11 @@ const initial = {
 export enum EActionTypes {
     SET_IS_LOADING = "SET_IS_LOADING",
     SET_DATA = "SET_DATA",
-    UPDATE_DATA="UPDATE_DATA",
+    UPDATE_DATA = "UPDATE_DATA",
     SET_LAST_TIME_UPDATE = "SET_LAST_TIME_UPDATE",
     SET_LAST_PRICE = "SET_LAST_PRICE",
-    GET_USER_INFO="GET_USER_INFO",
-    GET_TICKER="GET_TICKER",
+    GET_USER_INFO = "GET_USER_INFO",
+    GET_TICKER = "GET_TICKER",
 }
 
 /**
@@ -42,12 +42,12 @@ export interface IAction {
 
 const reducer = (state = initial, action: IAction): any => {
     switch (action.type) {
-        case EActionTypes.SET_IS_LOADING: {
-            return {
-                ...state,
-                isLoading: action.payload,
-            };
-        }
+        // case EActionTypes.SET_IS_LOADING: {
+        //     return {
+        //         ...state,
+        //         isLoading: action.payload,
+        //     };
+        // }
         case EActionTypes.SET_DATA: {
             return {...state, data: [...state.data, action.payload].flat()};
         }
@@ -62,12 +62,12 @@ const reducer = (state = initial, action: IAction): any => {
     }
 };
 
-const reducer2 = (state = {data: null}, action: IAction): any => {
+const reducer2 = (state = {data: new Map<string, number>()}, action: IAction): any => {
     switch (action.type) {
         case EActionTypes.SET_LAST_PRICE: {
             return {
                 ...state,
-                data: action.payload,
+                data: state.data.set(action.payload.figi, action.payload.price),
             };
         }
         default:
@@ -99,9 +99,9 @@ export type TAction<T = string> = { type: T };
  */
 export interface IAppState {
     renko: any;
-    user:any;
-    lastPrice: any;
-    ticker:any;
+    user: any;
+    lastPrice: {data: Map<string, number>};
+    ticker: any;
     notifications: INotificationState;
     strategy: any;
 }
@@ -156,10 +156,10 @@ const configureStore = () => {
             combineReducers<IAppState>({
                 renko: reducer,
                 lastPrice: reducer2,
-                ticker:tickerReducer,
+                ticker: tickerReducer,
                 notifications: notificationReducer,
                 strategy: strategyReducer,
-                user:userReducer,
+                user: userReducer,
             }),
             devToolsEnhancer()
         )

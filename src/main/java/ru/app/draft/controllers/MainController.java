@@ -1,6 +1,7 @@
 package ru.app.draft.controllers;
 
 import lombok.extern.log4j.Log4j2;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -8,6 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import ru.app.draft.annotations.Audit;
+import ru.app.draft.exceptions.AuthorizationException;
 import ru.app.draft.models.*;
 import ru.app.draft.services.ApiService;
 import ru.app.draft.services.DbService;
@@ -16,7 +18,9 @@ import ru.app.draft.services.TelegramBotService;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static ru.app.draft.store.Store.*;
 
@@ -74,12 +78,14 @@ public class MainController {
     public void reconnectStream() {
         Map<String, MarketDataSubscriptionService> subscriptionServiceMap = api.getMarketDataStreamService().getAllStreams();
         List<String> reconnectStreamList = new ArrayList<>();
-        LAST_PRICE.forEach((k, v) -> {
-            if (!subscriptionServiceMap.containsKey(k)) {
-                reconnectStreamList.add(k);
-            }
-        });
-        apiService.setSubscriptionOnCandle(api, reconnectStreamList);
+//        LAST_PRICE.forEach((k, v) -> {
+//            if (!subscriptionServiceMap.containsKey(k)) {
+//                reconnectStreamList.add(k);
+//            }
+//        });
+//        if (reconnectStreamList.size() != 0) {
+//            apiService.setSubscriptionOnCandle(api, reconnectStreamList);
+//        }
     }
 
     @PostMapping("/app/tv")
@@ -96,22 +102,24 @@ public class MainController {
         if (StringUtils.hasText(strategy.getId())) {
             strategyList.set(Integer.parseInt(strategy.getId()), strategy);
         } else {
-            List<String> figiList = apiService.getFigi(api, List.of(strategy.getTicker()));
-            if (!LAST_PRICE.containsKey(figiList.get(0))) {
-                apiService.setSubscriptionOnCandle(api, figiList);
-                LAST_PRICE.put(figiList.get(0), new LastPrice(null, null));
+            Ticker ticker = apiService.getFigi(api, List.of(strategy.getTicker()));
+            if (!LAST_PRICE.containsKey(ticker.getFigi())) {
+                LAST_PRICE.put(ticker.getFigi(), new LastPrice(null, null));
             }
+            LastPrice lastPrice = LAST_PRICE.get(ticker.getFigi());
+            lastPrice.addSubscriber(userName);
+            LAST_PRICE.replace(ticker.getFigi(), lastPrice);
             String uuid = String.valueOf(strategyList.size());
             strategyList.add(new Strategy(uuid,
                     strategy.getUserName(),
                     strategy.getName(),
                     strategy.getDirection(),
                     strategy.getQuantity(),
-                    figiList.get(0),
+                    ticker.getFigi(),
                     strategy.getTicker(),
                     strategy.getIsActive(),
                     strategy.getConsumer(),
-                    new ArrayList<>()));
+                    new ArrayList<>(), strategy.getDescription(),  ticker.getMinLot()));
         }
 
         userCache.setStrategies(strategyList);
@@ -124,14 +132,14 @@ public class MainController {
     public ResponseEntity<String> registration(@RequestBody User user, @PathVariable String status) throws Exception {
         if (status.equals("enter")) {
             if (!USER_STORE.containsKey(user.getLogin())) {
-                throw new Exception("Пользователя с таким именем нет...");
+                throw new AuthorizationException(new ErrorData("Пользователя с таким именем нет..."));
             }
             String hashPassword = USER_STORE.get(user.getLogin()).getUser().getPassword();
             return ResponseEntity.ok(hashPassword);
         }
         if (status.equals("reg")) {
             if (USER_STORE.containsKey(user.getLogin())) {
-                throw new Exception("Логин занят...");
+                throw new AuthorizationException(new ErrorData("Укажите другой логин..."));
             }
             USER_STORE.put(user.getLogin(), new UserCache(user));
         }
@@ -142,7 +150,8 @@ public class MainController {
     public ResponseEntity<Collection<Strategy>> removeStrategy(@PathVariable String userName, @PathVariable String name) {
         UserCache userCache = USER_STORE.get(userName);
         List<Strategy> strategyList = userCache.getStrategies();
-        strategyList.removeIf(strategy -> strategy.getName().equals(name));
+        Strategy findStrategy = strategyList.stream().filter(strategy -> strategy.getName().equals(name)).findFirst().get();
+        strategyList.remove(findStrategy);
         userCache.setStrategies(strategyList);
         USER_STORE.replace(userName, userCache);
         return ResponseEntity.ok(strategyList);
@@ -154,32 +163,55 @@ public class MainController {
     }
 
     @GetMapping("/app/getAllStrategy/{userName}")
-    public ResponseEntity<Collection<Strategy>> getAllStrategyByUser(@PathVariable String userName) {
+    public ResponseEntity<Collection<Strategy>> getAllStrategyByUser(@PathVariable String userName, HttpServletRequest request) {
         if (USER_STORE.containsKey(userName)) {
             return ResponseEntity.ok(USER_STORE.get(userName).getStrategies());
         }
         return ResponseEntity.ok(new ArrayList<>(0));
     }
 
-    @Audit
-    @Scheduled(fixedDelay = 500000)
-    public void getAllTickersTask() {
-        List<UserCache> userCaches =new ArrayList<>();
-        User user =new User("1", "2", "vvr", "rvbrbr");
-        UserCache userCache=new UserCache(user);
-        userCache.setStrategies(List.of(new Strategy(
-                "0","1","test", "buy", 0L, "tbt", "btb", true,
-                null, null
-        )));
-        userCaches.add(userCache);
-        dbService.deleteAll();
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    @GetMapping("/app/saveDataInTable/{userName}")
+    public void saveDataInTable(@PathVariable String userName) {
+        Optional<UserCache> userCache = USER_STORE.values().stream().filter(i -> i.getUser().getLogin().equals(userName)).findFirst();
+        if (userCache.isPresent() && userCache.get().getUser().getIsAdmin()) {
+            dbService.deleteAll();
+            dbService.saveUsers(new ArrayList<>(USER_STORE.values()));
+        } else {
+            throw new RuntimeException();
         }
-        dbService.saveUsers(userCaches);
-        //dbService.saveUsers(userCaches);
-//        dbService.getAllUsers();
+    }
+
+    @GetMapping("/app/getCountStreams")
+    public ResponseEntity<ArrayList<String>> getCountStreams() {
+        Map<String, MarketDataSubscriptionService> subscriptionServiceMap = api.getMarketDataStreamService().getAllStreams();
+        return ResponseEntity.ok(new ArrayList<>(subscriptionServiceMap.keySet()));
+    }
+
+    @Audit
+    @Scheduled(fixedDelay = 50000)
+    public void getAllTickersTask() {
+       LAST_PRICE.forEach((k,v)->{
+               Message message = new Message();
+                message.setSenderName("server");
+                message.setMessage(new ShortLastPrice(k, v.getPrice(), v.getUpdateTime().toString()));
+                message.setStatus(Status.JOIN);
+                message.setCommand("lastPrice");
+                List<String> subscriber = v.getNameSubscriber();
+                marketDataStreamService.sendDataToUser(subscriber, message);
+       });
+    }
+
+
+    @ExceptionHandler(AuthorizationException.class)
+    public ResponseEntity handleException(AuthorizationException e) {
+        return new ResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @GetMapping("/app/unsubscribe")
+    public void unsubscribed(){
+        Map<String, MarketDataSubscriptionService> streams=api.getMarketDataStreamService().getAllStreams();
+        streams.forEach((k,v)->v.unsubscribeLastPrices(List.of(k)));
     }
 }
+
+

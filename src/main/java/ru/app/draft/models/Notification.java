@@ -5,18 +5,28 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 @Getter
 @Setter
 @ToString
 public class Notification implements Serializable {
-     private String message;
-     private String type;
-     private String time;
+    private String id;
+    private String message;
+    private String header;
+    private String type;
+    private String typeView;
+    private String time;
+    private Boolean forAdmin;
 
-    public Notification(String message, String type, String time) {
+
+    public Notification(String header, String message, String type, String typeView, String time, Boolean forAdmin) {
+        this.header=header;
         this.message = message;
         this.type = type;
+        this.typeView = typeView;
         this.time = time;
+        this.forAdmin = forAdmin;
+        this.id = UUID.randomUUID().toString();
     }
 }

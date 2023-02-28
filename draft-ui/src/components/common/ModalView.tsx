@@ -13,14 +13,14 @@ const ModalView = (props: IProps) => {
     return (
         <>
             <Modal show={props.show} onHide={props.cancel&&(()=>{props.cancel?.()})}>
-                <Modal.Header style={{
+                <Modal.Header className="hideCloseBtn" style={{
                     backgroundColor: "#212529",
                     color: "#dee2e6"
                 }} closeButton>
                     <Modal.Title>{props.header?props.header:'Обратите внимание!'}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body style={{
-                    backgroundColor: "#212529",
+                     backgroundColor: "#212529",
                     color: "#dee2e6"
                 }}>{props.text}</Modal.Body>
                 {props.accept&&(<Modal.Footer style={{

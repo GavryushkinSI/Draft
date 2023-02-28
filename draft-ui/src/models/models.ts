@@ -29,10 +29,11 @@ export interface IStrategy {
     orders?:any[];
     priceTv?:string;
     currentPosition?:number;
+    description?:string;
 }
 
 export enum EProducer {
-    TKS = "TKS",
+    TKS = "Tinkoff_Invest",
     ALOR = "ALOR"
 }
 

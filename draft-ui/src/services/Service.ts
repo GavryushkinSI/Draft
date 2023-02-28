@@ -7,25 +7,29 @@ export class Service {
     constructor(private dispatch: any) {
     }
 
-    public setData(data: any, command: string) {
+    public setData(data: any, command: string, callback?:()=>void) {
         switch (command) {
-            case "newCandle":
-                this.dispatch({type: EActionTypes.SET_DATA, payload: data});
-                this.dispatch({type: EActionTypes.SET_LAST_TIME_UPDATE, payload: data.x});
+            case "strategy":
+                this.setDataStrategy(data, callback);
                 break;
-            case "newLastPrice":
+            case "lastPrice":
                 this.dispatch({type: EActionTypes.SET_LAST_PRICE, payload: data});
                 break;
             default:
-                this.dispatch({type: EActionTypes.SET_DATA, payload: data});
+                break;
         }
     }
 
-    public feedback(text:string, userName:string){
-        return http.post(`/feedback/${userName}`, text);
+    public feedback(text: string, userName: string, successCallback?: () => void) {
+        this.setLoading(true);
+        return http.post(`/feedback/${userName}`, text).then(() => {
+            successCallback && successCallback();
+            this.setLoading(false);
+        });
     }
 
     public login(auth: any, status: any): Promise<any> {
+        this.setLoading(true);
         return http.post(`/login/${status}`, auth);
     }
 
@@ -52,13 +56,19 @@ export class Service {
     }
 
     public getAllStrategyByUserName(userName: string, successCallback?: () => void, failCallback?: (error: any) => void) {
+        this.setLoading(true);
         http.get(`/getAllStrategy/${userName}`)
             .then((response: any) => {
                     successCallback && successCallback();
                     this.dispatch({type: EActionTypes.SET_DATA, payload: response.data});
                     this.getUserInfo(userName);
+                    this.setLoading(false);
                 }
-            ).catch((errors: any) => failCallback && failCallback(errors?.message));
+            ).catch((errors: any) => {
+            failCallback && failCallback(errors?.message);
+            this.setLoading(false);
+        }
+    )
     }
 
     public setDataStrategy(data: any, callback?: () => void) {
@@ -67,13 +77,19 @@ export class Service {
     }
 
     public addOrUpdateStrategy(userName: string, strategy: IStrategy, successCallback?: () => void, failCallback?: (error: any) => void) {
+        this.setLoading(true);
         http.post(`/editStrategy/${userName}`, strategy)
             .then((response: any) => {
                 successCallback && successCallback();
                 this.dispatch({type: EActionTypes.SET_DATA, payload: response.data});
                 this.getUserInfo(userName);
+                this.setLoading(false);
             })
-            .catch((errors: any) => failCallback && failCallback(errors?.message));
+            .catch((errors: any) => {
+                    failCallback && failCallback(errors?.message);
+                    this.setLoading(false);
+                }
+            );
     }
 
     public removeStrategy(userName: string, name: string, successCallback?: () => void, failCallback?: (error: any) => void) {
@@ -105,13 +121,30 @@ export class Service {
             .catch((errors: any) => failCallback && failCallback(errors?.message));
     }
 
-    public getAllTickers(successCallback?: () => void, failCallback?: (error: any) => void){
+    public getAllTickers(successCallback?: () => void, failCallback?: (error: any) => void) {
         http.get(`/getAllTickers`)
             .then((response) => {
                     successCallback && successCallback();
-                this.dispatch({type: EActionTypes.GET_TICKER, payload: response.data})
+                    this.dispatch({type: EActionTypes.GET_TICKER, payload: response.data})
                 }
             )
             .catch((errors: any) => failCallback && failCallback(errors?.message));
+    }
+
+    public saveDataInTable(userName?: string, successCallback?: () => void, failCallback?: (error: any) => void) {
+        http.get(`/saveDataInTable/${userName}`)
+            .then((response) => {
+                    successCallback && successCallback();
+                }
+            )
+            .catch((errors: any) => failCallback && failCallback(errors?.message));
+    }
+
+    public getCountStreams(){
+        void http.get(`/getCountStreams`);
+    }
+
+    public unsubscribed(){
+        void http.get(`/unsubscribe`);
     }
 }

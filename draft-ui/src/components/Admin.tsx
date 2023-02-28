@@ -1,4 +1,4 @@
-import React, {Dispatch, Fragment, useEffect, useState} from "react";
+import React, {Dispatch, useEffect, useState} from "react";
 import Notifications from "./common/Notification";
 import {useDispatch, useSelector} from "react-redux";
 import MyTable from "./common/MyTable";
@@ -7,16 +7,13 @@ import {useActions, useMountEffect} from "../hooks/hooks";
 import {addNotification} from "../actions/notificationActions";
 import {IAppState} from "../index";
 import {
-    Accordion,
     Button,
-    ButtonGroup,
     Col,
     Container,
     Form,
     ListGroup,
     Nav,
     Navbar,
-    NavDropdown,
     Offcanvas,
     Row
 } from "react-bootstrap";
@@ -28,26 +25,36 @@ import SockJS from "sockjs-client";
 import {over} from "stompjs";
 import {webSocketUrl} from "../utils/http-common";
 import SelectFilter from "./common/SelectFilter";
-import {useResolvedPath} from "react-router-dom";
 import ModalView from "./common/ModalView";
 import {ButtonLink} from "@paljs/ui";
 import RowFiled from "./common/RowFiled";
+import PreLoad from "./common/PreLoad";
+import ViewDescriptionNotification from "./common/ViewDescriptionNotification";
 
 let stompClient: any = null;
 const Admin: React.FC = () => {
     const actions: Service = useActions(Service);
     const [userName, setUserName] = useState(localStorage.getItem("userName"));
     const dispatch: Dispatch<any> = useDispatch();
-    const [expendedSideBar, setExpendedSidebar] = useState(true);
-    const [showLogs, setShowLogs] = useState(false);
+    const [expendedSideBar, setExpendedSidebar] = useState(false);
+    const [showLogs, setShowLogs] = useState(true);
     const [handleStrategy, setHandleStrategy] = useState<any>();
     const [showFeedBack, setFeedBack] = useState(false);
     const [textFeedBack, setTextFeedBack] = useState<any>();
     const [showDisclaimer, setShowDisclaimer] = useState(false);
+    const [notifyView, setNotifyView] = useState<any>({
+        show: false,
+        id: undefined,
+        type: "modal",
+        header: undefined,
+        message: undefined
+    });
     const user: any = useSelector((state: IAppState) =>
         state.user.data);
     const strategy: IStrategy[] = useSelector((state: IAppState) =>
         state.strategy.data);
+    const isLoading: boolean = useSelector((state: IAppState) =>
+        state.strategy.isLoading);
     const [size, setSize] = useState<any>(window.innerWidth);
 
     const userJoin = () => {
@@ -68,7 +75,11 @@ const Admin: React.FC = () => {
         const payloadData: Message = JSON.parse(payload.body);
         switch (payloadData.status) {
             case "JOIN":
-                actions.setDataStrategy(payloadData.message);
+                actions.setData(payloadData.message, payloadData.command, ()=>{
+                    if (payloadData?.command === 'strategy') {
+                        dispatch(addNotification("Info", "Прошла сделка"));
+                    }
+                });
                 break;
             case "MESSAGE":
                 break;
@@ -80,7 +91,7 @@ const Admin: React.FC = () => {
         stompClient = over(Sock);
         stompClient.debug = null;
         await stompClient.connect({}, onConnected, (error: any) => {
-            console.log("error", error)
+            dispatch(addNotification("Info", "Обрыв сокет соединения!...Перезагрузите страницу"));
         });
     }
 
@@ -102,6 +113,7 @@ const Admin: React.FC = () => {
                 if (box.style.opacity === '1') {
                     box.style.height = "0px"
                     box.style.opacity = "0"
+                    box.style.zIndex = "0"
                 }
             }
         });
@@ -124,17 +136,28 @@ const Admin: React.FC = () => {
         }
     }, [userName]);
 
-
     return <Container fluid>
         <Notifications/>
+        {notifyView.show && (
+            <ViewDescriptionNotification
+                type={notifyView.type}
+                id={notifyView.id}
+                message={notifyView.message}
+                header={notifyView.header}
+                show={notifyView.show}
+                cancel={() => {
+                    setNotifyView({...notifyView, show: false})
+                }}/>
+        )}
+        {isLoading && (<PreLoad/>)}
         <ModalView accept={() => {
-            void actions.feedback(textFeedBack, userName!)
+            void actions.feedback(textFeedBack, userName!, () => {
+                dispatch(addNotification("Info", 'Ваш вопрос принят! Ожидайте ответа...'));
+                setFeedBack(false);
+            });
         }} cancel={() => setFeedBack(false)} header={'Задать вопрос:'} show={showFeedBack} text={
             <Form>
                 <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
-                    {!userName && (<Form.Control onChange={(e: any) => {
-                        setTextFeedBack(e.target.value)
-                    }} placeholder={'Email'}/>)}
                     <Form.Control value={textFeedBack} onChange={(e: any) => {
                         setTextFeedBack(e.target.value)
                     }} placeholder={'Вопрос или предложение...'} as="textarea" rows={3}/>
@@ -142,25 +165,26 @@ const Admin: React.FC = () => {
             </Form>}/>
         <Row style={{flexWrap: "nowrap"}}>
             {expendedSideBar && (
-                <Col id="mySideBar" className="bg-custom-1" style={{maxWidth: 260, minWidth: 260, height: "100vh"}}>
-                    <>
-                        <Row>
-                            <Col className="sidebar">
-                                <Row>
-                                    <Col className="ms-5 pt-4">
-                                        <h5>Tview_Parser</h5>
-                                    </Col>
-                                </Row>
-                                <Row>
-                                    <Col style={{paddingLeft: 110, marginTop: -16}} className="ms-2">
-                                        <span style={{fontSize: 11}}>v.1.000.000</span>
-                                    </Col>
-                                </Row>
-                            </Col>
-                        </Row>
+                <Offcanvas className="s" show={expendedSideBar} onHide={() => setExpendedSidebar(!expendedSideBar)}>
+                    <Offcanvas.Header className="text-white"
+                                      style={{backgroundColor: "#212529", borderBottom: "2px solid black"}} closeButton>
+                        <Offcanvas.Title>
+                            <Row>
+                                <Col>
+                                    <h5>TView_Parser</h5>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col style={{paddingLeft: 110, marginTop: -16}} className="ms-2">
+                                    <span style={{fontSize: 11}}>v.1.000.000</span>
+                                </Col>
+                            </Row>
+                        </Offcanvas.Title>
+                    </Offcanvas.Header>
+                    <Offcanvas.Body className="bg-custom-1">
                         <Row>
                             <Col>
-                                <Button className="ps-3 pt-2" onClick={() => {
+                                <Button className="ps-1 pt-1" onClick={() => {
                                     actions.clear(userName!, () => {
                                             actions.getUserInfo(userName!);
                                             dispatch(addNotification("Info", 'Очищен лог!'));
@@ -170,7 +194,7 @@ const Admin: React.FC = () => {
                                     <Icon icon={"bi bi-trash3-fill"} size={15} title={'Clear'}/>
                                     {" Очистить лог"}
                                 </Button>
-                                <Button className="ps-3" onClick={() => {
+                                {userName === 'Admin' && (<Button className="ps-1" onClick={() => {
                                     actions.reconnectStream(() => {
                                             dispatch(addNotification("Info", 'Переподключили стрим!'));
                                         },
@@ -178,11 +202,20 @@ const Admin: React.FC = () => {
                                 }}>
                                     <Icon icon={"bi bi-ethernet"} size={15} title={'Clear'}/>
                                     {" Переподключить стрим"}
-                                </Button>
+                                </Button>)}
+                                {userName === 'Admin' && (<Button className="ps-1" onClick={() => {
+                                    actions.saveDataInTable(userName!, () => {
+                                            dispatch(addNotification("Info", 'Успешно!'));
+                                        },
+                                        (error: any) => dispatch(addNotification("Info", error)))
+                                }}>
+                                    <Icon icon={"bi bi-save"} size={15} title={'Save'}/>
+                                    {" Сохранить юзеров в БД"}
+                                </Button>)}
                             </Col>
                         </Row>
-                    </>
-                </Col>)}
+                    </Offcanvas.Body>
+                </Offcanvas>)}
             <Col className="bg-custom-2" style={{height: "100vh"}}>
                 <Row style={{flexWrap: "nowrap"}}>
                     <Col style={{paddingTop: 20}}>
@@ -194,7 +227,7 @@ const Admin: React.FC = () => {
                                         className="me-auto my-2 my-lg-0"
                                         navbarScroll
                                     >
-                                        <Nav.Link href="#action1">
+                                        <Nav.Link>
                                             <Button variant={"outline-primary"} onClick={() => {
                                                 setExpendedSidebar(!expendedSideBar)
                                             }}>
@@ -203,7 +236,7 @@ const Admin: React.FC = () => {
                                             </Button>
                                         </Nav.Link>
                                         <Nav.Link style={{paddingTop: 19}} className="text-white">
-                                            {`👤 Пользователь: ${userName || ''}`}
+                                            {`👤 ${userName || ''}`}
                                         </Nav.Link>
                                     </Nav>
                                     <Form className="d-flex">
@@ -220,11 +253,13 @@ const Admin: React.FC = () => {
                                             if (box.style.opacity === '1') {
                                                 box.style.height = "0px"
                                                 box.style.opacity = "0"
+                                                box.style.zIndex = "0"
                                             } else {
                                                 box.style.height = "auto"
                                                 box.style.maxHeight = "500px"
                                                 box.style.opacity = "1";
                                                 box.style.overflowY = "auto";
+                                                box.style.zIndex = "1000"
                                             }
                                         }}>
                                             <Icon icon={"bi bi-bell"}
@@ -235,7 +270,7 @@ const Admin: React.FC = () => {
                                             <span>{user?.notifications?.length || 0}</span>
                                         </ButtonLink>
                                         <ButtonLink className="icon" onClick={() => {
-                                            localStorage.clear();
+                                            localStorage.clear()
                                             actions.setDataStrategy([], () => {
                                                 setUserName(null)
                                             });
@@ -253,7 +288,17 @@ const Admin: React.FC = () => {
                                             {user?.notifications?.reverse()?.map((item: any) => {
                                                 switch (item.type) {
                                                     case "info":
-                                                        return <div className="notifications-item">
+                                                        return <div className="notifications-item" onClick={() => {
+                                                            if (item.typeView === "modal") {
+                                                                setNotifyView({
+                                                                    ...notifyView,
+                                                                    show: true,
+                                                                    id: item.id,
+                                                                    message: item.message,
+                                                                    header: item.header,
+                                                                })
+                                                            }
+                                                        }}>
                                                             <Icon color="lightblue" icon={"bi bi-info-square"} size={32}
                                                                   title={''}/>
                                                             <div className="text">
@@ -264,7 +309,18 @@ const Admin: React.FC = () => {
                                                             </div>
                                                         </div>
                                                     case "info_success":
-                                                        return <div className="notifications-item">
+                                                        return <div className="notifications-item" onClick={() => {
+                                                            if (item.typeView === "modal") {
+                                                                setNotifyView({
+                                                                    ...notifyView,
+                                                                    show: true,
+                                                                    id: item.id,
+                                                                    message: item.message,
+                                                                    header: item.header,
+                                                                })
+                                                            }
+                                                        }
+                                                        }>
                                                             <Icon color="lightgreen" icon={"bi bi-info-square"}
                                                                   size={32} title={''}/>
                                                             <div className="text">
@@ -275,7 +331,17 @@ const Admin: React.FC = () => {
                                                             </div>
                                                         </div>
                                                     case "error":
-                                                        return <div className="notifications-item">
+                                                        return <div className="notifications-item" onClick={() => {
+                                                            if (item.typeView === "modal") {
+                                                                setNotifyView({
+                                                                    ...notifyView,
+                                                                    show: true,
+                                                                    id: item.id,
+                                                                    message: item.message,
+                                                                    header: item.header,
+                                                                })
+                                                            }
+                                                        }}>
                                                             <Icon color="red" icon={"bi bi-exclamation-square"}
                                                                   size={32}
                                                                   title={''}/>
@@ -391,20 +457,34 @@ const Admin: React.FC = () => {
                         <MyTable/>
                     </Col>
                 </Row>
+                {/*{userName === 'Admin' && (<Row>*/}
+                {/*    <Col style={{maxWidth:220}} className="ps-4 pt-2">*/}
+                {/*        <Button variant={"outline-dark"} onClick={() => {*/}
+                {/*            actions.getCountStreams()*/}
+                {/*        }}>{'Количество стримов'}</Button>*/}
+                {/*    </Col>*/}
+                {/*    <Col className="pt-2">*/}
+                {/*        <Button variant={"outline-dark"} onClick={() => {*/}
+                {/*            actions.unsubscribed()*/}
+                {/*        }}>{'Отключить стрим'}</Button>*/}
+                {/*    </Col>*/}
+                {/*</Row>)}*/}
                 <Row>
                     <Col className="ps-4">
-                        <a onClick={(e: any) => {
-                            setShowLogs(!showLogs)
+                        <div onClick={(e: any) => {
+                            // setShowLogs(!showLogs)
                         }} className="text-outline custom-text"
-                           href={'#'}>{`Показать/Скрыть логи ${showLogs ? '▽' : '△'}`}</a>
+                        >{'Логи:'
+                            // `Показать/Скрыть логи ${showLogs ? '▽' : '△'}`
+                        }</div>
                     </Col>
                 </Row>
                 {showLogs && (<Row>
                     <Col>
-                        <ListGroup style={{height: 450, overflowY: "auto", color: "rgb(140, 144, 154)"}}
-                                   className="ps-3">
+                        <ListGroup style={{maxHeight: 450, overflowY: "auto", paddingLeft: 10}}>
                             {user?.logs?.reverse()?.map((i: any, index: number) => {
-                                return <ListGroup.Item className="bg-custom-2" key={index}>{`${i}`}</ListGroup.Item>
+                                return <ListGroup.Item style={{color: "#8C909A"}} className="bg-custom-2"
+                                                       key={index}>{`${i}`}</ListGroup.Item>
                             })}
                         </ListGroup>
                     </Col>
@@ -419,7 +499,11 @@ const Admin: React.FC = () => {
                 }} className="mt-auto">
                     <Col>
                         <ButtonLink onClick={() => setShowDisclaimer(true)}>
-                            <span style={{color: "lightgray", cursor: "pointer"}}>{'Отказ от ответственности'}</span>
+                            <span style={{
+                                color: "lightgray",
+                                cursor: "pointer",
+                                paddingLeft: 10,
+                            }}>{'Отказ от ответственности'}</span>
                         </ButtonLink>
                     </Col>
 
@@ -430,7 +514,7 @@ const Admin: React.FC = () => {
                     <Offcanvas.Header closeButton>
                         <Offcanvas.Title className="text-white">Отказ от ответственности</Offcanvas.Title>
                     </Offcanvas.Header>
-                    <Offcanvas.Body className="text-white">
+                    <Offcanvas.Body className="text-white font-size-sm">
                         {
                             'Информация, содержащаяся на этом сайте, предоставляется только в образовательных целях и не должна рассматриваться как финансовый совет.\n' +
                             'Торговля сопряжена со значительным риском убытков, и вы должны знать о рисках и быть готовыми принять их, чтобы инвестировать в рынки.\n' +

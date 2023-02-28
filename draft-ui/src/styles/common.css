@@ -1,35 +1,5 @@
-
-.notifyList {
-    right: 0;
-    position: absolute;
-    z-index: 100;
-}
-
-.myToast {
-    animation: notify 1s ease-in-out;
-}
-
-@keyframes notify {
-    0% {
-        width: 50px;
-    }
-    10% {
-        width: 150px;
-    }
-    30% {
-        width: 200px;
-    }
-    80% {
-        width: 300px;
-    }
-    100% {
-    }
-}
-
 body {
     margin: 0;
-    /*background-color: #212529;*/
-    background-color: rgb(30 30 47 / 92%);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
@@ -94,7 +64,7 @@ body {
 }
 
 .css-13cymwt-control {
-    top:3px;
+    top: 3px;
     max-height: 38px;
 }
 
@@ -129,9 +99,89 @@ body {
     height: 550px !important;
 }
 
-@media (max-width: 650px) {
-    .ml {
-        margin-left: 12px;
-        margin-top: 8px!important;
+@media (max-width: 576px) {
+    .font-size-sm {
+        font-size: 13px;
     }
+}
+
+.table th:first-child, .table th:nth-child(2) {
+    position: sticky;
+    left: 0;
+    background-color: lightgrey;
+    color: #373737;
+}
+
+.resp > .table td:first-child, .table td:nth-child(2) {
+    position: sticky;
+    left: 0;
+    background-color: lightgrey;
+    color: #373737;
+}
+
+.table td {
+    white-space: nowrap;
+}
+
+.table {
+    border-radius: 0.2rem;
+}
+
+
+.an {
+    font: 400 1.4rem/2rem Fira Sans, sans-serif;
+    color: #fff;
+    font-family: monospace, monospace;
+    user-select: none;
+    --animation-duration: 500ms;
+    display: block;
+    position: absolute;
+    width: 100%;
+    top: 50%;
+    margin-top: 8rem;
+    font-size: 1.4rem;
+    animation-name: move;
+    animation-duration: calc(var(--animation-duration) * 8);
+    animation-timing-function: ease-in-out;
+    -webkit-animation-iteration-count: infinite;
+    animation-delay: calc(var(--animation-duration) * 1);
+}
+
+.an:nth-child(1) {
+    animation-delay: calc(var(--animation-duration) * 1)
+}
+
+@keyframes move {
+    0% {
+        transform: translateY(0);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-850%);
+    }
+}
+
+.tooltip:nth-child(2) {
+    background-color: #71AC66 !important;
+}
+
+/*.hideCloseBtn > .btn-close {*/
+/*    display: none;*/
+/*}*/
+
+.list-group-item:hover {
+    color: black !important;
+    background-color: white !important;
+}
+
+.s {
+    max-width: 265px !important;
+}
+
+.btn-dark {
+    --bs-btn-bg: #0080fffc !important;
 }

@@ -1,7 +1,7 @@
 import React, {Dispatch, useMemo, useState} from "react";
 import Icon from "./Icon";
 import {Button, ButtonGroup, Col, Form, FormGroup, Offcanvas, Row, Table} from "react-bootstrap";
-import {EConsumer, EProducer, IStrategy} from "../../models/models";
+import {EProducer, IStrategy} from "../../models/models";
 import ModalView from "./ModalView";
 import {useDispatch, useSelector} from "react-redux";
 import {addNotification} from "../../actions/notificationActions";
@@ -13,6 +13,7 @@ import {calcDataForGraphProfit, copyTextToClipboard} from "../../utils/utils";
 import {Chart} from "../Chart";
 import SelectFilter from "./SelectFilter";
 import RowFiled from "./RowFiled";
+import MyToolTip from "./MyToolTip";
 
 const columns = [
     {field: 'id', fieldName: '№'},
@@ -23,12 +24,13 @@ const columns = [
     {field: 'status', fieldName: 'Статус'},
     {field: 'currentPosition', fieldName: 'Текущая позиция'},
     {filed: 'fixProfit', fieldName: 'Тек. доход'},
+    {filed: 'lastPrice', fieldName: 'Посл. цена'},
     {field: '', fieldName: ''},
 ];
 
 const MyTable: React.FC = () => {
     const userName = localStorage.getItem("userName");
-    const [showGraph, setShowGraph] = useState<any>({show: false, idStrategy: ""});
+    const [showGraph, setShowGraph] = useState<any>({show: false, nameStrategy: ""});
     const [showDescriptionModal, setShowDescriptionModal] = useState<any>({show: false, name: undefined});
     const actions = useActions(Service);
     const dispatch: Dispatch<any> = useDispatch();
@@ -44,6 +46,12 @@ const MyTable: React.FC = () => {
     const strategy: IStrategy[] = useSelector((state: IAppState) =>
         state.strategy.data);
 
+    const user: any = useSelector((state: IAppState) =>
+        state.user.data);
+
+    const lastPrice: Map<string, number> = useSelector((state: IAppState) =>
+        state.lastPrice.data);
+
     const handleChangeEdit = (e: any, rowId?: any) => {
         const {name, value} = e.target;
 
@@ -53,7 +61,7 @@ const MyTable: React.FC = () => {
                 dispatch(addNotification("Info", `Запись успешно сохранена!`))
             }, (error: any) => dispatch(addNotification("Info", error)));
         } else {
-            if (!value) {
+            if (!value && name !== 'description') {
                 setValidation({...validation, [name]: 'Поле обязательно для заполнения!'});
                 setEditedRow({...editedRow, [name]: value});
                 return;
@@ -62,8 +70,14 @@ const MyTable: React.FC = () => {
                 setValidation({...validation, [name]: 'Такое наименование уже есть!'});
                 return;
             }
-            if (name === 'customer-test') {
-                setEditedRow({...editedRow, customer: [EConsumer.TEST]});
+            if (['emulation', 'telegram', 'terminal'].includes(name) && editedRow.consumer) {
+                if (editedRow.consumer.includes(name)) {
+                    const consumer = editedRow.consumer.filter((i: any) => i !== name);
+                    setEditedRow({...editedRow, consumer});
+                } else {
+                    const consumer = [...editedRow.consumer, name];
+                    setEditedRow({...editedRow, consumer});
+                }
                 return;
             }
             setValidation({...validation, [name]: undefined});
@@ -110,12 +124,12 @@ const MyTable: React.FC = () => {
                           onHide={() => {
                               setIsShowModal(false)
                           }}>
-            <Offcanvas.Header style={{borderBottom:"2px solid black"}} closeButton>
+            <Offcanvas.Header style={{borderBottom: "2px solid black"}} closeButton>
                 <Offcanvas.Title>{editedRow.id ? `Редактирование стратегии №:${editedRow.id}` : 'Добавление новой стратегии'}</Offcanvas.Title>
             </Offcanvas.Header>
             <Offcanvas.Body>
                 <Form>
-                    <Form.Select disabled name="producer" style={{width:351}}>
+                    <Form.Select disabled name="producer" style={{width: 351}}>
                         <option value="1">{EProducer.TKS}</option>
                         <option value="2">{EProducer.ALOR}</option>
                     </Form.Select>
@@ -127,52 +141,80 @@ const MyTable: React.FC = () => {
                         type="text"
                         placeholder="Наименование стратегии"
                         isInvalid={!isEmpty(validation?.name)}
-                        style={{width:351}}
+                        style={{width: 351}}
                     />
                     <Form.Control.Feedback type="invalid">{validation.name}</Form.Control.Feedback>
                     <SelectFilter value={editedRow?.ticker ? {value: editedRow.ticker, label: editedRow.ticker} : null}
                                   onChange={handleChangeEdit} errorMsg={validation.ticker}/>
-                    <Form.Group style={{width:351}} className="mb-3" controlId="exampleForm.ControlTextarea1">
-                        <Form.Control placeholder={'Описание стратегии'} as="textarea" rows={3}/>
+                    <Form.Group style={{width: 351}} className="mb-3" controlId="exampleForm.ControlTextarea1">
+                        <Form.Control name="description" value={editedRow?.description} onChange={handleChangeEdit}
+                                      placeholder={'Описание стратегии'} as="textarea" rows={3}/>
                     </Form.Group>
-                    <div style={{display:"flex"}}>
-                        <Form.Check
-                            type="switch"
-                            name='customer-terminal'
-                            id="custom-switch"
-                            label="Терминал"
-                            onChange={handleChangeEdit}
-                            disabled
-                            className="pe-2"
-                        />
-                        <Form.Check
-                            type="switch"
-                            name='customer-test'
-                            id="custom2-switch"
-                            onChange={handleChangeEdit}
-                            label="Эмуляция"
-                            disabled
-                            checked
-                            className="pe-2"
-                        />
-                        <Form.Check
-                            type="switch"
-                            name='customer-test'
-                            id="custom3-switch"
-                            onChange={handleChangeEdit}
-                            label="Телеграмм"
-                            disabled
-                        />
-                    </div>
-                    <br/>
-                    <Button className={"me-2"} variant="outline-light" onClick={() => {
-                        setIsShowModal(false)
-                    }}>
-                        Закрыть
-                    </Button>
-                    <Button variant="outline-success" onClick={handleSave}>
-                        <Icon icon={"bi bi-save"} size={15} title={''} text={' Сохранить'}/>
-                    </Button>
+                    <Row>
+                        <Col style={{maxWidth: 120}}>
+                            <Form.Check
+                                type="switch"
+                                name='terminal'
+                                id="custom-switch"
+                                label="Терминал"
+                                onChange={handleChangeEdit}
+                                disabled
+                                className="pe-2"
+                            />
+                        </Col>
+                        <Col>
+                            <MyToolTip text={'В текущем релизе недоступно!'}/>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col style={{maxWidth: 120}}>
+                            <Form.Check
+                                type="switch"
+                                name='emulation'
+                                id="custom2-switch"
+                                onChange={handleChangeEdit}
+                                label="Эмуляция"
+                                disabled
+                                checked={editedRow.consumer?.includes("test")}
+                                className="pe-2"
+                            />
+                        </Col>
+                        <Col>
+                            <MyToolTip
+                                text={'В данном режиме можно протестировать стратегию без отправки сигналов на биржу.'}/>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col style={{maxWidth: 130}}>
+                            <Form.Check
+                                type="switch"
+                                name='telegram'
+                                id="custom3-switch"
+                                onChange={handleChangeEdit}
+                                label="Телеграмм"
+                                checked={editedRow.consumer?.includes('telegram')}
+                                disabled={!user?.telegramSubscriptionExist}
+                            />
+                        </Col>
+                        <Col>
+                            <MyToolTip
+                                text={'Отправка уведомлений о сделках в телеграмм. Требуется регистрации в боте: tview_bot'}/>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col style={{maxWidth: 100}}>
+                            <Button className={"me-2 mt-2"} variant="outline-light" onClick={() => {
+                                setIsShowModal(false)
+                            }}>
+                                Закрыть
+                            </Button>
+                        </Col>
+                        <Col style={{paddingTop: 8}}>
+                            <Button variant="outline-success" onClick={handleSave}>
+                                <Icon icon={"bi bi-save"} size={15} title={''} text={' Сохранить'}/>
+                            </Button>
+                        </Col>
+                    </Row>
                 </Form>
             </Offcanvas.Body>
         </Offcanvas>
@@ -186,8 +228,9 @@ const MyTable: React.FC = () => {
             ticker: '',
             position: 0,
             slippage: 0,
-            consumer: [EConsumer.TEST],
+            consumer: ["test"],
             isActive: true,
+            description: undefined,
         });
         setValidation({
             name: 'Поле обязательно для заполнения!',
@@ -212,12 +255,11 @@ const MyTable: React.FC = () => {
     }
 
     const renderDescriptionModal = () => {
-        const text = `{"direction": "{{strategy.order.action}}",
-                "name":"${showDescriptionModal.name}",
+        const text = `{
                 "userName":"${userName}",
-                "ticker": "RIH3",
+                "name":"${showDescriptionModal.name}",
+                "direction": "{{strategy.order.action}}",
                 "quantity": "{{strategy.position_size}}",
-                "consumer": ["test"],
                 "priceTv":"{{strategy.order.price}}"}`;
         return <ModalView header={'Как добавить стратегию в Tradingview:'} show={showDescriptionModal.show}
                           cancel={() => {
@@ -227,20 +269,20 @@ const MyTable: React.FC = () => {
             <ul>
                 <li>Нажать на <em>Добавить оповещение</em> в панели <em dir="ltr">Тестера стратегий.</em><br/>
                     <img style={{width: 434, maxHeight: 100}}
-                         src="https://s3.amazonaws.com/cdn.freshdesk.com/data/helpdesk/attachments/production/43379926138/original/4XPI1kKX4FBOhwhvmKYybJPz3xhgXJKP2Q.jpg?1671202826"
+                         src="/icons/4.jpeg"
                          alt="альтернативный текст"/>
                 </li>
                 <li>Воспользоваться кнопкой <em>Добавить оповещение для&nbsp;</em>в выпадающем меню стратегии.<br/>
                     <img style={{width: 434, maxHeight: 300}}
-                         src="https://s3.amazonaws.com/cdn.freshdesk.com/data/helpdesk/attachments/production/43379926209/original/sHYLtSKfhC0C-lJfgUJvX21ivo21maS8sA.jpg?1671202839"/>
+                         src="/icons/3.jpeg"/>
                 </li>
                 <li>Выбрать свою стратегию в диалоговом окне создания оповещений.<br/>
                     <img style={{width: 434, maxHeight: 480}}
-                         src="https://s3.amazonaws.com/cdn.freshdesk.com/data/helpdesk/attachments/production/43379926246/original/BNHxg5elv4wUq_R5vih05E9FTlZ__yNx1w.jpg?1671202849"/>
+                         src="/icons/2.jpeg"/>
                 </li>
                 <li>
                     Поле <em>Message</em> заполнить текстом ниже. <br/>
-                    <div className="mt-2 text-bg-success">{text}|</div>
+                    <div className="mt-2 text-bg-success">{text}</div>
                     <br/>
                     <Button className="me-2" onClick={(e: any) => {
                         void copyTextToClipboard(text);
@@ -250,6 +292,23 @@ const MyTable: React.FC = () => {
                         Скопировать
                     </Button>
                     <span id="test"/>
+                </li>
+                <li>
+                    Указать URL для отправки сигналов<br/>
+                    <img src='/icons/1.png' style={{width: 434, maxHeight: 480}}/>
+                </li>
+                <li>
+                    Скопировать url ниже<br/>
+                    <div className="mt-2 text-bg-success">{'http://176.57.218.179/api/tv'}</div>
+                    <br/>
+                    <Button className="me-2" onClick={(e: any) => {
+                        void copyTextToClipboard('http://176.57.218.179/api/tv');
+                        const x = document.getElementById('test2');
+                        x!.innerText = 'Скопировано!'
+                    }} variant={"outline-success"}>
+                        Скопировать
+                    </Button>
+                    <span id="test2"/>
                 </li>
             </ul>
         </div>}/>
@@ -263,11 +322,16 @@ const MyTable: React.FC = () => {
         {renderRemoveModal()}
         {showGraph.show && (<ModalView
             show={showGraph.show}
-            cancel={() => setShowGraph({show: false, idStrategy: undefined})}
-            header={'График доходности'}
-            text={<Chart data={calcChart.find((i: any) => {
-                return i.id === Number(showGraph.idStrategy)
-            })?.graphResult || []}/>}
+            cancel={() => setShowGraph({show: false, nameStrategy: undefined})}
+            header={`График доходности: ${showGraph.nameStrategy || ""}`}
+            text={<Chart data={
+                calcChart.find((i: any) => {
+                    const id = strategy?.find((i: any) => {
+                        return i.name === showGraph?.nameStrategy
+                    })!.id;
+                    return i.id === Number(id)
+                })?.graphResult || []
+            }/>}
         />)}
         <RowFiled>
             <Button
@@ -279,98 +343,117 @@ const MyTable: React.FC = () => {
                 <Icon icon={'bi bi-plus-square'} size={15} title={''} text={' Добавить стратегию'}/>
             </Button>
         </RowFiled>
-        <Row style={{overflow:"auto"}}>
+        <Row>
             <Col className="ps-4">
-            <Table style={{color: "rgb(140, 144, 154)"}} className={"w-75"} bordered
-                   variant="outline">
-                <thead>
-                <tr key={"header"}>
-                    {columns.map((column) => {
-                        return <th key={column.field}>{column.fieldName}</th>
-                    })}
-                </tr>
-                </thead>
-                <tbody>
-                {strategy.length > 0 ? strategy?.map((row, index) => {
-                    return <tr key={row.id! + 1000}
-                               style={hoverTable === index && clickTable !== index ? {
-                                   color: "white",
-                                   backgroundColor: "lightgray"
-                               } : clickTable === index ? {backgroundColor: "lightblue", color: "white"} : {}}
-                               onClick={() => {
-                                   setClickTable(index)
-                               }} onMouseLeave={() => {
-                        setHoverTable(-1)
-                    }} onMouseEnter={() => {
-                        setHoverTable(index)
-                    }}
-                    >
-                        <td className={"align-middle"}>{index + 1}</td>
-                        <td className={"align-middle"}>{row?.name}</td>
-                        <td className={"align-middle"}>{'TKS'}</td>
-                        <td className={"align-middle"}>{row?.ticker}</td>
-                        <td className={"align-middle"}>{row.consumer && row.consumer.toString().replace(',', '/')}</td>
-                        <td className={"align-middle"}>
-                            <Form.Check
-                                id="custom-switch"
-                                name="isActive"
-                                checked={row.isActive}
-                                type="switch"
-                                label="Вкл/Выкл"
-                                onChange={(e) => {
-                                    handleChangeEdit(e, row?.id)
-                                }}
-                            />
-                        </td>
-                        <td style={row.currentPosition ? (row.currentPosition > 0 ? {backgroundColor: "lightgreen"} : row.currentPosition < 0 ? {backgroundColor: "lightpink"} : {backgroundColor: "lightgreen"}) : undefined}
-                            className={"align-middle text-center"}>
-                            {row.currentPosition || 0}
-                        </td>
-                        <td className={"align-middle text-center"}>
-                            {calcChart.find((i: any) => {
-                                return i.id === Number(row.id)
-                            })?.graphResult?.slice(-1)[0]?.y || 0}
-                        </td>
-                        <td>
-                            <ButtonGroup className={"me-2"}>
-                                <Button
-                                    onClick={
-                                        () =>
-                                            handleEdit(row?.id)
-                                    }
-                                    variant={"outline-success"}>
-                                    <Icon icon={"bi bi-pencil-square"} size={15} title={''}/>
-                                </Button>
-                            </ButtonGroup>
-                            <ButtonGroup className={"me-2"}>
-                                <Button onClick={() => {
-                                    handleRemove(row?.id)
-                                }} variant={"outline-danger"}>
-                                    <Icon icon={"bi bi-trash"} size={15} title={''}/>
-                                </Button>
-                            </ButtonGroup>
-                            <ButtonGroup className={"me-2"}>
-                                <Button onClick={() => {
-                                    setShowGraph({show: true, idStrategy: row.id})
-                                }} variant={"dark"}>
-                                    <Icon icon={"bi bi-graph-up"} size={15} title={'View Chart'}/>
-                                </Button>
-                            </ButtonGroup>
-                            <ButtonGroup>
-                                <Button onClick={() => {
-                                    setShowDescriptionModal({show: true, name: row.name})
-                                }} variant={"dark"}>
-                                    <Icon icon={"bi bi-info-circle"} size={15} title={''}/>
-                                </Button>
-                            </ButtonGroup>
-                        </td>
-                    </tr>
-                }) : <tr key={'notFound'}>
-                    <td colSpan={9}>{"Вы пока не завели ни одной стратегии..."}</td>
-                </tr>
-                }
-                </tbody>
-            </Table>
+                <div style={{border: "0.01rem solid grey", maxHeight: 300}}
+                     className={strategy.length > 0 ? "resp table-responsive" : "table-responsive"}>
+                    <Table style={{color: "rgb(140, 144, 154)"}} bordered
+                           variant="outline">
+                        <thead>
+                        <tr key={"header"}>
+                            {columns.map((column) => {
+                                return <th key={column.field}>{column.fieldName}</th>
+                            })}
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {strategy.length > 0 ? strategy?.map((row, index) => {
+                            return <tr key={row.id! + 3005}
+                                       style={hoverTable === index && clickTable !== index ? {
+                                           color: "white",
+                                           backgroundColor: "lightgray"
+                                       } : clickTable === index ? {backgroundColor: "lightblue", color: "white"} : {}}
+                                       onClick={() => {
+                                           setClickTable(index)
+                                       }} onMouseLeave={() => {
+                                setHoverTable(-1)
+                            }} onMouseEnter={() => {
+                                setHoverTable(index)
+                            }}
+                            >
+                                <td className={"align-middle"}>{index + 1}</td>
+                                <td className={"align-middle"}>
+                                    {row?.description ?
+                                        (<MyToolTip style={{
+                                            marginTop: "-4px",
+                                            borderBottom: "1px dashed black",
+                                            color: "black"
+                                        }} text={row?.description} textInner={row?.name}/>) : row?.name}
+                                </td>
+                                <td className={"align-middle"}>{EProducer.TKS}</td>
+                                <td className={"align-middle"}>{row?.ticker}</td>
+                                <td className={"align-middle"}>{row.consumer?.map((i: any) => {
+                                    return <Form.Check
+                                        label={i === "test" ? "Эмуляция" : i === "telegram" ? "Телеграмм" : "Биржа"}
+                                        checked
+                                        disabled
+                                    />
+                                })}</td>
+                                <td className={"align-middle"}>
+                                    <Form.Check
+                                        id="custom-switch"
+                                        name="isActive"
+                                        checked={row.isActive}
+                                        type="switch"
+                                        label="Вкл/Выкл"
+                                        onChange={(e) => {
+                                            handleChangeEdit(e, row?.id)
+                                        }}
+                                    />
+                                </td>
+                                <td style={row.currentPosition ? (row.currentPosition > 0 ? {backgroundColor: "lightgreen"} : row.currentPosition < 0 ? {backgroundColor: "lightpink"} : {backgroundColor: "lightgreen"}) : undefined}
+                                    className={"align-middle text-center"}>
+                                    {row.currentPosition || 0}
+                                </td>
+                                <td className={"align-middle text-center"}>
+                                    {calcChart.find((i: any) => {
+                                        return i.id === Number(row.id)
+                                    })?.graphResult?.slice(-1)[0]?.y || 0}
+                                </td>
+                                <td className={"align-middle text-center"}>
+                                    {lastPrice.get(row.figi!) || 'wait...'}
+                                </td>
+                                <td style={{verticalAlign: "middle"}}>
+                                    <ButtonGroup className={"me-2"}>
+                                        <Button
+                                            onClick={
+                                                () =>
+                                                    handleEdit(row?.id)
+                                            }
+                                            variant={"outline-success"}>
+                                            <Icon icon={"bi bi-pencil-square"} size={15} title={''}/>
+                                        </Button>
+                                    </ButtonGroup>
+                                    <ButtonGroup className={"me-2"}>
+                                        <Button onClick={() => {
+                                            handleRemove(row?.id)
+                                        }} variant={"outline-danger"}>
+                                            <Icon icon={"bi bi-trash"} size={15} title={''}/>
+                                        </Button>
+                                    </ButtonGroup>
+                                    <ButtonGroup className={"me-2"}>
+                                        <Button onClick={() => {
+                                            setShowGraph({show: true, nameStrategy: row.name})
+                                        }} variant={"dark"}>
+                                            <Icon icon={"bi bi-graph-up"} size={15} title={'View Chart'}/>
+                                        </Button>
+                                    </ButtonGroup>
+                                    <ButtonGroup>
+                                        <Button onClick={() => {
+                                            setShowDescriptionModal({show: true, name: row.name})
+                                        }} variant={"dark"}>
+                                            <Icon icon={"bi bi-info-circle"} size={15} title={''}/>
+                                        </Button>
+                                    </ButtonGroup>
+                                </td>
+                            </tr>
+                        }) : <tr key={'notFound'}>
+                            <td colSpan={9}>{"Вы пока не завели ни одной стратегии..."}</td>
+                        </tr>
+                        }
+                        </tbody>
+                    </Table>
+                </div>
             </Col>
         </Row>
     </>

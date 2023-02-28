@@ -17,6 +17,9 @@ public class User implements Serializable {
     private String email;
     private String chatId;
     private String lastVisit;
+    private Boolean isAdmin=false;
+
+    public User() {}
 
     public User(String login, String password, String email, String chatId) {
         this.login = login;

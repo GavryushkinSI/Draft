@@ -12,7 +12,7 @@ public class AccountDto implements Serializable {
 
     public AccountDto(String id, long cash) {
         this.id = id;
-        this.cash=cash;
+        this.cash = cash;
     }
 
     private String id;
@@ -25,6 +25,7 @@ public class AccountDto implements Serializable {
     private Long result;
     private List<String> logs;
     private List<Notification> notifications;
+    private Boolean telegramSubscriptionExist = false;
 
     private long balance;
 }
