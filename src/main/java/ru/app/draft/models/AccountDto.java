@@ -15,6 +15,8 @@ public class AccountDto implements Serializable {
         this.cash = cash;
     }
 
+    public AccountDto() {}
+
     private String id;
 
     private long cash;

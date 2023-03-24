@@ -1,13 +1,16 @@
 import {EActionTypes} from "../index";
 import http from "../utils/http-common";
-import {EConsumer, IStrategy} from "../models/models";
+import {EConsumer, IArticle, IComment, IStrategy} from "../models/models";
+import {useStore} from "react-redux";
+import {removeRow, saveRow} from "../utils/utils";
+import moment from "moment";
 
 export class Service {
 
     constructor(private dispatch: any) {
     }
 
-    public setData(data: any, command: string, callback?:()=>void) {
+    public setData(data: any, command: string, callback?: () => void) {
         switch (command) {
             case "strategy":
                 this.setDataStrategy(data, callback);
@@ -65,10 +68,10 @@ export class Service {
                     this.setLoading(false);
                 }
             ).catch((errors: any) => {
-            failCallback && failCallback(errors?.message);
-            this.setLoading(false);
-        }
-    )
+                failCallback && failCallback(errors?.message);
+                this.setLoading(false);
+            }
+        )
     }
 
     public setDataStrategy(data: any, callback?: () => void) {
@@ -140,11 +143,30 @@ export class Service {
             .catch((errors: any) => failCallback && failCallback(errors?.message));
     }
 
-    public getCountStreams(){
+    public getCountStreams() {
         void http.get(`/getCountStreams`);
     }
 
-    public unsubscribed(){
+    public unsubscribed() {
         void http.get(`/unsubscribe`);
+    }
+
+    public changeNotify(id: string, user: any, comment?: IComment, isRemoveMode?: boolean) {
+        let articles: IArticle[] = user?.notifications;
+        let finder: IArticle = articles.find(item => item.id === id)!;
+        if (isRemoveMode) {
+            const comments: IComment[] = removeRow(finder.comments!, comment?.id!);
+            finder.comments = comments;
+        }
+        if (!comment?.id&&!isRemoveMode) {
+            finder.comments?.push({...comment!, date:moment().format("YYYY-MM-DD HH:mm:ss")});
+        } else {
+            const comments: IComment[] = saveRow(comment, finder.comments!);
+            finder.comments = comments;
+        }
+
+        void http.put('/changeNotify', finder).then((response) => {
+            this.dispatch({type: EActionTypes.GET_USER_INFO, payload: {...user, notifications: response.data}});
+        })
     }
 }

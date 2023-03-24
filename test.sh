@@ -29,3 +29,5 @@ services:
       - 80:80
     links:
       - draft-back
+
+find . -name '*.tsx' -delete

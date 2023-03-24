@@ -1,12 +1,20 @@
 package ru.app.draft.services;
 
+import jdk.net.Sockets;
 import lombok.extern.log4j.Log4j2;
 import ru.app.draft.models.CandleData;
 import ru.app.draft.models.Message;
 import ru.app.draft.models.Status;
 import ru.app.draft.models.UserCache;
 import ru.app.draft.store.Store;
+import ru.app.draft.utils.DateUtils;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -19,14 +27,15 @@ public class Test {
 
 
     public static void main(String[] args) {
-        CandleData candle1 = new CandleData("01-01-2022 00:00:00", List.of(1000L, 1500L, 900L, 1200L));
-        unionCandle(candle1,"TEST");
-        CandleData candle2 = new CandleData("01-01-2022 00:00:00", List.of(1000L, 2000L, 900L, 1200L));
-        unionCandle(candle2,"TEST");
-        CandleData candle3 = new CandleData("01-01-2022 00:00:00", List.of(1000L, 2000L, 900L, 1000L));
-        unionCandle(candle3,"TEST");
-        CandleData candle4 = new CandleData("01-01-2022 00:01:00", List.of(1000L, 2000L, 900L, 1000L));
-        unionCandle(candle4,"TEST");
+        DateUtils.getTime(1677827306L);
+//        CandleData candle1 = new CandleData("01-01-2022 00:00:00", List.of(1000L, 1500L, 900L, 1200L));
+//        unionCandle(candle1,"TEST");
+//        CandleData candle2 = new CandleData("01-01-2022 00:00:00", List.of(1000L, 2000L, 900L, 1200L));
+//        unionCandle(candle2,"TEST");
+//        CandleData candle3 = new CandleData("01-01-2022 00:00:00", List.of(1000L, 2000L, 900L, 1000L));
+//        unionCandle(candle3,"TEST");
+//        CandleData candle4 = new CandleData("01-01-2022 00:01:00", List.of(1000L, 2000L, 900L, 1000L));
+//        unionCandle(candle4,"TEST");
     }
 
     private static void unionCandle(CandleData candle, String figi) {

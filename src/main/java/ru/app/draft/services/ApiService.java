@@ -6,6 +6,7 @@ import ru.app.draft.annotations.Audit;
 import ru.app.draft.models.*;
 import ru.app.draft.models.Order;
 import ru.app.draft.store.Store;
+import ru.app.draft.utils.DateUtils;
 import ru.tinkoff.piapi.contract.v1.*;
 import ru.tinkoff.piapi.contract.v1.LastPrice;
 import ru.tinkoff.piapi.core.InvestApi;
@@ -179,25 +180,21 @@ public class ApiService {
 
     public void sendOrder(InvestApi api, Strategy strategy) {
         //Выставляем заявку
-//        var accounts = api.getUserService().getAccountsSync();
-//        var mainAccountId = accounts.get(0).getId();
-//        var price = Quotation.newBuilder().setUnits(0L).setNano(0).build();
-        var minLot = strategy.getMinLot();
         UserCache userCache = USER_STORE.get(strategy.getUserName());
         List<Strategy> strategyList = userCache.getStrategies();
         Strategy changingStrategy = strategyList
                 .stream()
                 .filter(str -> str.getName().equals(strategy.getName())).findFirst().get();
+        var minLot = changingStrategy.getMinLot();
         if (!changingStrategy.getIsActive()) {
             return;
         }
+        String time = DateUtils.getCurrentTime();
         if (changingStrategy.getConsumer().get(0).equals("test")) {
             Long v = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
-//            v = Math.abs((long) new Random().nextInt(100));
             if (strategy.getDirection().equals("buy")) {
                 long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
                 changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
-                String time = dateFormat.format(new Date());
                 for (int i = 1; i <= Math.abs(position / minLot); i++) {
                     changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
                 }
@@ -210,7 +207,6 @@ public class ApiService {
             if (strategy.getDirection().equals("sell")) {
                 long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
                 changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
-                String time = dateFormat.format(new Date());
                 for (int i = 1; i <= Math.abs(position / minLot); i++) {
                     changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
                 }
@@ -223,8 +219,7 @@ public class ApiService {
             if (strategy.getDirection().equals("hold")) {
                 if (changingStrategy.getCurrentPosition() != 0) {
                     long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
-                    String time = dateFormat.format(new Date());
-                    String text = String.format(changingStrategy.getCurrentPosition() < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s=> Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time);
+                    String text = String.format(changingStrategy.getCurrentPosition() < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time);
                     userCache.addLogs(text);
                     if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
                         telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
@@ -298,19 +293,20 @@ public class ApiService {
 
     public List<AccountDto> getAccountInfo(InvestApi api, String userName) {
         UserCache userCache = USER_STORE.get(userName);
-        List<Account> listAccount = api.getUserService().getAccountsSync();
-        PortfolioResponse portfolioResponse = getPortfolio(api, listAccount.get(0).getId());
-        PositionsResponse positionsResponse = getPosition(api, listAccount.get(0).getId());
-        if (listAccount.size() == 0) {
-            //Открываем счёт
-            String accountId = api.getSandboxService().openAccountSync();
-            //Пополнить счёт
-            api.getSandboxService().payIn(accountId, MoneyValue.newBuilder().setUnits(100000).setCurrency("RUB").build());
-            List<Account> accounts = api.getUserService().getAccountsSync();
-            return List.of(new AccountDto(accounts.get(0).getId(), portfolioResponse.getTotalAmountCurrencies().getUnits()));
-        }
+//        List<Account> listAccount = api.getUserService().getAccountsSync();
+//        PortfolioResponse portfolioResponse = getPortfolio(api, listAccount.get(0).getId());
+//        PositionsResponse positionsResponse = getPosition(api, listAccount.get(0).getId());
+//        if (listAccount.size() == 0) {
+//            //Открываем счёт
+//            String accountId = api.getSandboxService().openAccountSync();
+//            //Пополнить счёт
+//            api.getSandboxService().payIn(accountId, MoneyValue.newBuilder().setUnits(100000).setCurrency("RUB").build());
+//            List<Account> accounts = api.getUserService().getAccountsSync();
+//            return List.of(new AccountDto(accounts.get(0).getId(), portfolioResponse.getTotalAmountCurrencies().getUnits()));
+//        }
 //        GetMarginAttributesResponse marginAttributesResponse=api.getUserService().getMarginAttributesSync(listAccount.get(0).getId());
-        AccountDto accountDto = new AccountDto(listAccount.get(0).getId(), portfolioResponse.getTotalAmountCurrencies().getUnits());
+//        AccountDto accountDto = new AccountDto(listAccount.get(0).getId(), portfolioResponse.getTotalAmountCurrencies().getUnits());
+        AccountDto accountDto=new AccountDto();
         accountDto.setLogs(userCache.getLogs());
 //        accountDto.setLastPrice(USER_STORE.get("Test").getMap().get("RIH3"));
 //        accountDto.setLastTimeUpdate(USER_STORE.get("Test").getUpdateTime() != null ? new SimpleDateFormat("MM/dd/yyyy HH:mm:ss").format(new java.util.Date(USER_STORE.get("Test").getUpdateTime().getSeconds() * 1000)) : null);

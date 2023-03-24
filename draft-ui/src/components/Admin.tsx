@@ -47,7 +47,8 @@ const Admin: React.FC = () => {
         id: undefined,
         type: "modal",
         header: undefined,
-        message: undefined
+        message: undefined,
+        comments: undefined,
     });
     const user: any = useSelector((state: IAppState) =>
         state.user.data);
@@ -75,7 +76,7 @@ const Admin: React.FC = () => {
         const payloadData: Message = JSON.parse(payload.body);
         switch (payloadData.status) {
             case "JOIN":
-                actions.setData(payloadData.message, payloadData.command, ()=>{
+                actions.setData(payloadData.message, payloadData.command, () => {
                     if (payloadData?.command === 'strategy') {
                         dispatch(addNotification("Info", "Прошла сделка"));
                     }
@@ -114,6 +115,7 @@ const Admin: React.FC = () => {
                     box.style.height = "0px"
                     box.style.opacity = "0"
                     box.style.zIndex = "0"
+                    box.style.display = "none"
                 }
             }
         });
@@ -132,23 +134,35 @@ const Admin: React.FC = () => {
                         actions.getAllTickers();
                     }, (error: any) => dispatch(addNotification("Info", error)));
                 });
+            } else {
+                actions.getAllStrategyByUserName(userName!, () => {
+                    actions.getAllTickers();
+                }, (error: any) => dispatch(addNotification("Info", error)));
             }
         }
     }, [userName]);
 
-    return <Container fluid>
-        <Notifications/>
-        {notifyView.show && (
+    const renderViewNotify = () => {
+        const finder = user?.notifications.find((item: any) => item.id === notifyView.id);
+        return notifyView.show && (
             <ViewDescriptionNotification
+                user={userName}
                 type={notifyView.type}
                 id={notifyView.id}
                 message={notifyView.message}
                 header={notifyView.header}
                 show={notifyView.show}
+                comments={finder?.comments}
+                commentsBlockEnabled={finder?.blockCommentEnabled}
                 cancel={() => {
                     setNotifyView({...notifyView, show: false})
                 }}/>
-        )}
+        )
+    }
+
+    return <Container fluid>
+        <Notifications/>
+        {renderViewNotify()}
         {isLoading && (<PreLoad/>)}
         <ModalView accept={() => {
             void actions.feedback(textFeedBack, userName!, () => {
@@ -254,12 +268,14 @@ const Admin: React.FC = () => {
                                                 box.style.height = "0px"
                                                 box.style.opacity = "0"
                                                 box.style.zIndex = "0"
+                                                box.style.display = "none"
                                             } else {
                                                 box.style.height = "auto"
                                                 box.style.maxHeight = "500px"
                                                 box.style.opacity = "1";
                                                 box.style.overflowY = "auto";
                                                 box.style.zIndex = "1000"
+                                                box.style.display = "block"
                                             }
                                         }}>
                                             <Icon icon={"bi bi-bell"}
@@ -296,6 +312,7 @@ const Admin: React.FC = () => {
                                                                     id: item.id,
                                                                     message: item.message,
                                                                     header: item.header,
+                                                                    comments: item.comments,
                                                                 })
                                                             }
                                                         }}>
@@ -303,7 +320,7 @@ const Admin: React.FC = () => {
                                                                   title={''}/>
                                                             <div className="text">
                                                                 <h6 style={{marginBottom: 0}}
-                                                                    className="ps-2 pt-1">{stringTruncate(item.message, 60)}</h6>
+                                                                    className="ps-2 pt-1">{stringTruncate(item.header, 60)}</h6>
                                                                 <p style={{marginBottom: 0}}
                                                                    className="ps-2">{item.time}</p>
                                                             </div>
@@ -317,6 +334,7 @@ const Admin: React.FC = () => {
                                                                     id: item.id,
                                                                     message: item.message,
                                                                     header: item.header,
+                                                                    comments: item.comments,
                                                                 })
                                                             }
                                                         }
@@ -325,7 +343,7 @@ const Admin: React.FC = () => {
                                                                   size={32} title={''}/>
                                                             <div className="text">
                                                                 <h6 style={{marginBottom: 0}}
-                                                                    className="ps-2 pt-1">{stringTruncate(item.message, 60)}</h6>
+                                                                    className="ps-2 pt-1">{stringTruncate(item.header, 60)}</h6>
                                                                 <p style={{marginBottom: 0}}
                                                                    className="ps-2">{item.time}</p>
                                                             </div>
@@ -339,6 +357,7 @@ const Admin: React.FC = () => {
                                                                     id: item.id,
                                                                     message: item.message,
                                                                     header: item.header,
+                                                                    comments: item.comments,
                                                                 })
                                                             }
                                                         }}>
@@ -347,7 +366,7 @@ const Admin: React.FC = () => {
                                                                   title={''}/>
                                                             <div className="text">
                                                                 <h6 style={{marginBottom: 0}}
-                                                                    className="ps-2 pt-1">{stringTruncate(item.message, 60)}</h6>
+                                                                    className="ps-2 pt-1">{stringTruncate(item.header, 60)}</h6>
                                                                 <p style={{marginBottom: 0}}
                                                                    className="ps-2">{item.time}</p>
                                                             </div>
@@ -508,7 +527,7 @@ const Admin: React.FC = () => {
                     </Col>
 
                 </Row>
-                <Offcanvas className="bg-custom-2" placement="bottom" show={showDisclaimer} onHide={() => {
+                <Offcanvas className="bg-custom-3" placement="bottom" show={showDisclaimer} onHide={() => {
                     setShowDisclaimer(false)
                 }}>
                     <Offcanvas.Header closeButton>

@@ -1,5 +1,6 @@
 package ru.app.draft.services;
 
+import liquibase.pro.packaged.i;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import ru.app.draft.models.UserCache;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static ru.app.draft.store.Store.USER_STORE;
@@ -60,8 +62,8 @@ public class TelegramBotService extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         if (update.getCallbackQuery() != null) {
             String x[] = update.getCallbackQuery().getData().split(" ");
-            if (x[0].equals("YES")) {
-                Optional<UserCache> optionalUserCache = USER_STORE.values().stream().filter(i -> i.getUser().getLogin().equals(x[2])).findFirst();
+            if (Objects.equals(x[0],"YES")) {
+                Optional<UserCache> optionalUserCache = USER_STORE.values().stream().filter(i -> Objects.equals(i.getUser().getLogin(),x[2])).findFirst();
                 if (optionalUserCache.isPresent()) {
                     UserCache userCache = optionalUserCache.get();
                     User user = userCache.getUser();
@@ -89,8 +91,8 @@ public class TelegramBotService extends TelegramLongPollingBot {
 
 
     private void registerUser(long chatId, String name) {
-        Optional<UserCache> optionalUserCache1 = USER_STORE.values().stream().filter(i -> i.getUser().getLogin().equals(name)).findFirst();
-        Optional<UserCache> optionalUserCache2 = USER_STORE.values().stream().filter(i -> i.getUser().getChatId().equals(String.valueOf(chatId))).findFirst();
+        Optional<UserCache> optionalUserCache1 = USER_STORE.values().stream().filter(i -> Objects.equals(i.getUser().getLogin(),name)).findFirst();
+        Optional<UserCache> optionalUserCache2 = USER_STORE.values().stream().filter(i -> Objects.equals(i.getUser().getChatId(),String.valueOf(chatId))).findFirst();
         if (optionalUserCache1.isEmpty()) {
             sendMessage(chatId, NOT_FOUND_USER);
             return;

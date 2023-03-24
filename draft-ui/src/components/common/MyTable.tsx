@@ -49,7 +49,7 @@ const MyTable: React.FC = () => {
     const user: any = useSelector((state: IAppState) =>
         state.user.data);
 
-    const lastPrice: Map<string, number> = useSelector((state: IAppState) =>
+    const lastPrice: Map<string, any> = useSelector((state: IAppState) =>
         state.lastPrice.data);
 
     const handleChangeEdit = (e: any, rowId?: any) => {
@@ -69,6 +69,15 @@ const MyTable: React.FC = () => {
             if (name === 'name' && (!!strategy.find(i => i.name === value))) {
                 setValidation({...validation, [name]: 'Такое наименование уже есть!'});
                 return;
+            }
+            if (name === 'name') {
+                if (value?.length >= 20) {
+                    setValidation({...validation, [name]: 'Наименование должно быть не больше 20 символов!'});
+                    return;
+                }
+            }
+            if (name === 'description' && value?.length >= 2000) {
+                setValidation({...validation, [name]: 'Описание должно быть не больше 2000 символов!'});
             }
             if (['emulation', 'telegram', 'terminal'].includes(name) && editedRow.consumer) {
                 if (editedRow.consumer.includes(name)) {
@@ -268,16 +277,16 @@ const MyTable: React.FC = () => {
             <h6 className="mt-3">Как мне создать оповещения для стратегии?</h6>
             <ul>
                 <li>Нажать на <em>Добавить оповещение</em> в панели <em dir="ltr">Тестера стратегий.</em><br/>
-                    <img style={{width: 434, maxHeight: 100}}
+                    <img className="myImg" style={{maxHeight: 100}}
                          src="/icons/4.jpeg"
                          alt="альтернативный текст"/>
                 </li>
                 <li>Воспользоваться кнопкой <em>Добавить оповещение для&nbsp;</em>в выпадающем меню стратегии.<br/>
-                    <img style={{width: 434, maxHeight: 300}}
+                    <img className="myImg" style={{maxHeight: 300}}
                          src="/icons/3.jpeg"/>
                 </li>
                 <li>Выбрать свою стратегию в диалоговом окне создания оповещений.<br/>
-                    <img style={{width: 434, maxHeight: 480}}
+                    <img className="myImg" style={{maxHeight: 480}}
                          src="/icons/2.jpeg"/>
                 </li>
                 <li>
@@ -295,14 +304,14 @@ const MyTable: React.FC = () => {
                 </li>
                 <li>
                     Указать URL для отправки сигналов<br/>
-                    <img src='/icons/1.png' style={{width: 434, maxHeight: 480}}/>
+                    <img className="myImg" src='/icons/1.png' style={{maxHeight: 480}}/>
                 </li>
                 <li>
                     Скопировать url ниже<br/>
-                    <div className="mt-2 text-bg-success">{'http://176.57.218.179/api/tv'}</div>
+                    <div className="mt-2 text-bg-success">{'http://89.223.68.98/api/tv'}</div>
                     <br/>
                     <Button className="me-2" onClick={(e: any) => {
-                        void copyTextToClipboard('http://176.57.218.179/api/tv');
+                        void copyTextToClipboard('http://89.223.68.98/api/tv');
                         const x = document.getElementById('test2');
                         x!.innerText = 'Скопировано!'
                     }} variant={"outline-success"}>
@@ -411,7 +420,13 @@ const MyTable: React.FC = () => {
                                     })?.graphResult?.slice(-1)[0]?.y || 0}
                                 </td>
                                 <td className={"align-middle text-center"}>
-                                    {lastPrice.get(row.figi!) || 'wait...'}
+                                    {lastPrice.get(row.figi!) ?
+                                        (<MyToolTip style={{
+                                            marginTop: "-4px",
+                                            borderBottom: "1px dashed black",
+                                            color: "black"
+                                        }} placement={"top"} text={`updateTime: ${lastPrice.get(row.figi!)?.time}`}
+                                                    textInner={lastPrice.get(row.figi!)?.price}/>) : 'wait...'}
                                 </td>
                                 <td style={{verticalAlign: "middle"}}>
                                     <ButtonGroup className={"me-2"}>

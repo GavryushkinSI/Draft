@@ -12,6 +12,8 @@ import "bootstrap-icons/font/bootstrap-icons.css"
 import notificationReducer, {INotificationState} from "./reducers/notificationReducers";
 import {IStrategy} from "./models/models";
 import "./styles/notification.css";
+import moment from "moment";
+import AdminPanel from "./components/AdminPanel";
 
 const initial = {
     data: [],
@@ -62,12 +64,15 @@ const reducer = (state = initial, action: IAction): any => {
     }
 };
 
-const reducer2 = (state = {data: new Map<string, number>()}, action: IAction): any => {
+const reducer2 = (state = {data: new Map<string, any>()}, action: IAction): any => {
     switch (action.type) {
         case EActionTypes.SET_LAST_PRICE: {
             return {
                 ...state,
-                data: state.data.set(action.payload.figi, action.payload.price),
+                data: state.data.set(action.payload.figi, {
+                    price: action.payload.price,
+                    time: action.payload.updateTime,
+                }),
             };
         }
         default:
@@ -100,7 +105,7 @@ export type TAction<T = string> = { type: T };
 export interface IAppState {
     renko: any;
     user: any;
-    lastPrice: {data: Map<string, number>};
+    lastPrice: { data: Map<string, any> };
     ticker: any;
     notifications: INotificationState;
     strategy: any;
@@ -176,6 +181,7 @@ function Root() {
                 <Routes>
                     {/*<Route path="/" element={}/>*/}
                     <Route path="/" element={<Admin/>}/>
+                    <Route path="/adminPanel" element={<AdminPanel/>}/>
                 </Routes>
             </BrowserRouter>
         </Provider>

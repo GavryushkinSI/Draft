@@ -22,8 +22,10 @@
   },
   "include": [
     "src",
-    "node_modules/technicalindicators/dist/custom.d.ts",
-    "node_modules/technicalindicators/dist/custom.d.ts",
-    "node_modules/technicalindicators/dist/custom.d.ts"
-  ]
+  ],
+//  "exclude": [
+//    "node_modules",
+//    "./src/**/*.tsx",
+//    "./src/**/*.tx",
+//    ],
 }

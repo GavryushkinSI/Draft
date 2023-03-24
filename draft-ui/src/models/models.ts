@@ -10,13 +10,13 @@ export interface Message {
 export interface IAccount {
     id: string;
     cash: string;
-    figi:string;
-    balance:number;
+    figi: string;
+    balance: number;
 }
 
 export interface IStrategy {
     id?: string;
-    userName?:string;
+    userName?: string;
     name?: string | undefined;
     producer?: EProducer | undefined;
     ticker?: string;
@@ -26,10 +26,10 @@ export interface IStrategy {
     isActive?: boolean;
     direction?: string;
     figi?: string;
-    orders?:any[];
-    priceTv?:string;
-    currentPosition?:number;
-    description?:string;
+    orders?: any[];
+    priceTv?: string;
+    currentPosition?: number;
+    description?: string;
 }
 
 export enum EProducer {
@@ -49,4 +49,23 @@ export interface IBackTestResultStartegy {
     maxProfitOnOrder: number;
     maxLossOnOrder: number;
     profitFactor: string | undefined;
+}
+
+export interface IComment {
+    id?: string;
+    author?: string;
+    date?: string;
+    content?: string;
+}
+
+export interface IArticle {
+    id?: string;
+    type?: string;
+    typeView?: string;
+    forAdmin?: boolean;
+    header?: string;
+    message?: string;
+    time?: string;
+    blockCommentEnabled?: boolean;
+    comments?: IComment[];
 }
