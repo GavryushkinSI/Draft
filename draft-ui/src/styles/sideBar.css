@@ -1,9 +1,9 @@
-p {
-    font-size: 1.1em;
-    font-weight: 300;
-    line-height: 1.7em;
-    color: rgb(30 30 47 / 92%);
-}
+/*p {*/
+/*    font-size: 1.1em;*/
+/*    font-weight: 300;*/
+/*    line-height: 1.7em;*/
+/*    !*color: rgb(30 30 47 / 92%);*!*/
+/*}*/
 
 a,
 a:hover,
@@ -139,31 +139,3 @@ a.article:hover {
     background: white !important;
     color: #fff !important;
 }
-
-/* ---------------------------------------------------
-    CONTENT STYLE
------------------------------------------------------ */
-
-/*#content {*/
-/*    width: 100%;*/
-/*    padding: 20px;*/
-/*    min-height: 100vh;*/
-/*    transition: all 0.3s;*/
-/*    background-color: #2e32df12;*/
-/*}*/
-
-/*!* ---------------------------------------------------*/
-/*    MEDIAQUERIES*/
-/*----------------------------------------------------- *!*/
-
-/*@media (max-width: 768px) {*/
-/*    #sidebar {*/
-/*        margin-left: -250px;*/
-/*    }*/
-/*    #sidebar.active {*/
-/*        margin-left: 0;*/
-/*    }*/
-/*    #sidebarCollapse span {*/
-/*        display: none;*/
-/*    }*/
-/*}*/

@@ -13,6 +13,7 @@ import {Editor} from "draft-js";
 interface IProps {
     isCreateArticleMode?: boolean;
     sendArticle?: () => void;
+    isEditor?: boolean;
 }
 
 const MyEditor = (props: IProps) => {
@@ -39,13 +40,13 @@ const MyEditor = (props: IProps) => {
 
     const modules = {
         toolbar: [
-            [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
+            [{'header': '1'}, {'header': '2'}, {'font': []}],
             [{size: []}],
             ['bold', 'italic', 'underline', 'strike', 'blockquote'],
             [{'list': 'ordered'}, {'list': 'bullet'},
                 {'indent': '-1'}, {'indent': '+1'}],
             ['link', 'image', 'video', 'code-block'],
-            ['clean'],
+            ['clean'], ['clean'],
             [{color: []}, {background: []}],
             [{font: []}],
             [{align: []}],
@@ -62,7 +63,7 @@ const MyEditor = (props: IProps) => {
         'header', 'font', 'size',
         'bold', 'italic', 'underline', 'strike', 'blockquote',
         'list', 'bullet', 'indent',
-        'link', 'image', 'video'
+        'link', 'image', 'video', 'color', 'align',
     ]
 
     return (

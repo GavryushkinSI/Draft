@@ -62,12 +62,12 @@
     display: flex;
     border-bottom: 1px solid #eee;
     padding: 6px 9px;
-    margin-bottom: 0px;
-    cursor: pointer
+    margin-bottom: 0;
+    cursor: pointer;
 }
 
 .notifications-item:hover {
-    background-color: #eee
+    background-color: #eeeeee!important;
 }
 
 .notifications-item img {

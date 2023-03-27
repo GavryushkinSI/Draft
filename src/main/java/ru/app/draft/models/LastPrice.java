@@ -6,7 +6,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static ru.app.draft.store.Store.LAST_PRICE;
 
@@ -14,7 +16,7 @@ import static ru.app.draft.store.Store.LAST_PRICE;
 @Setter
 public class LastPrice {
     Long price;
-    List<String> nameSubscriber = new ArrayList<>();
+    Set<String> nameSubscriber = new HashSet<>();
     Timestamp updateTime;
 
     public LastPrice(Long price, Timestamp updateTime) {

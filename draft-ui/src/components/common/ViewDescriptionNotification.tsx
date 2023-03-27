@@ -15,6 +15,7 @@ interface IProps {
     id?: string;
     user?: string | null;
     commentsBlockEnabled?:boolean;
+    className?:string;
 }
 
 const ViewDescriptionNotification = (props: IProps) => {
@@ -25,7 +26,7 @@ const ViewDescriptionNotification = (props: IProps) => {
         actions.changeNotify(id, user, content, isRemove);
     }
 
-    return <ModalView commentsBlockEnabled={props.commentsBlockEnabled} changeNotify={changeNotify} user={props.user} id={props.id} header={props.header}
+    return <ModalView className={props.className} commentsBlockEnabled={props.commentsBlockEnabled} changeNotify={changeNotify} user={props.user} id={props.id} header={props.header}
                       comments={props.comments} show={props.show} text={props.message} cancel={props.cancel}/>
 }
 

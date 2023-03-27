@@ -6,6 +6,10 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @ToString
 @Getter
@@ -18,6 +22,7 @@ public class User implements Serializable {
     private String chatId;
     private String lastVisit;
     private Boolean isAdmin=false;
+    private Set<String> viewedNotifyIds= new HashSet<>();
 
     public User() {}
 
@@ -26,5 +31,9 @@ public class User implements Serializable {
         this.password = password;
         this.email = email;
         this.chatId = chatId;
+    }
+
+    public void addViewedNotifyIds(List<String> ids){
+        viewedNotifyIds.addAll(ids);
     }
 }

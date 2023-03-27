@@ -1,11 +1,12 @@
 package ru.app.draft.models;
 
-import com.google.protobuf.Timestamp;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 public class AccountDto implements Serializable {
@@ -15,7 +16,8 @@ public class AccountDto implements Serializable {
         this.cash = cash;
     }
 
-    public AccountDto() {}
+    public AccountDto() {
+    }
 
     private String id;
 
@@ -27,6 +29,7 @@ public class AccountDto implements Serializable {
     private Long result;
     private List<String> logs;
     private List<Notification> notifications;
+    private Set<String> viewedNotifyIds = new HashSet<>();
     private Boolean telegramSubscriptionExist = false;
 
     private long balance;
