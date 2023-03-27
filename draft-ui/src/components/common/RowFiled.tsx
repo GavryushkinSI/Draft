@@ -1,9 +1,10 @@
 import {Col, Row} from "react-bootstrap";
-import React, {ReactNode} from "react";
+import React, {CSSProperties, ReactNode} from "react";
 
 interface IProps {
     children: ReactNode | ReactNode[];
     isAdaptive?: boolean;
+    className?:string;
 }
 
 const RowFiled: React.FC<IProps> = (props) => {
@@ -20,7 +21,7 @@ const RowFiled: React.FC<IProps> = (props) => {
                 {content}
            </Col>);
 
-    return <>{props.isAdaptive?<>{html}</>:<Row>{html}</Row>}</>;
+    return <>{props.isAdaptive?<>{html}</>:<Row className={props.className}>{html}</Row>}</>;
 }
 
 export default RowFiled;

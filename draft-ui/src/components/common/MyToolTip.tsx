@@ -4,8 +4,9 @@ import {ButtonLink} from "@paljs/ui";
 
 interface IProps {
     text: string;
-    textInner?: string;
+    textInner?: string|any;
     style?: any;
+    placement?:string;
 }
 
 const MyToolTip = (props: IProps) => {
@@ -17,7 +18,8 @@ const MyToolTip = (props: IProps) => {
 
     return (
         <OverlayTrigger
-            placement="right"
+            // @ts-ignore
+            placement={props.placement?props.placement:"right"}
             delay={{show: 250, hide: 400}}
             overlay={props.text ? renderTooltip : <></>}
         >

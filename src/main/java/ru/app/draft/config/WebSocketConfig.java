@@ -39,7 +39,10 @@ import static ru.app.draft.store.Store.*;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private static final List<String> myTickers = List.of(
             "EuH3", "GKH3", "SRH3", "RIH3", "BRH3", "SiH3","EDH3","ALH3","POH3","MNH3","AFH3",
-            "VBH3", "SFH3", "NAH3", "MMH3", "CRH3");
+            "VBH3", "SFH3", "NAH3", "MMH3", "CRH3",
+            "EuM3", "GKM3", "SRM3", "RIM3", "BRM3", "SiM3","EDM3","ALM3","POM3","MNM3","AFM3",
+            "VBM3", "SFM3", "NAM3", "MMM3", "CRM3",
+            "SBER", "GAZP","MGNT","MOEX","AFKS","BANE", "HYDR", "PLZL", "VTBR","ROSN", "MTSS", "GMKN");
 
     @Bean
     public ObjectMapper getObjectMapper() {
@@ -62,14 +65,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     @Bean
-    public InvestApi createApi(@Value("${token}") String token, @Qualifier("apiService") ApiService apiService, DbService dbService) {
+    public InvestApi createApi(@Value("${token:123}") String token, @Qualifier("apiService") ApiService apiService, DbService dbService) {
         InvestApi api = InvestApi.createSandbox(token);
         COMMON_INFO.put("Notifications", new ArrayList<>());
         COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
             data.add(new Notification("О проекте...",
                     "TView_parser - это молодой проект и на текущий момент ещё не весь функционал доступен. " +
                             "Но если ты интересуешься автоматизацией биржевой торговли, то уже сейчас ты можешь протестировать свои идеи без риска для своего капитала." +
-                            " Для этого тебе понадобится аккаунт на TradingView и возможности нашего ресурса.", "info_success", "modal", null, false));
+                            " Для этого тебе понадобится аккаунт на TradingView и возможности нашего ресурса.",
+                    "info_success",
+                    "modal",
+                    false,
+                    false));
             return data;
         });
         TICKERS.put("tickers", new ArrayList<>());

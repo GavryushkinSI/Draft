@@ -3,7 +3,7 @@
 --changeset draft:1
 CREATE TABLE USERS
 (
-    id         BIGINT             NOT NULL,
+    id         SERIAL unique not null,
     login      VARCHAR(20) UNIQUE NOT NULL,
     password   VARCHAR(255)       NOT NULL,
     chartId    VARCHAR(255),
@@ -16,7 +16,8 @@ CREATE TABLE USERS
 --changeset draft:2
 CREATE TABLE STRATEGY
 (
-    id        BIGINT  NOT NULL,
+    id        SERIAL unique not null,
+    id_strategy BIGINT  NOT NULL,
     user_id   BIGINT  NOT NULL,
     name      VARCHAR(20),
     ticker    VARCHAR(255),

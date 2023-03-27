@@ -2,16 +2,19 @@ package ru.app.draft.services;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import ru.app.draft.entity.LastPrice;
 import ru.app.draft.models.Strategy;
 import ru.app.draft.models.User;
 import ru.app.draft.models.UserCache;
+import ru.app.draft.repository.LastPriceRepository;
 import ru.app.draft.repository.StrategyRepository;
 import ru.app.draft.repository.UserRepository;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
+import static ru.app.draft.store.Store.LAST_PRICE;
 import static ru.app.draft.store.Store.USER_STORE;
 
 @Service
@@ -19,10 +22,12 @@ public class DbService {
 
     private final UserRepository userRepository;
     private final StrategyRepository strategyRepository;
+    private final LastPriceRepository lastPriceRepository;
 
-    public DbService(UserRepository userRepository, StrategyRepository strategyRepository) {
+    public DbService(UserRepository userRepository, StrategyRepository strategyRepository, LastPriceRepository lastPriceRepository) {
         this.userRepository = userRepository;
         this.strategyRepository = strategyRepository;
+        this.lastPriceRepository = lastPriceRepository;
     }
 
     @Transactional
@@ -30,15 +35,16 @@ public class DbService {
         strategyRepository.deleteAll();
         strategyRepository.flush();
         userRepository.deleteAll();
+        userRepository.flush();
+        lastPriceRepository.deleteAll();
+        lastPriceRepository.flush();
     }
 
     @Transactional
     public void saveUsers(List<UserCache> list) {
-        Random random = new Random();
         list.forEach(i -> {
             User userDto = i.getUser();
             ru.app.draft.entity.User userEntity = new ru.app.draft.entity.User();
-            userEntity.setId(Math.abs(random.nextLong()));
             userEntity.setChartid(userDto.getChatId());
             userEntity.setEmail(userDto.getEmail());
             userEntity.setLogin(userDto.getLogin());
@@ -50,7 +56,7 @@ public class DbService {
                 ru.app.draft.entity.Strategy strategy = new ru.app.draft.entity.Strategy();
                 strategy.setActive(s.getIsActive());
                 strategy.setUsers(userSaved);
-                strategy.setId(Long.valueOf(s.getId()));
+                strategy.setIdStrategy(Integer.valueOf(s.getId()));
                 strategy.setDirection(s.getDirection());
                 strategy.setName(s.getName());
                 strategy.setTicker(s.getTicker());
@@ -62,6 +68,17 @@ public class DbService {
             });
             strategyRepository.saveAll(strategyEntity);
         });
+
+        List<LastPrice> lastPricesEntity = new ArrayList<>();
+        LAST_PRICE.forEach((k, v) -> {
+            v.getNameSubscriber().forEach(i -> {
+                LastPrice lastPrice = new LastPrice();
+                lastPrice.setFigi(k);
+                lastPrice.setNameSubscriber(i);
+                lastPricesEntity.add(lastPrice);
+            });
+        });
+        lastPriceRepository.saveAll(lastPricesEntity);
     }
 
     @Transactional
@@ -72,7 +89,7 @@ public class DbService {
             List<ru.app.draft.entity.Strategy> strategyEntity = i.getStrategies();
             List<Strategy> strategyList = new ArrayList<>(strategyEntity.size());
             strategyEntity.forEach(n -> {
-                strategyList.add(new Strategy(String.valueOf(n.getId()), n.getUsers().getLogin(),
+                strategyList.add(new Strategy(String.valueOf(n.getIdStrategy()), n.getUsers().getLogin(),
                         n.getName(), n.getDirection(), 0L, n.getFigi(), n.getTicker(),
                         n.getActive(), null, null, n.getDescription(), (long) n.getMinLot()));
             });
@@ -83,5 +100,19 @@ public class DbService {
             userCache.setStrategies(strategyList);
             USER_STORE.put(user.getLogin(), userCache);
         });
+        List<ru.app.draft.entity.LastPrice> lastPricesEntity = lastPriceRepository.findAll();
+        if (!CollectionUtils.isEmpty(lastPricesEntity)) {
+            lastPricesEntity.forEach(i -> {
+                LAST_PRICE.computeIfAbsent(i.getFigi(), s -> {
+                    ru.app.draft.models.LastPrice lastPrice = new ru.app.draft.models.LastPrice(null, null);
+                    lastPrice.addSubscriber(i.getNameSubscriber());
+                    return lastPrice;
+                });
+                LAST_PRICE.computeIfPresent(i.getFigi(), (s, lastPrice) -> {
+                    lastPrice.addSubscriber(i.getNameSubscriber());
+                    return lastPrice;
+                });
+            });
+        }
     }
 }

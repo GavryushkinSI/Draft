@@ -5,10 +5,24 @@ body {
     sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    min-width: 400px !important;
+    overflow: hidden;
+}
+
+.myImg {
+    width: 434px;
+}
+
+body > #root {
+    min-width: 400px !important;
 }
 
 .table-dark {
     --bs-table-hover-bg: #71AC66 !important;
+}
+
+.offcanvas-backdrop {
+    min-width: 400px !important;
 }
 
 .btn-group, .form-select {
@@ -53,6 +67,10 @@ body {
 
 .bg-custom-2 {
     background-color: hwb(0deg 0% 100% / 8%) !important;
+}
+
+.bg-custom-3 {
+    background-color: rgb(30 30 47 / 92%) !important;
 }
 
 @media screen and (max-width: 500px) {
@@ -101,8 +119,19 @@ body {
 
 @media (max-width: 576px) {
     .font-size-sm {
-        font-size: 13px;
+        font-size: 10px;
     }
+    .myImg{
+        width: 318px;
+    }
+}
+
+#ul{
+    padding-left: 1rem!important;
+}
+
+.modal-backdrop.show {
+    min-width: 400px !important;
 }
 
 .table th:first-child, .table th:nth-child(2) {

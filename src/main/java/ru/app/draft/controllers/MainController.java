@@ -15,6 +15,7 @@ import ru.app.draft.services.ApiService;
 import ru.app.draft.services.DbService;
 import ru.app.draft.services.MarketDataStreamService;
 import ru.app.draft.services.TelegramBotService;
+import ru.app.draft.utils.DateUtils;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 
@@ -119,7 +120,7 @@ public class MainController {
                     strategy.getTicker(),
                     strategy.getIsActive(),
                     strategy.getConsumer(),
-                    new ArrayList<>(), strategy.getDescription(),  ticker.getMinLot()));
+                    new ArrayList<>(), strategy.getDescription(), ticker.getMinLot()));
         }
 
         userCache.setStrategies(strategyList);
@@ -190,17 +191,23 @@ public class MainController {
     @Audit
     @Scheduled(fixedDelay = 50000)
     public void getAllTickersTask() {
-       LAST_PRICE.forEach((k,v)->{
-               Message message = new Message();
+        LAST_PRICE.forEach((k, v) -> {
+            if (v.getUpdateTime() != null) {
+                Message message = new Message();
                 message.setSenderName("server");
-                message.setMessage(new ShortLastPrice(k, v.getPrice(), v.getUpdateTime().toString()));
+                message.setMessage(new ShortLastPrice(k, v.getPrice(), DateUtils.getTime(v.getUpdateTime().getSeconds())));
                 message.setStatus(Status.JOIN);
                 message.setCommand("lastPrice");
                 List<String> subscriber = v.getNameSubscriber();
                 marketDataStreamService.sendDataToUser(subscriber, message);
-       });
+            }
+        });
     }
 
+    @GetMapping("/app/getQuotes")
+    public void getQuotes() {
+        getAllTickersTask();
+    }
 
     @ExceptionHandler(AuthorizationException.class)
     public ResponseEntity handleException(AuthorizationException e) {
@@ -208,9 +215,21 @@ public class MainController {
     }
 
     @GetMapping("/app/unsubscribe")
-    public void unsubscribed(){
-        Map<String, MarketDataSubscriptionService> streams=api.getMarketDataStreamService().getAllStreams();
-        streams.forEach((k,v)->v.unsubscribeLastPrices(List.of(k)));
+    public void unsubscribed() {
+        Map<String, MarketDataSubscriptionService> streams = api.getMarketDataStreamService().getAllStreams();
+        streams.forEach((k, v) -> v.unsubscribeLastPrices(List.of(k)));
+    }
+
+    @PutMapping("/app/changeNotify")
+    public ResponseEntity<List<Notification>> changeModify(@RequestBody Notification notification) {
+        COMMON_INFO.computeIfPresent("Notifications", (s, notifications) -> notifications.stream().map(i -> {
+            if (i.getId().equals(notification.getId())) {
+                i = notification;
+            }
+            return i;
+        }).collect(Collectors.toList()));
+
+        return ResponseEntity.ok(COMMON_INFO.get("Notifications"));
     }
 }
 

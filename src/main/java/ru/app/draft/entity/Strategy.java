@@ -6,8 +6,12 @@ import javax.persistence.*;
 @Table(name = "strategy")
 public class Strategy {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Long id;
+
+    @Column(name = "id_strategy")
+    private Integer idStrategy;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
@@ -115,5 +119,13 @@ public class Strategy {
 
     public void setMinLot(Integer minLot) {
         this.minLot = minLot;
+    }
+
+    public Integer getIdStrategy() {
+        return idStrategy;
+    }
+
+    public void setIdStrategy(Integer idStrategy) {
+        this.idStrategy = idStrategy;
     }
 }
