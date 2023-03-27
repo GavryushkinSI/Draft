@@ -47,7 +47,10 @@ export class Service {
     public getUserInfo(userName: string) {
         http.get(`/getUserInfo/${userName}`)
             .then((response: any) => {
-                    this.dispatch({type: EActionTypes.GET_USER_INFO, payload: response.data[0]});
+                    const data = response.data[0];
+                    const notifications = data?.notifications?.reverse();
+                    const logs = data?.logs?.reverse();
+                    this.dispatch({type: EActionTypes.GET_USER_INFO, payload: {...response.data[0], notifications, logs}});
                 }
             ).catch((errors: any) => console.log(errors));
     }
@@ -156,17 +159,25 @@ export class Service {
         let finder: IArticle = articles.find(item => item.id === id)!;
         if (isRemoveMode) {
             const comments: IComment[] = removeRow(finder.comments!, comment?.id!);
-            finder.comments = comments;
-        }
-        if (!comment?.id&&!isRemoveMode) {
-            finder.comments?.push({...comment!, date:moment().format("YYYY-MM-DD HH:mm:ss")});
+            finder.comments = comments || [];
         } else {
-            const comments: IComment[] = saveRow(comment, finder.comments!);
-            finder.comments = comments;
+            if (!comment?.id) {
+                finder.comments?.push({...comment!, date: moment().format("YYYY-MM-DD HH:mm:ss")});
+            } else {
+                const comments: IComment[] = saveRow(comment, finder.comments!);
+                finder.comments = comments;
+            }
         }
 
         void http.put('/changeNotify', finder).then((response) => {
             this.dispatch({type: EActionTypes.GET_USER_INFO, payload: {...user, notifications: response.data}});
+        })
+    }
+
+    public setViewedNotifyIds(ids:string[], userName:string){
+        this.dispatch({type: EActionTypes.CHANGE_VIEWED_NOTIFY_IDS, payload: ids});
+        void http.post(`/setViewedNotifyIds/${userName}`, ids).then((response) => {
+            this.dispatch({type: EActionTypes.CHANGE_VIEWED_NOTIFY_IDS, payload: response.data});
         })
     }
 }

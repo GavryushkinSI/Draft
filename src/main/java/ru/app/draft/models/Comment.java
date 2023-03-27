@@ -5,16 +5,19 @@ import java.util.UUID;
 
 public class Comment implements Serializable {
     String id = UUID.randomUUID().toString();
+    Integer number;
     String author;
     String date;
     String content;
 
-    public Comment(){}
+    public Comment() {
+    }
 
-    public Comment(String author, String date, String content) {
+    public Comment(String author, String date, String content, Integer number) {
         this.author = author;
         this.date = date;
         this.content = content;
+        this.number = number;
     }
 
     public String getId() {
@@ -47,5 +50,13 @@ public class Comment implements Serializable {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public Integer getNumber() {
+        return number;
+    }
+
+    public void setNumber(Integer number) {
+        this.number = number;
     }
 }

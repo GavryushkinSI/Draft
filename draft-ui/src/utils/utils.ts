@@ -1,4 +1,4 @@
-import {isEmpty, max, min, sum} from "lodash";
+import {includes, isEmpty, max, min, pick, sum} from "lodash";
 import {IBackTestResultStartegy, IStrategy} from "../models/models";
 import moment from "moment";
 import {closeStrategy, trendMagicStrategy} from "../strategies/strategy";
@@ -251,12 +251,12 @@ export function calcDataForGraphProfit(strategy: any[]) {
             let time = moment(result[i].closeDate).toDate();
             if (graphResult[i - 1]?.y) {
                 graphResult.push({
-                    x: i+1,
+                    x: i + 1,
                     label: time,
                     y: graphResult[i - 1].y + result[i].profit
                 });
             } else {
-                graphResult.push({x: i+1, label: time, y: result[i].profit});
+                graphResult.push({x: i + 1, label: time, y: result[i].profit});
             }
         }
 
@@ -292,5 +292,10 @@ export async function copyTextToClipboard(text: string) {
     }
 }
 
+export function getFieldsFromArray(array: any[], fields: string[]):any[] {
+   return array?.map(user => pick(user, fields));
+}
 
-
+export function includeInArray(array:any[], value:any){
+    return includes(array, value);
+}

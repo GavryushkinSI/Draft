@@ -45,8 +45,23 @@ public class MainController {
 
     @Audit
     @MessageMapping("/message")
-    public void registrationUserOnContent(@Payload Message message) {
-        log.info("test");
+    public void registrationUserOnContent(@Payload Message messageFromUser) {
+        UserCache userCache = USER_STORE.get(messageFromUser.getSenderName());
+        User user = userCache.getUser();
+        user.setLastVisit(DateUtils.getCurrentTime());
+        userCache.setUser(user);
+        USER_STORE.replace(messageFromUser.getSenderName(), userCache);
+
+        LAST_PRICE.forEach((k, v) -> {
+            if (v.getUpdateTime() != null) {
+                Message message = new Message();
+                message.setSenderName("server");
+                message.setMessage(new ShortLastPrice(k, v.getPrice(), DateUtils.getTime(v.getUpdateTime().getSeconds())));
+                message.setStatus(Status.JOIN);
+                message.setCommand("lastPrice");
+                marketDataStreamService.sendDataToUser(Set.of(messageFromUser.getSenderName()), message);
+            }
+        });
     }
 
     @Audit
@@ -198,7 +213,7 @@ public class MainController {
                 message.setMessage(new ShortLastPrice(k, v.getPrice(), DateUtils.getTime(v.getUpdateTime().getSeconds())));
                 message.setStatus(Status.JOIN);
                 message.setCommand("lastPrice");
-                List<String> subscriber = v.getNameSubscriber();
+                Set<String> subscriber = v.getNameSubscriber();
                 marketDataStreamService.sendDataToUser(subscriber, message);
             }
         });
@@ -230,6 +245,16 @@ public class MainController {
         }).collect(Collectors.toList()));
 
         return ResponseEntity.ok(COMMON_INFO.get("Notifications"));
+    }
+
+    @PostMapping("/app/setViewedNotifyIds/{userName}")
+    public ResponseEntity<Set<String>> setViewedNotifyIds(@RequestBody List<String> ids, @PathVariable String userName) {
+        UserCache userCache = USER_STORE.values().stream().filter(i -> i.getUser().getLogin().equals(userName)).findFirst().get();
+        User user = userCache.getUser();
+        user.addViewedNotifyIds(ids);
+        userCache.setUser(user);
+        USER_STORE.replace(userName, userCache);
+        return ResponseEntity.ok(user.getViewedNotifyIds());
     }
 }
 

@@ -53,6 +53,7 @@ export interface IBackTestResultStartegy {
 
 export interface IComment {
     id?: string;
+    number?:number;
     author?: string;
     date?: string;
     content?: string;

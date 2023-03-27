@@ -258,7 +258,7 @@ public class ApiService {
         message.setMessage(userCache.getStrategies());
         message.setCommand("strategy");
         message.setStatus(Status.JOIN);
-        streamService.sendDataToUser(List.of(strategy.getUserName()), message);
+        streamService.sendDataToUser(Set.of(strategy.getUserName()), message);
     }
 
     private static List<OrderState> getOrders(InvestApi api, String accountId) {
@@ -316,6 +316,7 @@ public class ApiService {
         }
         accountDto.setNotifications(notificationList.stream().limit(1000).collect(Collectors.toList()));
         accountDto.setTelegramSubscriptionExist(userCache.getUser().getChatId() != null);
+        accountDto.setViewedNotifyIds(userCache.getUser().getViewedNotifyIds());
 
 //        if (positionsResponse.getSecuritiesCount() != 0) {
 //            PositionsSecurities positionsSecurities = positionsResponse.getSecurities(0);

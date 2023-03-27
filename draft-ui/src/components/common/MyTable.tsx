@@ -25,6 +25,7 @@ const columns = [
     {field: 'currentPosition', fieldName: 'Текущая позиция'},
     {filed: 'fixProfit', fieldName: 'Тек. доход'},
     {filed: 'lastPrice', fieldName: 'Посл. цена'},
+    {filed: 'nonFixResult', fieldName: 'Non fix'},
     {field: '', fieldName: ''},
 ];
 
@@ -264,18 +265,18 @@ const MyTable: React.FC = () => {
     }
 
     const renderDescriptionModal = () => {
-        const text = `{
-                "userName":"${userName}",
-                "name":"${showDescriptionModal.name}",
-                "direction": "{{strategy.order.action}}",
-                "quantity": "{{strategy.position_size}}",
-                "priceTv":"{{strategy.order.price}}"}`;
+        const text = `{\n\r
+                "userName":"${userName}",\n\r
+                "name":"${showDescriptionModal.name}",\n\r
+                "direction": "{{strategy.order.action}}",\n\r
+                "quantity": "{{strategy.position_size}}",\n\r
+                "priceTv":"{{strategy.order.price}}"\n\r}`;
         return <ModalView header={'Как добавить стратегию в Tradingview:'} show={showDescriptionModal.show}
                           cancel={() => {
                               setShowDescriptionModal({show: false, name: undefined})
                           }} text={<div>
             <h6 className="mt-3">Как мне создать оповещения для стратегии?</h6>
-            <ul>
+            <ul style={{paddingLeft:"1rem"}}>
                 <li>Нажать на <em>Добавить оповещение</em> в панели <em dir="ltr">Тестера стратегий.</em><br/>
                     <img className="myImg" style={{maxHeight: 100}}
                          src="/icons/4.jpeg"
@@ -307,7 +308,7 @@ const MyTable: React.FC = () => {
                     <img className="myImg" src='/icons/1.png' style={{maxHeight: 480}}/>
                 </li>
                 <li>
-                    Скопировать url ниже<br/>
+                    URL для отправки сигналов<br/>
                     <div className="mt-2 text-bg-success">{'http://89.223.68.98/api/tv'}</div>
                     <br/>
                     <Button className="me-2" onClick={(e: any) => {

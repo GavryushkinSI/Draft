@@ -19,7 +19,7 @@ import {
 } from "react-bootstrap";
 import Icon from "./common/Icon";
 import {EConsumer, IStrategy, Message} from "../models/models";
-import {stringTruncate} from "../utils/utils";
+import {getFieldsFromArray, includeInArray, stringTruncate} from "../utils/utils";
 import Login from "./common/Login";
 import SockJS from "sockjs-client";
 import {over} from "stompjs";
@@ -92,7 +92,7 @@ const Admin: React.FC = () => {
         stompClient = over(Sock);
         stompClient.debug = null;
         await stompClient.connect({}, onConnected, (error: any) => {
-            dispatch(addNotification("Info", "Обрыв сокет соединения!...Перезагрузите страницу"));
+            dispatch(addNotification("Info", "Обрыв сокет соединения!...Обновите страницу!"));
         });
     }
 
@@ -103,12 +103,15 @@ const Admin: React.FC = () => {
             }, (error: any) => dispatch(addNotification("Info", error)));
         }
 
+        let box = document.getElementById("box")!;
+        box.style.display = "none"
+        box.style.zIndex = "0"
+
         window.addEventListener("resize", function (e: any) {
             setSize(window.innerWidth);
         });
 
         document.addEventListener("click", (e: any) => {
-            let box = document.getElementById("box")!;
             let bell = document.getElementById("bell")!;
             if (!(e.composedPath().includes(box) || e.composedPath().includes(bell))) {
                 if (box.style.opacity === '1') {
@@ -146,6 +149,7 @@ const Admin: React.FC = () => {
         const finder = user?.notifications.find((item: any) => item.id === notifyView.id);
         return notifyView.show && (
             <ViewDescriptionNotification
+                className={"myQuill"}
                 user={userName}
                 type={notifyView.type}
                 id={notifyView.id}
@@ -155,14 +159,15 @@ const Admin: React.FC = () => {
                 comments={finder?.comments}
                 commentsBlockEnabled={finder?.blockCommentEnabled}
                 cancel={() => {
-                    setNotifyView({...notifyView, show: false})
+                    setNotifyView({...notifyView, show: false});
+                    actions.setViewedNotifyIds([notifyView.id], userName!);
                 }}/>
         )
     }
 
     return <Container fluid>
         <Notifications/>
-        {renderViewNotify()}
+        {notifyView?.show&&renderViewNotify()}
         {isLoading && (<PreLoad/>)}
         <ModalView accept={() => {
             void actions.feedback(textFeedBack, userName!, () => {
@@ -283,7 +288,7 @@ const Admin: React.FC = () => {
                                                   color="white"
                                                   title={''}
                                                   hoverColor={'lightgreen'}/>
-                                            <span>{user?.notifications?.length || 0}</span>
+                                            <span>{(user?.notifications?.length - (user?.viewedNotifyIds?.length||0)) || 0}</span>
                                         </ButtonLink>
                                         <ButtonLink className="icon" onClick={() => {
                                             localStorage.clear()
@@ -301,10 +306,11 @@ const Admin: React.FC = () => {
                                             <h2>Всего уведомлений: <span
                                                 className="badge rounded-pill bg-danger">{user?.notifications?.length}</span>
                                             </h2>
-                                            {user?.notifications?.reverse()?.map((item: any) => {
+                                            {user?.notifications?.map((item: any) => {
+                                                let notViewed: boolean = !includeInArray(user?.viewedNotifyIds, item.id);
                                                 switch (item.type) {
                                                     case "info":
-                                                        return <div className="notifications-item" onClick={() => {
+                                                        return <div style={{backgroundColor:notViewed?"rgb(30 30 47 / 58%)":""}} className="notifications-item" onClick={() => {
                                                             if (item.typeView === "modal") {
                                                                 setNotifyView({
                                                                     ...notifyView,
@@ -326,7 +332,7 @@ const Admin: React.FC = () => {
                                                             </div>
                                                         </div>
                                                     case "info_success":
-                                                        return <div className="notifications-item" onClick={() => {
+                                                        return <div style={{backgroundColor:notViewed?"rgb(30 30 47 / 58%)":""}} className="notifications-item" onClick={() => {
                                                             if (item.typeView === "modal") {
                                                                 setNotifyView({
                                                                     ...notifyView,
@@ -349,7 +355,7 @@ const Admin: React.FC = () => {
                                                             </div>
                                                         </div>
                                                     case "error":
-                                                        return <div className="notifications-item" onClick={() => {
+                                                        return <div style={{backgroundColor:notViewed?"rgb(30 30 47 / 58%)":""}} className="notifications-item" onClick={() => {
                                                             if (item.typeView === "modal") {
                                                                 setNotifyView({
                                                                     ...notifyView,
@@ -476,32 +482,19 @@ const Admin: React.FC = () => {
                         <MyTable/>
                     </Col>
                 </Row>
-                {/*{userName === 'Admin' && (<Row>*/}
-                {/*    <Col style={{maxWidth:220}} className="ps-4 pt-2">*/}
-                {/*        <Button variant={"outline-dark"} onClick={() => {*/}
-                {/*            actions.getCountStreams()*/}
-                {/*        }}>{'Количество стримов'}</Button>*/}
-                {/*    </Col>*/}
-                {/*    <Col className="pt-2">*/}
-                {/*        <Button variant={"outline-dark"} onClick={() => {*/}
-                {/*            actions.unsubscribed()*/}
-                {/*        }}>{'Отключить стрим'}</Button>*/}
-                {/*    </Col>*/}
-                {/*</Row>)}*/}
                 <Row>
                     <Col className="ps-4">
                         <div onClick={(e: any) => {
                             // setShowLogs(!showLogs)
                         }} className="text-outline custom-text"
                         >{'Логи:'
-                            // `Показать/Скрыть логи ${showLogs ? '▽' : '△'}`
                         }</div>
                     </Col>
                 </Row>
                 {showLogs && (<Row>
                     <Col>
                         <ListGroup style={{maxHeight: 450, overflowY: "auto", paddingLeft: 10}}>
-                            {user?.logs?.reverse()?.map((i: any, index: number) => {
+                            {user?.logs?.map((i: any, index: number) => {
                                 return <ListGroup.Item style={{color: "#8C909A"}} className="bg-custom-2"
                                                        key={index}>{`${i}`}</ListGroup.Item>
                             })}

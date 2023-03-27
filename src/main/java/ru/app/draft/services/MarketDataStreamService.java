@@ -7,6 +7,7 @@ import ru.app.draft.models.UserCache;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 @Service
@@ -18,7 +19,7 @@ public class MarketDataStreamService {
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
-    public void sendDataToUser(List<String> userNameList, Message message) {
+    public void sendDataToUser(Set<String> userNameList, Message message) {
         userNameList.forEach(i->simpMessagingTemplate.convertAndSendToUser(i, "/private", message));
     }
 }

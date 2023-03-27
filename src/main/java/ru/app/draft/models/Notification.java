@@ -44,10 +44,17 @@ public class Notification implements Serializable {
         this.forAdmin = forAdmin;
         this.id = UUID.randomUUID().toString();
         this.blockCommentEnabled = blockCommentEnabled;
-//        comments.add(new Comment("Admin",DateUtils.getCurrentTime(),"Qxsvcweg ecybcywbgy egwycgh uybyebwfywb " +
-//                "ebfyewbb yefbyewb ubnefnwb uwebfu evjnvne j vrenjnv."));
-//        comments.add(new Comment("A", DateUtils.getCurrentTime(),"Qxsvcweg ecybcywbgy egwycgh uybyebwfywb " +
-//                "ebfyewbb yefbyewb ubnefnwb uwebfu evjnvne j vrenjnv."));
+    }
+
+    public Notification(String header, String message, String type, String typeView, Boolean forAdmin, Boolean blockCommentEnabled, String time) {
+        this.header = header;
+        this.message = message;
+        this.type = type;
+        this.typeView = typeView;
+        this.forAdmin = forAdmin;
+        this.id = UUID.randomUUID().toString();
+        this.blockCommentEnabled = blockCommentEnabled;
+        this.time = time;
     }
 }
 

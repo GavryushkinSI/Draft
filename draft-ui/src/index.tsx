@@ -28,6 +28,7 @@ export enum EActionTypes {
     SET_LAST_TIME_UPDATE = "SET_LAST_TIME_UPDATE",
     SET_LAST_PRICE = "SET_LAST_PRICE",
     GET_USER_INFO = "GET_USER_INFO",
+    CHANGE_VIEWED_NOTIFY_IDS = "CHANGE_VIEWED_NOTIFY_IDS",
     GET_TICKER = "GET_TICKER",
 }
 
@@ -145,6 +146,14 @@ const userReducer = (state = {}, action: any): any => {
                 ...state,
                 data: action.payload,
             };
+        }
+
+        case EActionTypes.CHANGE_VIEWED_NOTIFY_IDS: {
+            // @ts-ignore
+            const updatedData = {...state.data, viewedNotifyIds: action.payload};
+            return {
+                ...state, data: updatedData
+            }
         }
 
         default:

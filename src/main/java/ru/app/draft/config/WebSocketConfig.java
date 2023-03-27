@@ -21,12 +21,12 @@ import ru.app.draft.models.UserCache;
 import ru.app.draft.services.ApiService;
 import ru.app.draft.services.DbService;
 import ru.app.draft.services.TelegramBotService;
+import ru.app.draft.utils.DateUtils;
 import ru.tinkoff.piapi.core.InvestApi;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.sql.Date;
+import java.time.Instant;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -69,14 +69,54 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         InvestApi api = InvestApi.createSandbox(token);
         COMMON_INFO.put("Notifications", new ArrayList<>());
         COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
-            data.add(new Notification("О проекте...",
-                    "TView_parser - это молодой проект и на текущий момент ещё не весь функционал доступен. " +
-                            "Но если ты интересуешься автоматизацией биржевой торговли, то уже сейчас ты можешь протестировать свои идеи без риска для своего капитала." +
-                            " Для этого тебе понадобится аккаунт на TradingView и возможности нашего ресурса.",
+            data.add(new Notification("О проекте... Релиз v.01.000.00.",
+                            "<p><strong><span ><span style=\"text-shadow: rgba(136, 136, 136, 0.8) 2px 3px 2px;\">TView_Parser</span>&nbsp;</span></strong><span >- это молодой проект и на текущий момент ещё не весь функционал доступен. Но если ты интересуешься автоматизацией биржевой торговли, то уже сейчас ты можешь протестировать свои идеи без риска для своего капитала. Для этого тебе понадобится аккаунт на TradingView и возможности данного ресурса.<br></span></p>\n" +
+                                    "<p><strong><span >Подробности релиза v.01.000.00:</span></strong></p>\n" +
+                                    "<p><span ><strong><span style=\"color: rgb(97, 189, 109);\">1.</span>&nbsp;</strong>Реализована возможность приёма сигнала по WebHook от TradingView. На текущий момент все заведённые стратегии работают в режиме эмуляции, т.е. без выставления ордеров на биржу. В рамках данного режима можно посмотреть перспективность выбранной стратегии без риска для капитала. По каждой стратегии выводится график доходности. Все стратегии работают на текущий момент только с рыночными ордерами, что предполагает 100% исполнение всех ордеров.&nbsp;</span></p>\n" +
+                                    "<p><span ><strong><span style=\"color: rgb(184, 49, 47);\">Работа с тейк-профит и стоп-лосс.</span></strong></span></p>\n" +
+                                    "<p><span >Классические стоп ордера не используется (речь идём о том, что когда пользователь выставляет стоп-лосс, фактически он отправляет стоп-ордер на сервер брокера, где в дальнейшем уже в случае достижения ценой уровня стоп-лосса &nbsp;происходит отправка заявки на биржу).</span></p>\n" +
+                                    "<p><span >Стоп-лоссы и тейк-профиты, &nbsp;в том числе с трейлингом без проблем можно реализовать средствами pinescript и добавить в свою стратегию. TView_Parser будет отрабатывать эти ордера, как рыночные.</span></p>\n" +
+                                    "<p><span ><strong><span style=\"color: rgb(65, 168, 95);\">2.</span></strong> Реализована возможность подключения уведомлений о сигналах в телеграмм (нужно подписаться на tview_bot).</span></p>\n" +
+                                    "<p><span ><strong><span style=\"color: rgb(97, 189, 109);\">3.</span>&nbsp;</strong>Реализован блок пользовательский уведомлений.&nbsp;</span></p>\n" +
+                                    "<p><span >&nbsp;Сюда буду приходить ссылки на важные новости (описание последнего релиза, полезные статьи) + критические ошибки.&nbsp;Уведомление о сделках реализовано в виде всплывающих нотификаций.</span></p>\n",
                     "info_success",
                     "modal",
                     false,
-                    false));
+                    true, Date.from(Instant.ofEpochMilli(1672531200)).toString()));
+
+            data.add(new Notification("Автоматический бактестинг стратегии в TradingView с сохранением результатов в CSV",
+                    "<p>Если вы используете стратегии в трейдингвью, например чтобы быстро накидать прототип идеи из какого нибудь источника и посмотреть её, то у вас наверняка также появлялся вопрос поиска приемлемых параметров и проверка как они влияют на стратегию. Делать это вручную крайне трудозатратно. Простейшая стратегия двух скользящих средних может давать 400 и более вариантов параметров. А любое увеличение кол-ва параметров и диапазона их значений приводит к необходимости перебора значений растущих в геометрической прогрессии. Например стратегия из 5 параметров по 15 значений дает 15 ^ 5 = 759 375 вариантов. Подобрать их руками, когда один вариант вычисляется пару секунд нереально.</p>\n" +
+                            "<p>А можно ли автоматизировать этот процесс? Ниже описание решения через расширение для браузера на основе Chrome.</p>\n" +
+                            "<p>Подробности по ссылке: <a data-fr-linked=\"true\" href=\"https://smart-lab.ru/blog/724466.php\">https://smart-lab.ru/blog/724466.php</a>.</p>",
+                    "info_success",
+                    "modal",
+                    false,
+                    true,
+                    java.util.Date.from(Instant.ofEpochMilli(1740960000)).toString()));
+
+            data.add(new Notification("Бесплатный Premium доступ на Tradingview",
+                    "<p><strong>100% надёжного </strong>способа получения бесплатного доступа к аккаунту TradingView<strong><span style=\"color: rgb(184, 49, 47);\">&nbsp;не существует.</span></strong></p>\n" +
+                            "<p>Причина простая. TradingView постоянно совершенствует свои методы поиска таких клиентов-халявщиков.</p>\n" +
+                            "<p>Тем не менее у меня есть положительный опыт использования предложений представленных на&nbsp;</p>\n" +
+                            "<p><a data-fr-linked=\"true\" href=\"https://plati.market/search/tradingview\">https://plati.market/search/tradingview</a>. <strong>Стоимость там небольшая, как правило,&nbsp; 200-300руб.</strong> &nbsp;Поэтому даже если подписка всё таки следит, в целом не так и обидно.</p>\n" +
+                            "<p>В любом случае продавцы на данном ресурсе крайне отзывчива и при необходимости наверняка помогут вам понять, что стало причиной обнуления вашей подписки (обычно это кривой vpn или просто забывчивость его вовремя включить).</p>\n" +
+                            "<p>Если ли же вы не хотите заморачиваться с vpn, прокси и другими обходными система, то рекомендую купить аккаунт TradingView с оплатой криптовалютой. Сейчас можно оплатить месяц (раньше к слову сказать криптовалютой можно было оплатить только годовую подписку).</p>\n" +
+                            "<p><strong>Инcтрукция по оплате: </strong><a data-fr-linked=\"true\" href=\"https://trading-shop.ru/instruktsii/kak-oplatit-tradingview-iz-rossii/\">https://trading-shop.ru/instruktsii/kak-oplatit-tradingview-iz-rossii/</a></p>\n" +
+                            "<p>Всё работает, проверено мною лично.</p>\n" +
+                            "<p>Единственный на мой взгляд минус - это минимальный объем вывода с биржи <a href=\"https://www.pexpay.com/ru\" rel=\"noopener noreferrer\" target=\"_blank\">PexPay</a>. Вывести сумму менее 50 USDT просто невозможно. Соответственно купить подписку на месяц меньше, &nbsp;чем premium у вас не получиться. &nbsp;Но в целом эту проблему можно решить использование других бирж, либо кошельков, где порог вывода ниже. Если есть надёжные варианты прошу указывать их в комментариях ниже.</p>",
+                    "info_success",
+                    "modal",
+                    false,
+                    true,
+                    java.util.Date.from(Instant.ofEpochMilli(1740960001)).toString()));
+
+//            data.add(new Notification("Шаблон стратегии на pinescript v.5 для TradingView.",
+//                    "",
+//                    "info_success",
+//                    "modal",
+//                    false,
+//                    true,
+//                    java.util.Date.from(Instant.ofEpochMilli(1740960002)).toString()));
             return data;
         });
         TICKERS.put("tickers", new ArrayList<>());

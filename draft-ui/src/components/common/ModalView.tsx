@@ -14,6 +14,7 @@ interface IProps {
     comments?: IComment[];
     changeNotify?: (id: string, content?: IComment, isRemove?: boolean) => void;
     commentsBlockEnabled?: boolean;
+    className?:string;
 }
 
 const ModalView = (props: IProps) => {
@@ -30,7 +31,7 @@ const ModalView = (props: IProps) => {
                     onChange={(event) => setCurrentComment({...currentComment, content: event.target.value})}
                 />
             </FloatingLabel>)}
-            <div className="mt-2 me-2">
+            <div className="me-2">
                 {showEditor && (<Button className="me-2" onClick={() => {
                     props.changeNotify && props.changeNotify(props.id!, {
                         ...currentComment,
@@ -67,7 +68,7 @@ const ModalView = (props: IProps) => {
                             }} icon={"bi bi-pencil-fill"} size={15} title={'Редактировать'} hoverColor={'green'}/>
                             <span className="me-2"/>
                             <Icon onClick={() => {
-                                props.changeNotify && props.changeNotify(props.id!, currentComment, true);
+                                props.changeNotify && props.changeNotify(props.id!, comment, true);
                             }}
                                   icon={"bi bi-trash3-fill"} size={15} title={'Удалить'} hoverColor={'green'}/>
                             <span className="me-2"/>
@@ -93,7 +94,7 @@ const ModalView = (props: IProps) => {
 
     return (
         <>
-            <Modal show={props.show} onHide={props.cancel && (() => {
+            <Modal className={props.className} show={props.show} onHide={props.cancel && (() => {
                 props.cancel?.()
             })}>
                 <Modal.Header className="hideCloseBtn" style={{
@@ -107,28 +108,28 @@ const ModalView = (props: IProps) => {
                     color: "#dee2e6"
                 }}>
                     {typeof props.text === "string" ?
-                            <div dangerouslySetInnerHTML={{__html: props.text}}/>
-                            : props.text}
-                        {!!props.commentsBlockEnabled && renderCommentsBlock(props.comments)}
-                        </Modal.Body>
-                    {props.accept && (<Modal.Footer style={{
-                        backgroundColor: "#212529",
-                        color: "#dee2e6"
-                    }}>
+                        <div dangerouslySetInnerHTML={{__html: props.text}}/>
+                        : props.text}
+                    {!!props.commentsBlockEnabled && renderCommentsBlock(props.comments)}
+                </Modal.Body>
+                {props.accept && (<Modal.Footer style={{
+                    backgroundColor: "#212529",
+                    color: "#dee2e6"
+                }}>
                     {props.cancel && (<Button variant="outline-light" onClick={() => {
                         props.cancel?.();
                     }}>
                         Отмена
-                        </Button>)}
+                    </Button>)}
                     {props.accept && (<Button variant="outline-success" onClick={() => {
                         props.accept?.();
                     }}>
                         ОК
-                        </Button>)}
-                        </Modal.Footer>)}
-                        </Modal>
-                        </>
-                        );
-                    }
+                    </Button>)}
+                </Modal.Footer>)}
+            </Modal>
+        </>
+    );
+}
 
-                    export default ModalView;
+export default ModalView;
