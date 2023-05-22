@@ -30,6 +30,14 @@ export interface IStrategy {
     priceTv?: string;
     currentPosition?: number;
     description?: string;
+    isPublic?: boolean;
+    pair?: any;
+    errorData?: IErrorData;
+}
+
+interface IErrorData {
+    message: string;
+    time: string;
 }
 
 export enum EProducer {
@@ -53,7 +61,7 @@ export interface IBackTestResultStartegy {
 
 export interface IComment {
     id?: string;
-    number?:number;
+    number?: number;
     author?: string;
     date?: string;
     content?: string;

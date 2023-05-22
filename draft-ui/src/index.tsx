@@ -2,18 +2,21 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {combineReducers, createStore} from "redux";
 import {devToolsEnhancer} from '@redux-devtools/extension';
-import {BrowserRouter, Route, Routes} from "react-router-dom";
+import {BrowserRouter, Route, Routes, useNavigate} from "react-router-dom";
 import {Provider} from "react-redux";
-import Admin from "./components/Admin";
+import MainPage from "./components/Admin";
 import "./styles/common.css";
 import "./styles/sideBar.css";
+import "./styles/developPage.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css"
 import notificationReducer, {INotificationState} from "./reducers/notificationReducers";
 import {IStrategy} from "./models/models";
 import "./styles/notification.css";
-import moment from "moment";
 import AdminPanel from "./components/AdminPanel";
+import Articles from "./components/Articles";
+import PublicStrategy from "./components/PublicStrategy";
+import {ROOT} from "./Route/consts";
 
 const initial = {
     data: [],
@@ -30,6 +33,7 @@ export enum EActionTypes {
     GET_USER_INFO = "GET_USER_INFO",
     CHANGE_VIEWED_NOTIFY_IDS = "CHANGE_VIEWED_NOTIFY_IDS",
     GET_TICKER = "GET_TICKER",
+    SET_PORTFOLIO = "SET_PORTFOLIO",
 }
 
 /**
@@ -45,12 +49,6 @@ export interface IAction {
 
 const reducer = (state = initial, action: IAction): any => {
     switch (action.type) {
-        // case EActionTypes.SET_IS_LOADING: {
-        //     return {
-        //         ...state,
-        //         isLoading: action.payload,
-        //     };
-        // }
         case EActionTypes.SET_DATA: {
             return {...state, data: [...state.data, action.payload].flat()};
         }
@@ -110,6 +108,7 @@ export interface IAppState {
     ticker: any;
     notifications: INotificationState;
     strategy: any;
+    portfolio: any;
 }
 
 /**
@@ -138,6 +137,19 @@ const strategyReducer = (state = {isLoading: false, data: []}, action: any): any
             return state;
     }
 };
+
+const portfolioReducer = (state = [], action: IAction): any => {
+    switch (action.type) {
+        case EActionTypes.SET_PORTFOLIO:
+            return {
+                ...state,
+                data: action.payload,
+            };
+
+        default:
+            return state;
+    }
+}
 
 const userReducer = (state = {}, action: any): any => {
     switch (action.type) {
@@ -174,6 +186,7 @@ const configureStore = () => {
                 notifications: notificationReducer,
                 strategy: strategyReducer,
                 user: userReducer,
+                portfolio: portfolioReducer,
             }),
             devToolsEnhancer()
         )
@@ -188,9 +201,10 @@ function Root() {
         <Provider store={store}>
             <BrowserRouter>
                 <Routes>
-                    {/*<Route path="/" element={}/>*/}
-                    <Route path="/" element={<Admin/>}/>
-                    <Route path="/adminPanel" element={<AdminPanel/>}/>
+                    <Route path={ROOT().DRAFT.MAIN_PAGE.PATH} element={<MainPage/>}/>
+                    <Route path={ROOT().DRAFT.ADMIN_PANEL.PATH} element={<AdminPanel/>}/>
+                    <Route path={ROOT().DRAFT.PAGE_WITH_ARTICLES.PATH} element={<Articles/>}/>
+                    <Route path={ROOT().DRAFT.PUBLIC_STRATEGY.PATH} element={<PublicStrategy/>}/>
                 </Routes>
             </BrowserRouter>
         </Provider>

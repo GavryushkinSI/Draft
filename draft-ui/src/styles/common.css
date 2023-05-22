@@ -5,7 +5,6 @@ body {
     sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    min-width: 400px !important;
     overflow: auto;
 }
 
@@ -13,16 +12,12 @@ body {
     width: 434px;
 }
 
-body > #root {
-    min-width: 400px !important;
-}
-
 .table-dark {
     --bs-table-hover-bg: #71AC66 !important;
 }
 
 .offcanvas-backdrop {
-    min-width: 400px !important;
+    /*min-width: 360px !important;*/
 }
 
 .btn-group, .form-select {
@@ -59,6 +54,10 @@ body > #root {
 
 .modal-header, .modal-body, .modal-footer {
     background-color: rgb(30 30 47 / 92%) !important;
+}
+
+.modal-body {
+    max-height: 83vh;
 }
 
 .bg-custom-1 {
@@ -121,17 +120,14 @@ body > #root {
     .font-size-sm {
         font-size: 10px;
     }
-    .myImg{
+
+    .myImg {
         width: 318px;
     }
 }
 
-#ol, #ul{
-    padding-left: 1rem!important;
-}
-
-.modal-backdrop.show {
-    min-width: 400px !important;
+#ol, #ul {
+    padding-left: 1rem !important;
 }
 
 .table th:first-child, .table th:nth-child(2) {
@@ -139,6 +135,13 @@ body > #root {
     left: 0;
     background-color: lightgrey;
     color: #373737;
+}
+
+.portfolio-table {
+    position: static;
+    font-size: 11px !important;
+    width: auto !important;
+    background-color: lightgrey;
 }
 
 .resp > .table td:first-child, .table td:nth-child(2) {
@@ -198,10 +201,6 @@ body > #root {
     background-color: #71AC66 !important;
 }
 
-/*.hideCloseBtn > .btn-close {*/
-/*    display: none;*/
-/*}*/
-
 .list-group-item:hover {
     color: black !important;
     background-color: white !important;
@@ -215,6 +214,20 @@ body > #root {
     --bs-btn-bg: #0080fffc !important;
 }
 
-.myQuill>.modal-dialog{
-    max-width: 1200px!important;
+.myQuill > .modal-dialog {
+    max-width: 1200px !important;
+}
+
+.main_logo:hover {
+    color: lightgreen !important;
+}
+
+.articleHeader:hover {
+    cursor: pointer;
+    color: white;
+    text-decoration-line: underline;
+}
+
+.errorStrategy {
+    background-color: lightpink;
 }

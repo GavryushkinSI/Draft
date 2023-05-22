@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.app.draft.annotations.Audit;
 import ru.app.draft.models.Notification;
 import ru.app.draft.models.ShortLastPrice;
+import ru.app.draft.models.User;
 import ru.app.draft.services.DbService;
 import ru.app.draft.services.MarketDataStreamService;
 import ru.app.draft.utils.DateUtils;
@@ -14,8 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import static ru.app.draft.store.Store.COMMON_INFO;
-import static ru.app.draft.store.Store.LAST_PRICE;
+import static ru.app.draft.store.Store.*;
 
 @Log4j2
 @RestController
@@ -52,5 +52,17 @@ public class AdminController {
                     notification.getBlockCommentEnabled()));
             return notifications;
         });
+    }
+
+    public List<User> getAllUsers(){
+        List<User> users = new ArrayList<>();
+        USER_STORE.values().forEach(user-> {
+            User us =new User();
+            us.setLogin(user.getUser().getLogin());
+            us.setLastVisit(user.getUser().getLastVisit());
+            users.add(us);
+        });
+
+        return users;
     }
 }

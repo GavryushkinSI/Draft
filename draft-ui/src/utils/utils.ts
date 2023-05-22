@@ -1,4 +1,4 @@
-import {includes, isEmpty, max, min, pick, sum} from "lodash";
+import {includes, isEmpty, isInteger, max, min, pick, sum} from "lodash";
 import {IBackTestResultStartegy, IStrategy} from "../models/models";
 import moment from "moment";
 import {closeStrategy, trendMagicStrategy} from "../strategies/strategy";
@@ -298,4 +298,11 @@ export function getFieldsFromArray(array: any[], fields: string[]):any[] {
 
 export function includeInArray(array:any[], value:any){
     return includes(array, value);
+}
+
+export function formatNumber(value:any, fraction:number=4){
+    if(!!value){
+        const isInteger:boolean=!String(value).includes(".");
+        return isInteger?value:value.toFixed(fraction);
+    }
 }

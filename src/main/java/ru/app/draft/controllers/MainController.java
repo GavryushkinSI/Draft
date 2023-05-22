@@ -1,5 +1,6 @@
 package ru.app.draft.controllers;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +47,9 @@ public class MainController {
     @Audit
     @MessageMapping("/message")
     public void registrationUserOnContent(@Payload Message messageFromUser) {
+//        switch (messageFromUser.getCommand()) {
+//            case "getAllStrategy":
+//        }
         UserCache userCache = USER_STORE.get(messageFromUser.getSenderName());
         User user = userCache.getUser();
         user.setLastVisit(DateUtils.getCurrentTime());
@@ -94,18 +98,11 @@ public class MainController {
     public void reconnectStream() {
         Map<String, MarketDataSubscriptionService> subscriptionServiceMap = api.getMarketDataStreamService().getAllStreams();
         List<String> reconnectStreamList = new ArrayList<>();
-//        LAST_PRICE.forEach((k, v) -> {
-//            if (!subscriptionServiceMap.containsKey(k)) {
-//                reconnectStreamList.add(k);
-//            }
-//        });
-//        if (reconnectStreamList.size() != 0) {
-//            apiService.setSubscriptionOnCandle(api, reconnectStreamList);
-//        }
     }
 
     @PostMapping("/app/tv")
     @Audit
+    @Timed(value = "myapp.method.execution_time", description = "Execution time of the method")
     public void tradingViewSignalPoint(@RequestBody Strategy strategy) {
         apiService.sendOrder(api, strategy);
     }
@@ -155,7 +152,7 @@ public class MainController {
         }
         if (status.equals("reg")) {
             if (USER_STORE.containsKey(user.getLogin())) {
-                throw new AuthorizationException(new ErrorData("Укажите другой логин..."));
+                throw new AuthorizationException(new ErrorData("Данный логин занят!.."));
             }
             USER_STORE.put(user.getLogin(), new UserCache(user));
         }

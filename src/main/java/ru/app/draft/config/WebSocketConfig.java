@@ -16,19 +16,14 @@ import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import ru.app.draft.models.Notification;
-import ru.app.draft.models.Strategy;
-import ru.app.draft.models.UserCache;
 import ru.app.draft.services.ApiService;
 import ru.app.draft.services.DbService;
 import ru.app.draft.services.TelegramBotService;
-import ru.app.draft.utils.DateUtils;
 import ru.tinkoff.piapi.core.InvestApi;
 
 import java.sql.Date;
 import java.time.Instant;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static ru.app.draft.store.Store.*;
 
@@ -38,16 +33,17 @@ import static ru.app.draft.store.Store.*;
 @EnableScheduling
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private static final List<String> myTickers = List.of(
-            "EuH3", "GKH3", "SRH3", "RIH3", "BRH3", "SiH3","EDH3","ALH3","POH3","MNH3","AFH3",
-            "VBH3", "SFH3", "NAH3", "MMH3", "CRH3",
-            "EuM3", "GKM3", "SRM3", "RIM3", "BRM3", "SiM3","EDM3","ALM3","POM3","MNM3","AFM3",
-            "VBM3", "SFM3", "NAM3", "MMM3", "CRM3",
-            "SBER", "GAZP","MGNT","MOEX","AFKS","BANE", "HYDR", "PLZL", "VTBR","ROSN", "MTSS", "GMKN");
+            "EuH3", "GKH3", "SRH3", "RIH3", "BRH3", "SiH3", "EDH3", "ALH3", "POH3", "MNH3", "AFH3", "VBH3", "SFH3", "NAH3", "MMH3", "CRH3",
+            "EuM3", "GKM3", "SRM3", "RIM3", "BRM3", "SiM3", "EDM3", "ALM3", "POM3", "MNM3", "AFM3", "VBM3", "SFM3", "NAM3", "MMM3", "CRM3",
+            "EuU3", "GKU3", "SRU3", "RIU3", "BRU3", "SiU3", "EDU3", "ALU3", "POU3", "MNU3", "AFU3", "VBU3", "SFU3", "NAU3", "MMU3", "CRU3",
+            "EuZ3", "GKZ3", "SRZ3", "RIZ3", "BRZ3", "SiZ3", "EDZ3", "ALZ3", "POZ3", "MNZ3", "AFZ3", "VBZ3", "SFZ3", "NAZ3", "MMZ3", "CRZ3",
+            "SBER", "GAZP", "MGNT", "MOEX", "AFKS", "BANE", "HYDR", "PLZL", "VTBR", "ROSN", "MTSS", "GMKN");
 
     @Bean
     public ObjectMapper getObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+
         return mapper;
     }
 
@@ -65,20 +61,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     @Bean
-    public InvestApi createApi(@Value("${token:123}") String token, @Qualifier("apiService") ApiService apiService, DbService dbService) {
-        InvestApi api = InvestApi.createSandbox(token);
+    public InvestApi createApi(@Value("${sandbox.token:123}") String sandboxToken, @Value("${real.token:123}") String realToken, @Value("${usesandbox}") Boolean useSandbox, @Qualifier("apiService") ApiService apiService, DbService dbService) {
+        //InvestApi api = InvestApi.createSandbox(sandboxToken);
+        InvestApi api = useSandbox ? InvestApi.createSandbox(sandboxToken) : InvestApi.create(realToken);
         COMMON_INFO.put("Notifications", new ArrayList<>());
         COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
             data.add(new Notification("О проекте... Релиз v.01.000.00.",
-                            "<p><strong><span ><span style=\"text-shadow: rgba(136, 136, 136, 0.8) 2px 3px 2px;\">TView_Parser</span>&nbsp;</span></strong><span >- это молодой проект и на текущий момент ещё не весь функционал доступен. Но если ты интересуешься автоматизацией биржевой торговли, то уже сейчас ты можешь протестировать свои идеи без риска для своего капитала. Для этого тебе понадобится аккаунт на TradingView и возможности данного ресурса.<br></span></p>\n" +
-                                    "<p><strong><span >Подробности релиза v.01.000.00:</span></strong></p>\n" +
-                                    "<p><span ><strong><span style=\"color: rgb(97, 189, 109);\">1.</span>&nbsp;</strong>Реализована возможность приёма сигнала по WebHook от TradingView. На текущий момент все заведённые стратегии работают в режиме эмуляции, т.е. без выставления ордеров на биржу. В рамках данного режима можно посмотреть перспективность выбранной стратегии без риска для капитала. По каждой стратегии выводится график доходности. Все стратегии работают на текущий момент только с рыночными ордерами, что предполагает 100% исполнение всех ордеров.&nbsp;</span></p>\n" +
-                                    "<p><span ><strong><span style=\"color: rgb(184, 49, 47);\">Работа с тейк-профит и стоп-лосс.</span></strong></span></p>\n" +
-                                    "<p><span >Классические стоп ордера не используется (речь идём о том, что когда пользователь выставляет стоп-лосс, фактически он отправляет стоп-ордер на сервер брокера, где в дальнейшем уже в случае достижения ценой уровня стоп-лосса &nbsp;происходит отправка заявки на биржу).</span></p>\n" +
-                                    "<p><span >Стоп-лоссы и тейк-профиты, &nbsp;в том числе с трейлингом без проблем можно реализовать средствами pinescript и добавить в свою стратегию. TView_Parser будет отрабатывать эти ордера, как рыночные.</span></p>\n" +
-                                    "<p><span ><strong><span style=\"color: rgb(65, 168, 95);\">2.</span></strong> Реализована возможность подключения уведомлений о сигналах в телеграмм (нужно подписаться на tview_bot).</span></p>\n" +
-                                    "<p><span ><strong><span style=\"color: rgb(97, 189, 109);\">3.</span>&nbsp;</strong>Реализован блок пользовательский уведомлений.&nbsp;</span></p>\n" +
-                                    "<p><span >&nbsp;Сюда буду приходить ссылки на важные новости (описание последнего релиза, полезные статьи) + критические ошибки.&nbsp;Уведомление о сделках реализовано в виде всплывающих нотификаций.</span></p>\n",
+                    "<p><strong><span ><span style=\"text-shadow: rgba(136, 136, 136, 0.8) 2px 3px 2px;\">TView_Parser</span>&nbsp;</span></strong><span >- это молодой проект и на текущий момент ещё не весь функционал доступен. Но если ты интересуешься автоматизацией биржевой торговли, то уже сейчас ты можешь протестировать свои идеи без риска для своего капитала. Для этого тебе понадобится аккаунт на TradingView и возможности данного ресурса.<br></span></p>\n" +
+                            "<p><strong><span >Подробности релиза v.01.000.00:</span></strong></p>\n" +
+                            "<p><span ><strong><span style=\"color: rgb(97, 189, 109);\">1.</span>&nbsp;</strong>Реализована возможность приёма сигнала по WebHook от TradingView. На текущий момент все заведённые стратегии работают в режиме эмуляции, т.е. без выставления ордеров на биржу. В рамках данного режима можно посмотреть перспективность выбранной стратегии без риска для капитала. По каждой стратегии выводится график доходности. Все стратегии работают на текущий момент только с рыночными ордерами, что предполагает 100% исполнение всех ордеров.&nbsp;</span></p>\n" +
+                            "<p><span ><strong><span style=\"color: rgb(184, 49, 47);\">Работа с тейк-профит и стоп-лосс.</span></strong></span></p>\n" +
+                            "<p><span >Классические стоп ордера не используется (речь идём о том, что когда пользователь выставляет стоп-лосс, фактически он отправляет стоп-ордер на сервер брокера, где в дальнейшем уже в случае достижения ценой уровня стоп-лосса &nbsp;происходит отправка заявки на биржу).</span></p>\n" +
+                            "<p><span >Стоп-лоссы и тейк-профиты, &nbsp;в том числе с трейлингом без проблем можно реализовать средствами pinescript и добавить в свою стратегию. TView_Parser будет отрабатывать эти ордера, как рыночные.</span></p>\n" +
+                            "<p><span ><strong><span style=\"color: rgb(65, 168, 95);\">2.</span></strong> Реализована возможность подключения уведомлений о сигналах в телеграмм (нужно подписаться на tview_bot).</span></p>\n" +
+                            "<p><span ><strong><span style=\"color: rgb(97, 189, 109);\">3.</span>&nbsp;</strong>Реализован блок пользовательский уведомлений.&nbsp;</span></p>\n" +
+                            "<p><span >&nbsp;Сюда буду приходить ссылки на важные новости (описание последнего релиза, полезные статьи) + критические ошибки.&nbsp;Уведомление о сделках реализовано в виде всплывающих нотификаций.</span></p>\n",
                     "info_success",
                     "modal",
                     false,
@@ -109,24 +106,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     false,
                     true,
                     java.util.Date.from(Instant.ofEpochMilli(1740960001)).toString()));
-
-//            data.add(new Notification("Шаблон стратегии на pinescript v.5 для TradingView.",
-//                    "",
-//                    "info_success",
-//                    "modal",
-//                    false,
-//                    true,
-//                    java.util.Date.from(Instant.ofEpochMilli(1740960002)).toString()));
             return data;
         });
         TICKERS.put("tickers", new ArrayList<>());
         apiService.getAllTickers(api, myTickers);
         dbService.getAllUsers();
 
-        List<String> figsList=new ArrayList<>();
-        TICKERS.get("tickers").forEach(i->figsList.add(i.getFigi()));
+        List<String> figsList = new ArrayList<>();
+        TICKERS.get("tickers").forEach(i -> figsList.add(i.getFigi()));
+        if(!useSandbox){
+            apiService.setPortfolioStream(api);
+            apiService.setOrdersStream(api);
+        }
         apiService.setSubscriptionOnCandle(api, figsList);
-
+        dbService.getAllComments();
         return api;
     }
 

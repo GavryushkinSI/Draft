@@ -1,7 +1,7 @@
 import {EActionTypes} from "../index";
 import http from "../utils/http-common";
 import {EConsumer, IArticle, IComment, IStrategy} from "../models/models";
-import {useStore} from "react-redux";
+import {batch, useStore} from "react-redux";
 import {removeRow, saveRow} from "../utils/utils";
 import moment from "moment";
 
@@ -17,6 +17,9 @@ export class Service {
                 break;
             case "lastPrice":
                 this.dispatch({type: EActionTypes.SET_LAST_PRICE, payload: data});
+                break;
+            case "portfolio":
+                this.dispatch({type: EActionTypes.SET_PORTFOLIO, payload: data});
                 break;
             default:
                 break;
@@ -50,7 +53,17 @@ export class Service {
                     const data = response.data[0];
                     const notifications = data?.notifications?.reverse();
                     const logs = data?.logs?.reverse();
-                    this.dispatch({type: EActionTypes.GET_USER_INFO, payload: {...response.data[0], notifications, logs}});
+                    const portfolio = data?.portfolio;
+                    batch(()=> {
+                        this.dispatch({
+                            type: EActionTypes.SET_PORTFOLIO,
+                            payload: portfolio
+                        });
+                    this.dispatch({
+                        type: EActionTypes.GET_USER_INFO,
+                        payload: {...response.data[0], notifications, logs}
+                    });
+                });
                 }
             ).catch((errors: any) => console.log(errors));
     }

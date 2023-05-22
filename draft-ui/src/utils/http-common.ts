@@ -8,3 +8,8 @@ export default axios.create({
         "Content-type": "application/json"
     }
 });
+
+export enum ETab{
+    MAIN='MAIN',
+
+}

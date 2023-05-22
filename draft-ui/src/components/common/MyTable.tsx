@@ -8,12 +8,15 @@ import {addNotification} from "../../actions/notificationActions";
 import {IAppState} from "../../index";
 import {useActions} from "../../hooks/hooks";
 import {Service} from "../../services/Service";
-import {isEmpty} from "lodash";
-import {calcDataForGraphProfit, copyTextToClipboard} from "../../utils/utils";
+import {isEmpty, noop} from "lodash";
+import {calcDataForGraphProfit, copyTextToClipboard, formatNumber} from "../../utils/utils";
 import {Chart} from "../Chart";
 import SelectFilter from "./SelectFilter";
 import RowFiled from "./RowFiled";
 import MyToolTip from "./MyToolTip";
+import Gap from "./Gap";
+import MyEditor from "./MyEditor";
+import Portfolio from "../Portfolio";
 
 const columns = [
     {field: 'id', fieldName: '№'},
@@ -24,8 +27,8 @@ const columns = [
     {field: 'status', fieldName: 'Статус'},
     {field: 'currentPosition', fieldName: 'Текущая позиция'},
     {filed: 'fixProfit', fieldName: 'Тек. доход'},
+    {filed: 'nonFixProfit', fieldName: 'Ср.цена посл.сд.'},
     {filed: 'lastPrice', fieldName: 'Посл. цена'},
-    {filed: 'nonFixResult', fieldName: 'Non fix'},
     {field: '', fieldName: ''},
 ];
 
@@ -80,14 +83,21 @@ const MyTable: React.FC = () => {
             if (name === 'description' && value?.length >= 2000) {
                 setValidation({...validation, [name]: 'Описание должно быть не больше 2000 символов!'});
             }
-            if (['emulation', 'telegram', 'terminal'].includes(name) && editedRow.consumer) {
+            if (['test', 'telegram', 'terminal'].includes(name) && editedRow.consumer) {
                 if (editedRow.consumer.includes(name)) {
                     const consumer = editedRow.consumer.filter((i: any) => i !== name);
+                    if (name === 'terminal') {
+                        consumer.push('test');
+                    }
                     setEditedRow({...editedRow, consumer});
                 } else {
-                    const consumer = [...editedRow.consumer, name];
+                    let consumer = [...editedRow.consumer, name];
+                    if (name === 'terminal') {
+                        consumer = consumer.filter(i => i != 'test');
+                    }
                     setEditedRow({...editedRow, consumer});
                 }
+
                 return;
             }
             setValidation({...validation, [name]: undefined});
@@ -130,7 +140,7 @@ const MyTable: React.FC = () => {
         return <Offcanvas style={{
             backgroundColor: "rgb(30 30 47 / 92%)",
             color: "#dee2e6",
-        }} placement={"end"} show={showModal}
+        }} placement={"top"} show={showModal}
                           onHide={() => {
                               setIsShowModal(false)
                           }}>
@@ -138,28 +148,40 @@ const MyTable: React.FC = () => {
                 <Offcanvas.Title>{editedRow.id ? `Редактирование стратегии №:${editedRow.id}` : 'Добавление новой стратегии'}</Offcanvas.Title>
             </Offcanvas.Header>
             <Offcanvas.Body>
-                <Form>
-                    <Form.Select disabled name="producer" style={{width: 351}}>
-                        <option value="1">{EProducer.TKS}</option>
-                        <option value="2">{EProducer.ALOR}</option>
-                    </Form.Select>
-                    <br/>
-                    <Form.Control
-                        name='name'
-                        defaultValue={editedRow?.name}
-                        onChange={handleChangeEdit}
-                        type="text"
-                        placeholder="Наименование стратегии"
-                        isInvalid={!isEmpty(validation?.name)}
-                        style={{width: 351}}
-                    />
-                    <Form.Control.Feedback type="invalid">{validation.name}</Form.Control.Feedback>
-                    <SelectFilter value={editedRow?.ticker ? {value: editedRow.ticker, label: editedRow.ticker} : null}
-                                  onChange={handleChangeEdit} errorMsg={validation.ticker}/>
-                    <Form.Group style={{width: 351}} className="mb-3" controlId="exampleForm.ControlTextarea1">
-                        <Form.Control name="description" value={editedRow?.description} onChange={handleChangeEdit}
-                                      placeholder={'Описание стратегии'} as="textarea" rows={3}/>
-                    </Form.Group>
+                <Form className="bg-custom-1">
+                    <Row>
+                        <Col style={{maxWidth: 390}}>
+                            <Form.Select className="mb-2" disabled name="producer" style={{width: 351}}>
+                                <option value="1">{EProducer.TKS}</option>
+                                <option value="2">{EProducer.ALOR}</option>
+                            </Form.Select>
+                            <Form.Control
+                                className="mb-1"
+                                name='name'
+                                defaultValue={editedRow?.name}
+                                onChange={handleChangeEdit}
+                                type="text"
+                                placeholder="Наименование стратегии"
+                                isInvalid={!isEmpty(validation?.name)}
+                                style={{width: 351}}
+                            />
+                            <Form.Control.Feedback type="invalid">{validation.name}</Form.Control.Feedback>
+                            <SelectFilter style={{maxWidth: 351}} value={editedRow?.ticker ? {
+                                value: editedRow.ticker,
+                                label: editedRow.ticker
+                            } : null}
+                                          onChange={handleChangeEdit} errorMsg={validation.ticker}/>
+                            <Form.Group style={{maxWidth: 351}} className="mb-2 mt-2"
+                                        controlId="exampleForm.ControlTextarea1">
+                                <Form.Control name="description" value={editedRow?.description}
+                                              onChange={handleChangeEdit}
+                                              placeholder={'Краткое описание стратегии'} as="textarea" rows={2}/>
+                            </Form.Group>
+                        </Col>
+                        {editedRow?.isPublic && (<Col style={{maxWidth: 850}}>
+                            <MyEditor renderHeader={false} addNewArticle cancel={noop}/>
+                        </Col>)}
+                    </Row>
                     <Row>
                         <Col style={{maxWidth: 120}}>
                             <Form.Check
@@ -168,7 +190,8 @@ const MyTable: React.FC = () => {
                                 id="custom-switch"
                                 label="Терминал"
                                 onChange={handleChangeEdit}
-                                disabled
+                                checked={editedRow.consumer?.includes("terminal")}
+                                disabled={userName != "Admin"}
                                 className="pe-2"
                             />
                         </Col>
@@ -180,12 +203,12 @@ const MyTable: React.FC = () => {
                         <Col style={{maxWidth: 120}}>
                             <Form.Check
                                 type="switch"
-                                name='emulation'
+                                name='test'
                                 id="custom2-switch"
                                 onChange={handleChangeEdit}
                                 label="Эмуляция"
                                 disabled
-                                checked={editedRow.consumer?.includes("test")}
+                                checked={editedRow.consumer?.includes("test") && !editedRow.consumer?.includes('terminal')}
                                 className="pe-2"
                             />
                         </Col>
@@ -212,6 +235,22 @@ const MyTable: React.FC = () => {
                         </Col>
                     </Row>
                     <Row>
+                        <Col style={{maxWidth: 230}}>
+                            <Form.Check
+                                type="switch"
+                                name='isPublic'
+                                id="custom-switch"
+                                label="Публичная стратегия"
+                                onChange={handleChangeEdit}
+                                disabled
+                            />
+                        </Col>
+                        <Col style={{marginLeft: -23}}>
+                            <MyToolTip
+                                text={'Стратегия будет видна всем пользователям в разделе \"Публичные стратегии\". В текущем релизе недоступно.'}/>
+                        </Col>
+                    </Row>
+                    <Row>
                         <Col style={{maxWidth: 100}}>
                             <Button className={"me-2 mt-2"} variant="outline-light" onClick={() => {
                                 setIsShowModal(false)
@@ -225,6 +264,7 @@ const MyTable: React.FC = () => {
                             </Button>
                         </Col>
                     </Row>
+                    <Gap/>
                 </Form>
             </Offcanvas.Body>
         </Offcanvas>
@@ -276,7 +316,7 @@ const MyTable: React.FC = () => {
                               setShowDescriptionModal({show: false, name: undefined})
                           }} text={<div>
             <h6 className="mt-3">Как мне создать оповещения для стратегии?</h6>
-            <ul style={{paddingLeft:"1rem"}}>
+            <ul style={{paddingLeft: "1rem"}}>
                 <li>Нажать на <em>Добавить оповещение</em> в панели <em dir="ltr">Тестера стратегий.</em><br/>
                     <img className="myImg" style={{maxHeight: 100}}
                          src="/icons/4.jpeg"
@@ -325,8 +365,20 @@ const MyTable: React.FC = () => {
     }
 
     const calcChart = calcDataForGraphProfit(strategy);
+    // const calcLastAvrPrice = (row: any): number => {
+    //     const {first, second} = row.pair;
+    //     if (second != 0 && row.currentPosition && row.currentPosition !== 0) {
+    //         return (first / second);
+    //     }
+    //     return 0;
+    // }
+
+    const renderPortfolio = () => {
+        return userName === 'Admin' ? (<Portfolio/>) : <></>;
+    };
 
     return <>
+        {renderPortfolio()}
         {showModal && renderEditModal()}
         {showDescriptionModal.show && renderDescriptionModal()}
         {renderRemoveModal()}
@@ -361,14 +413,14 @@ const MyTable: React.FC = () => {
                            variant="outline">
                         <thead>
                         <tr key={"header"}>
-                            {columns.map((column) => {
+                            {columns.map((column, index) => {
                                 return <th key={column.field}>{column.fieldName}</th>
                             })}
                         </tr>
                         </thead>
                         <tbody>
                         {strategy.length > 0 ? strategy?.map((row, index) => {
-                            return <tr key={row.id! + 3005}
+                            return <tr className={row.errorData?.message ? "errorStrategy" : ""} key={row.id! + 3005}
                                        style={hoverTable === index && clickTable !== index ? {
                                            color: "white",
                                            backgroundColor: "lightgray"
@@ -416,9 +468,12 @@ const MyTable: React.FC = () => {
                                     {row.currentPosition || 0}
                                 </td>
                                 <td className={"align-middle text-center"}>
-                                    {calcChart.find((i: any) => {
+                                    {formatNumber(calcChart.find((i: any) => {
                                         return i.id === Number(row.id)
-                                    })?.graphResult?.slice(-1)[0]?.y || 0}
+                                    })?.graphResult?.slice(-1)[0]?.y) || 0}
+                                </td>
+                                <td className={"align-middle text-center"}>
+                                    {/*{formatNumber(calcLastAvrPrice(row), 3) || 0}*/}
                                 </td>
                                 <td className={"align-middle text-center"}>
                                     {lastPrice.get(row.figi!) ?

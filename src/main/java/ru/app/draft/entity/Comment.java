@@ -1,25 +1,53 @@
 package ru.app.draft.entity;
 
 import javax.persistence.*;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "comments")
 public class Comment {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Integer id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "article_id")
-    private Article article;
+    @JoinColumn(name = "parent_id")
+    private Comment parent;
 
     @Column(name = "comment", length = 200)
     private String comment;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "article_id", nullable = false)
+    private Article articles;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User users;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id", insertable = false, updatable = false)
+    private Comment comments;
+
+    @OneToMany(mappedBy = "parent")
+    private Set<Comment> listComments = new LinkedHashSet<>();
+
+    public Set<Comment> getListComments() {
+        return listComments;
+    }
+
+    public void setListComments(Set<Comment> listComments) {
+        this.listComments = listComments;
+    }
+
+    public Comment getComments() {
+        return comments;
+    }
+
+    public void setComments(Comment comments) {
+        this.comments = comments;
+    }
 
     public User getUsers() {
         return users;
@@ -27,6 +55,14 @@ public class Comment {
 
     public void setUsers(User users) {
         this.users = users;
+    }
+
+    public Article getArticles() {
+        return articles;
+    }
+
+    public void setArticles(Article articles) {
+        this.articles = articles;
     }
 
     public String getComment() {
@@ -37,21 +73,19 @@ public class Comment {
         this.comment = comment;
     }
 
-    public Article getArticle() {
-        return article;
+    public Comment getParent() {
+        return parent;
     }
 
-    public void setArticle(Article article) {
-        this.article = article;
+    public void setParent(Comment parent) {
+        this.parent = parent;
     }
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
-
-    //TODO Reverse Engineering! Migrate other columns to the entity
 }

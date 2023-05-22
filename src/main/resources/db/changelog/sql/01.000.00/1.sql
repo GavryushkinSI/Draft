@@ -8,7 +8,7 @@ CREATE TABLE USERS
     password   VARCHAR(255)       NOT NULL,
     chartId    VARCHAR(255),
     email      VARCHAR(255)       NOT NULL,
-    last_visit TIMESTAMP WITHOUT TIME ZONE,
+    last_visit VARCHAR(255),
     CONSTRAINT PK_USER PRIMARY KEY (id)
 );
 --rollback DROP TABLE USERS

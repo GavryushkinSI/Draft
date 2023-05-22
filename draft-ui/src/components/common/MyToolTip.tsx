@@ -3,7 +3,7 @@ import Icon from "./Icon";
 import {ButtonLink} from "@paljs/ui";
 
 interface IProps {
-    text: string;
+    text: string|any;
     textInner?: string|any;
     style?: any;
     placement?:string;

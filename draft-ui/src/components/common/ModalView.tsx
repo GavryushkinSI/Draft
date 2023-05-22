@@ -22,6 +22,7 @@ const ModalView = (props: IProps) => {
     const [currentComment, setCurrentComment] = useState<IComment>();
     const renderCommentsBlock = (comments?: IComment[]): JSX.Element => {
         return <>
+            <hr style={{margin:0}}/>
             {comments?.map(item => renderComment(item))}
             {showEditor && (<FloatingLabel className="mt-3" controlId="floatingTextarea2" label="Комментарий">
                 <Form.Control
@@ -40,7 +41,7 @@ const ModalView = (props: IProps) => {
                     setShowEditor(false);
                 }
                 } variant="outline-success">Опубликовать</Button>)}
-                <Button onClick={() => {
+                <Button className="mt-2" onClick={() => {
                     setCurrentComment(undefined);
                     showEditor ? setShowEditor(false) : setShowEditor(true)
                 }} variant="outline-success">
@@ -105,7 +106,8 @@ const ModalView = (props: IProps) => {
                 </Modal.Header>
                 <Modal.Body style={{
                     backgroundColor: "#212529",
-                    color: "#dee2e6"
+                    color: "#dee2e6",
+                    overflow: "auto",
                 }}>
                     {typeof props.text === "string" ?
                         <div dangerouslySetInnerHTML={{__html: props.text}}/>

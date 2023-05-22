@@ -7,6 +7,7 @@ import ru.app.draft.annotations.Audit;
 import ru.app.draft.models.*;
 import ru.app.draft.services.MarketDataStreamService;
 
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -48,7 +49,7 @@ public class Store {
             .<String, List<Ticker>>build()
             .asMap();
 
-    public static void updateLastPrice(String figi,Long newValue, Timestamp time) {
+    public static void updateLastPrice(String figi, BigDecimal newValue, Timestamp time) {
         LAST_PRICE.computeIfPresent(figi, (s, data) -> {
             data.setUpdateTime(time);
             data.setPrice(newValue);

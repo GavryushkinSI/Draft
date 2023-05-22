@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -15,11 +16,11 @@ import static ru.app.draft.store.Store.LAST_PRICE;
 @Getter
 @Setter
 public class LastPrice {
-    Long price;
+    BigDecimal price;
     Set<String> nameSubscriber = new HashSet<>();
     Timestamp updateTime;
 
-    public LastPrice(Long price, Timestamp updateTime) {
+    public LastPrice(BigDecimal price, Timestamp updateTime) {
         this.price = price;
         this.updateTime = updateTime;
     }

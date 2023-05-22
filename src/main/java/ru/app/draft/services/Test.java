@@ -24,18 +24,22 @@ import static ru.app.draft.store.Store.TEMP_STORE;
 
 @Log4j2
 public class Test {
-
+    static boolean letterOfRegInterBankTransfersServicesEnable =false;
+    static boolean payrollCreditPaymentServiceEnable = false;
+    static String ADMISSION_VALUE_FOR_SELF_EMPLOYED = "87";
 
     public static void main(String[] args) {
-        DateUtils.getTime(1677827306L);
-//        CandleData candle1 = new CandleData("01-01-2022 00:00:00", List.of(1000L, 1500L, 900L, 1200L));
-//        unionCandle(candle1,"TEST");
-//        CandleData candle2 = new CandleData("01-01-2022 00:00:00", List.of(1000L, 2000L, 900L, 1200L));
-//        unionCandle(candle2,"TEST");
-//        CandleData candle3 = new CandleData("01-01-2022 00:00:00", List.of(1000L, 2000L, 900L, 1000L));
-//        unionCandle(candle3,"TEST");
-//        CandleData candle4 = new CandleData("01-01-2022 00:01:00", List.of(1000L, 2000L, 900L, 1000L));
-//        unionCandle(candle4,"TEST");
+        test();
+    }
+
+    public static boolean test(){
+        if ((letterOfRegInterBankTransfersServicesEnable || payrollCreditPaymentServiceEnable)
+                //Идём в легаси, если договор относиться к типу Самозанятые
+                || Objects.equals(null, ADMISSION_VALUE_FOR_SELF_EMPLOYED)) {
+
+            return false;
+        }
+        return true;
     }
 
     private static void unionCandle(CandleData candle, String figi) {

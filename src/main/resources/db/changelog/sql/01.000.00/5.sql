@@ -6,7 +6,7 @@ CREATE TABLE LAST_PRICE
     "id"             SERIAL unique not null,
     "figi"           varchar(255),
     "name_subscriber" varchar(20),
-    "price"          integer,
+    "price"          float,
     "update_time"     TIMESTAMP,
     CONSTRAINT "LastPrice_pk" PRIMARY KEY ("id")
 );
