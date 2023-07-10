@@ -79,7 +79,7 @@ public class DbService {
                 strategy.setDescription(s.getDescription());
                 strategy.setMinLot(Math.toIntExact(s.getMinLot()));
                 strategy.setConsumers(s.getConsumer().toString().replaceAll("\\[","").replaceAll("]","").replaceAll(" ",""));
-//                strategy.setEnterAveragePrice(s.getPair().getFirst() +";"+ s.getPair().getSecond());
+                strategy.setEnterAveragePrice(s.getEnterAveragePrice().toString().replaceAll("\\[","").replaceAll("]","").replaceAll(" ",""));
                 s.getOrders().forEach(o->{
                     Order order = Order.builder()
                             .strategy(strategy)
@@ -124,7 +124,7 @@ public class DbService {
 
                 new ru.app.draft.models.Order();
                 strategy.setConsumer(List.of(n.getConsumers().split(",")));
-//                strategy.setPair(Pair.of(BigDecimal.valueOf(Double.parseDouble(n.getEnterAveragePrice().split(";")[0])), Integer.valueOf(n.getEnterAveragePrice().split(";")[1])));
+                strategy.setEnterAveragePrice(List.of(n.getEnterAveragePrice().split(",")));
                 strategy.setOrders(n.getOrders().stream().map(o-> ru.app.draft.models.Order.builder()
                         .price(o.getPrice())
                         .quantity(o.getQuantity())

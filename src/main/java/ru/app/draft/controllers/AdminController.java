@@ -4,6 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.app.draft.annotations.Audit;
+import ru.app.draft.models.MetricItem;
 import ru.app.draft.models.Notification;
 import ru.app.draft.models.ShortLastPrice;
 import ru.app.draft.models.User;
@@ -27,7 +28,6 @@ public class AdminController {
         this.marketDataStreamService = marketDataStreamService;
     }
 
-    @Audit
     @GetMapping("/app/adminTickers")
     public ResponseEntity<List<ShortLastPrice>> getInfoTickers() {
         List<ShortLastPrice> list = new ArrayList<>();
@@ -40,7 +40,6 @@ public class AdminController {
         return ResponseEntity.ok(list);
     }
 
-    @Audit
     @PostMapping("/app/addArticle")
     public void addArticle(@RequestBody Notification notification) {
         COMMON_INFO.computeIfPresent("Notifications", (s, notifications) -> {
@@ -52,6 +51,11 @@ public class AdminController {
                     notification.getBlockCommentEnabled()));
             return notifications;
         });
+    }
+
+    @GetMapping("/app/getMetrics")
+    public ResponseEntity<List<MetricItem>> getMetrics(){
+        return ResponseEntity.ok(METRICS.get("methods"));
     }
 
     public List<User> getAllUsers(){

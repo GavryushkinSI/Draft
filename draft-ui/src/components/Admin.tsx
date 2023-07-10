@@ -18,7 +18,7 @@ import {
     Row
 } from "react-bootstrap";
 import Icon from "./common/Icon";
-import {EConsumer, IStrategy, Message} from "../models/models";
+import {EConsumer, EProducer, IStrategy, Message} from "../models/models";
 import {getFieldsFromArray, includeInArray, stringTruncate} from "../utils/utils";
 import Login from "./common/Login";
 import SockJS from "sockjs-client";
@@ -43,6 +43,7 @@ const Admin: React.FC = () => {
     const dispatch: Dispatch<any> = useDispatch();
     const [expendedSideBar, setExpendedSidebar] = useState(false);
     const [showLogs, setShowLogs] = useState(true);
+    const [nameStrategyFilter, setNameStrategyFilter] = useState<string>("");
     const [handleStrategy, setHandleStrategy] = useState<any>();
     const [showFeedBack, setFeedBack] = useState(false);
     const [textFeedBack, setTextFeedBack] = useState<any>();
@@ -486,9 +487,7 @@ const Admin: React.FC = () => {
                                     "ticker": found.ticker,
                                     "quantity": (found?.currentPosition || 0) + 1
                                 }
-                                , () => {
-                                    dispatch(addNotification("Info", 'Успешная покупка'))
-                                }
+                                , () => {}
                                 , (error: any) => {
                                     dispatch(addNotification("Info", error))
                                 })
@@ -510,9 +509,7 @@ const Admin: React.FC = () => {
                                     "ticker": found.ticker,
                                     "quantity": (found?.currentPosition || 0) - 1
                                 },
-                                () => {
-                                    dispatch(addNotification("Info", 'Успешная продажа'))
-                                },
+                                () => {},
                                 (error: any) => dispatch(addNotification("Info", error)))
                         }} variant={"outline-danger"}
                         >
@@ -532,9 +529,7 @@ const Admin: React.FC = () => {
                                     "ticker": found.ticker,
                                     "quantity": 0
                                 },
-                                () => {
-                                    dispatch(addNotification("Info", 'Успешное закрытие сделки'))
-                                },
+                                () => {},
                                 (error: any) => dispatch(addNotification("Info", error)))
                         }} variant={"outline-primary"}>
                             <Icon icon={"bi bi-x-lg"} size={15} title={'Hold'}/>
@@ -555,10 +550,22 @@ const Admin: React.FC = () => {
                         >{'Логи (priceTv - цена срабатывания ордера на Tradingview): '}</div>
                     </Col>
                 </Row>
+                <Row>
+                    <Col>
+                <Form.Select onChange={(e) => {
+                    setNameStrategyFilter(e.target.value === 'all' ? "" : e.target.value)
+                }} className="ms-2 mb-1" name="filter_strategy" style={{width: 240}}>
+                    <option key={'12345'} value={'all'}>{'Все'}</option>
+                    {strategy?.map((i) => {
+                        return <option key={i.id} value={i.name}>{i.name}</option>
+                    })}
+                </Form.Select>
+                    </Col>
+                </Row>
                 {showLogs && (<Row>
                     <Col>
                         <ListGroup style={{maxHeight: 200, overflowY: "auto", paddingLeft: 10}}>
-                            {user?.logs?.map((i: any, index: number) => {
+                            {user?.logs?.filter((i: any) => i.startsWith(nameStrategyFilter))?.map((i: any, index: number) => {
                                 return <ListGroup.Item style={{color: "#8C909A", cursor: "pointer"}}
                                                        className="bg-custom-2"
                                                        key={index}>{`${i}`}</ListGroup.Item>

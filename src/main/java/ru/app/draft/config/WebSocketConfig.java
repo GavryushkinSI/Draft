@@ -2,6 +2,7 @@ package ru.app.draft.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,12 +38,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             "EuM3", "GKM3", "SRM3", "RIM3", "BRM3", "SiM3", "EDM3", "ALM3", "POM3", "MNM3", "AFM3", "VBM3", "SFM3", "NAM3", "MMM3", "CRM3",
             "EuU3", "GKU3", "SRU3", "RIU3", "BRU3", "SiU3", "EDU3", "ALU3", "POU3", "MNU3", "AFU3", "VBU3", "SFU3", "NAU3", "MMU3", "CRU3",
             "EuZ3", "GKZ3", "SRZ3", "RIZ3", "BRZ3", "SiZ3", "EDZ3", "ALZ3", "POZ3", "MNZ3", "AFZ3", "VBZ3", "SFZ3", "NAZ3", "MMZ3", "CRZ3",
+            "BRN3","NAM3",
             "SBER", "GAZP", "MGNT", "MOEX", "AFKS", "BANE", "HYDR", "PLZL", "VTBR", "ROSN", "MTSS", "GMKN");
 
     @Bean
     public ObjectMapper getObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+//        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
 
         return mapper;
     }
@@ -108,6 +111,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     java.util.Date.from(Instant.ofEpochMilli(1740960001)).toString()));
             return data;
         });
+        METRICS.put("methods", new ArrayList<>());
         TICKERS.put("tickers", new ArrayList<>());
         apiService.getAllTickers(api, myTickers);
         dbService.getAllUsers();

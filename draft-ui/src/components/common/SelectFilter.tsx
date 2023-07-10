@@ -1,4 +1,4 @@
-import React, {CSSProperties, useState} from 'react';
+import React, {CSSProperties} from 'react';
 import Select from 'react-select';
 import {useSelector} from "react-redux";
 import {IAppState} from "../../index";

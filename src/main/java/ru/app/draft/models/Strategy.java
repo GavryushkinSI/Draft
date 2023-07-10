@@ -64,4 +64,11 @@ public class Strategy implements Serializable {
     public void addOrder(Order order) {
         orders.add(order);
     }
+
+    public void addEnterAveragePrice(BigDecimal price, boolean beginClear){
+        if (beginClear) {
+            this.enterAveragePrice.clear();
+        }
+        this.enterAveragePrice.add(String.valueOf(price));
+    }
 }

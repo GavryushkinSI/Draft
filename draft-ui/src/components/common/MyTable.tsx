@@ -365,13 +365,13 @@ const MyTable: React.FC = () => {
     }
 
     const calcChart = calcDataForGraphProfit(strategy);
-    // const calcLastAvrPrice = (row: any): number => {
-    //     const {first, second} = row.pair;
-    //     if (second != 0 && row.currentPosition && row.currentPosition !== 0) {
-    //         return (first / second);
-    //     }
-    //     return 0;
-    // }
+    const calcLastAvrPrice = (row: any): number => {
+        const prices = row.enterAveragePrice;
+        if (prices.length > 0) {
+            return prices.reduce((a: string, b: string) => (Number(a) + Number(b))) / prices.length;
+        }
+        return 0;
+    }
 
     const renderPortfolio = () => {
         return userName === 'Admin' ? (<Portfolio/>) : <></>;
@@ -473,7 +473,7 @@ const MyTable: React.FC = () => {
                                     })?.graphResult?.slice(-1)[0]?.y) || 0}
                                 </td>
                                 <td className={"align-middle text-center"}>
-                                    {/*{formatNumber(calcLastAvrPrice(row), 3) || 0}*/}
+                                    {formatNumber(calcLastAvrPrice(row), 4)}
                                 </td>
                                 <td className={"align-middle text-center"}>
                                     {lastPrice.get(row.figi!) ?

@@ -1,0 +1,32 @@
+version: '3'
+services:
+  fenix-postgres:
+    image: "postgres:9.6-alpine"
+    container_name: fenix-postgres
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=test
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1
+
+  draft-back:
+    image: "parsesignal/draft:back_01.000.000"
+    container_name: draft-back
+    ports:
+      - 9000:9000
+    links:
+      - fenix-postgres
+
+  draft-ui:
+    image: "parsesignal/draft:ui_01.000.000"
+    container_name: draft-ui
+    ports:
+      - 80:80
+    links:
+      - draft-back
+
+#  grafana:
+#    image: grafana/grafana
+#    ports:
+#      - 3000:3000

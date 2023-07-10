@@ -6,6 +6,7 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow: auto;
+    background-color: hwb(0deg 0% 100% / 8%);
 }
 
 .myImg {
@@ -140,7 +141,7 @@ body {
 .portfolio-table {
     position: static;
     font-size: 11px !important;
-    width: auto !important;
+    width: 236px !important;
     background-color: lightgrey;
 }
 

@@ -3,6 +3,7 @@
 
 #touch docker-compose.yml
 #sudo nano docker-compose
+#docker login -u parsesignal -p 45for896+
 version: '3'
 services:
   draft:

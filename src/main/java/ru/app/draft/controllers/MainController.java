@@ -87,21 +87,19 @@ public class MainController {
         return ResponseEntity.ok(TICKERS.get("tickers"));
     }
 
-    @Audit
     @GetMapping("/app/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("SUCCESS");
     }
 
     @GetMapping("/app/reconnect")
-    @Audit
     public void reconnectStream() {
         Map<String, MarketDataSubscriptionService> subscriptionServiceMap = api.getMarketDataStreamService().getAllStreams();
         List<String> reconnectStreamList = new ArrayList<>();
     }
 
-    @PostMapping("/app/tv")
     @Audit
+    @PostMapping("/app/tv")
     @Timed(value = "myapp.method.execution_time", description = "Execution time of the method")
     public void tradingViewSignalPoint(@RequestBody Strategy strategy) {
         apiService.sendOrder(api, strategy);
@@ -141,6 +139,7 @@ public class MainController {
         return ResponseEntity.ok(strategyList);
     }
 
+    @Audit
     @PostMapping("/app/login/{status}")
     public ResponseEntity<String> registration(@RequestBody User user, @PathVariable String status) throws Exception {
         if (status.equals("enter")) {
@@ -200,7 +199,6 @@ public class MainController {
         return ResponseEntity.ok(new ArrayList<>(subscriptionServiceMap.keySet()));
     }
 
-    @Audit
     @Scheduled(fixedDelay = 50000)
     public void getAllTickersTask() {
         LAST_PRICE.forEach((k, v) -> {

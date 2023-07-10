@@ -2,6 +2,7 @@ package ru.app.draft.services;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import ru.app.draft.annotations.Audit;
@@ -218,7 +219,7 @@ public class ApiService extends AbstractApiService {
                 //Открываем счёт
                 String accountId = api.getSandboxService().openAccountSync();
                 //Пополнить счёт
-                api.getSandboxService().payIn(accountId, MoneyValue.newBuilder().setUnits(100000).setCurrency("RUB").build());
+                api.getSandboxService().payIn(accountId, MoneyValue.newBuilder().setUnits(5000000).setCurrency("RUB").build());
                 accounts = api.getUserService().getAccountsSync();
             }
             var mainAccount = accounts.get(0).getId();
@@ -286,6 +287,13 @@ public class ApiService extends AbstractApiService {
     private void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, long position, String time) {
         var minLot = changingStrategy.getMinLot();
         String printPrice = CommonUtils.formatNumber(executionPrice);
+
+        if (strategy.getDirection().equals(changingStrategy.getCurrentPosition() > 0 ? "buy" : changingStrategy.getCurrentPosition() < 0 ? "sell" : "hold")) {
+            changingStrategy.addEnterAveragePrice(executionPrice, false);
+        } else {
+            changingStrategy.addEnterAveragePrice(executionPrice, true);
+        }
+
         if (strategy.getDirection().equals("buy")) {
             changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
             for (int i = 1; i <= Math.abs(position / minLot); i++) {
@@ -321,13 +329,6 @@ public class ApiService extends AbstractApiService {
                 changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
             }
         }
-
-//        Pair<BigDecimal, Integer> pair = changingStrategy.getPair();
-//        if (strategy.getDirection().equals(changingStrategy.getCurrentPosition() > 0 ? "buy" : changingStrategy.getCurrentPosition() < 0 ? "sell" : "hold")) {
-//            changingStrategy.setPair(Pair.of(pair.getFirst().add(executionPrice), pair.getSecond() + 1));
-//        } else {
-//            changingStrategy.setPair(Pair.of(executionPrice, 1));
-//        }
 
         strategyList.set(Integer.parseInt(changingStrategy.getId()), changingStrategy);
         userCache.setStrategies(strategyList);
