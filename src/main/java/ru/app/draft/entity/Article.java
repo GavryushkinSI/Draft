@@ -8,14 +8,13 @@ import java.util.Set;
 @Table(name = "articles")
 public class Article {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Integer id;
+    private Long id;
 
     @Column(name = "content", length = 4000)
     private String content;
 
-    @OneToMany(mappedBy = "article")
+    @OneToMany(mappedBy = "articles")
     private Set<Comment> comments = new LinkedHashSet<>();
 
     public Set<Comment> getComments() {
@@ -34,11 +33,11 @@ public class Article {
         this.content = content;
     }
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 }

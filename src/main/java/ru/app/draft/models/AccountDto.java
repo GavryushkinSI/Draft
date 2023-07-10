@@ -24,13 +24,18 @@ public class AccountDto implements Serializable {
     private long cash;
 
     private String figi;
+
     private Long lastPrice;
     private String lastTimeUpdate;
     private Long result;
     private List<String> logs;
     private List<Notification> notifications;
+    private List<Portfolio> portfolio=new ArrayList<>();
     private Set<String> viewedNotifyIds = new HashSet<>();
     private Boolean telegramSubscriptionExist = false;
-
     private long balance;
+
+    public void addPortfolio(String ticker, Long lots){
+        this.portfolio.add(new Portfolio(ticker, lots));
+    }
 }

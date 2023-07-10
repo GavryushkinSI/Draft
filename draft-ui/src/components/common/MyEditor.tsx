@@ -11,9 +11,12 @@ import {IArticle} from "../../models/models";
 import {Editor} from "draft-js";
 
 interface IProps {
+    renderHeader?:boolean;
     isCreateArticleMode?: boolean;
     sendArticle?: () => void;
     isEditor?: boolean;
+    addNewArticle?:boolean;
+    cancel:()=>void;
 }
 
 const MyEditor = (props: IProps) => {
@@ -21,7 +24,6 @@ const MyEditor = (props: IProps) => {
     const dispatch: Dispatch<any> = useDispatch();
     const [value, setValue] = useState('');
     const [otherParamArticle, setOtherParamArticle] = useState<any>({header: '', blockCommentEnabled: false})
-    const [addNewArticle, setAddArticle] = useState<boolean>(false);
 
     const addArticle = () => {
         const notification: IArticle = {
@@ -35,7 +37,7 @@ const MyEditor = (props: IProps) => {
         }, () => {
             dispatch(addNotification("Ошибка...", "Не удалось добавить статью!"));
         });
-        setAddArticle(false);
+        props.cancel();
     }
 
     const modules = {
@@ -68,18 +70,11 @@ const MyEditor = (props: IProps) => {
 
     return (
         <>
-            <Row>
-                <Col>
-                    <Button className="ms-2" variant="secondary" onClick={() => {
-                        addNewArticle ? setAddArticle(false) : setAddArticle(true)
-                    }}>{addNewArticle ? 'Отменить' : 'Создать статью'}</Button>
-                </Col>
-            </Row>
             <RowFiled>
-                {addNewArticle && (
+                {props.addNewArticle && (
                     <>
                         {props.isCreateArticleMode && (<h5>Создание новой статьи</h5>)}
-                        <FloatingLabel className="mb-3" controlId="floatingTextarea2" label="Заголовок">
+                        {props.renderHeader&&(<FloatingLabel className="mb-3" controlId="floatingTextarea2" label="Заголовок">
                             <Form.Control
                                 as="textarea"
                                 value={otherParamArticle.header}
@@ -88,8 +83,8 @@ const MyEditor = (props: IProps) => {
                                     header: event.target.value
                                 }))}
                             />
-                        </FloatingLabel>
-                        <Form.Check
+                        </FloatingLabel>)}
+                        {props.renderHeader&&(<Form.Check
                             type="switch"
                             className="mb-3"
                             id="custom-switch"
@@ -99,7 +94,7 @@ const MyEditor = (props: IProps) => {
                                 ...otherParamArticle,
                                 blockCommentEnabled: !otherParamArticle.blockCommentEnabled
                             })}
-                        />
+                        />)}
                         <ReactQuill
                             className="mb-2"
                             modules={modules}

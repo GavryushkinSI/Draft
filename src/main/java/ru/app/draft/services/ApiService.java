@@ -1,17 +1,22 @@
 package ru.app.draft.services;
 
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import ru.app.draft.annotations.Audit;
 import ru.app.draft.models.*;
 import ru.app.draft.models.Order;
 import ru.app.draft.store.Store;
+import ru.app.draft.utils.CommonUtils;
 import ru.app.draft.utils.DateUtils;
 import ru.tinkoff.piapi.contract.v1.*;
 import ru.tinkoff.piapi.contract.v1.LastPrice;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.StreamProcessor;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -23,21 +28,22 @@ import static ru.app.draft.store.Store.*;
 
 @Log4j2
 @Component
-public class ApiService {
+public class ApiService extends AbstractApiService {
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private final MarketDataStreamService streamService;
     private final TelegramBotService telegramBotService;
+    private static Boolean useSandbox;
 
-    public volatile static long balance = 0L;
-
-    public ApiService(MarketDataStreamService streamService, TelegramBotService telegramBotService) {
+    public ApiService(MarketDataStreamService streamService, TelegramBotService telegramBotService, @Value("${usesandbox}") Boolean useSandbox) {
+        super(streamService);
         this.streamService = streamService;
         this.telegramBotService = telegramBotService;
+        this.useSandbox = useSandbox;
     }
 
     public Ticker getFigi(InvestApi api, List<String> tickers) {
-        return TICKERS.get("tickers").stream().filter(i->i.getValue().equals(tickers.get(0))).findFirst().get();
+        return TICKERS.get("tickers").stream().filter(i -> i.getValue().equals(tickers.get(0))).findFirst().get();
     }
 
     public List<Ticker> getAllTickers(InvestApi api, List<String> filter) {
@@ -70,7 +76,9 @@ public class ApiService {
 //                log.info("Новые данные по сделкам: {}", response);
             } else if (response.hasLastPrice()) {
                 LastPrice lastPrice = response.getLastPrice();
-                updateLastPrice(lastPrice.getFigi(), lastPrice.getPrice().getUnits(), lastPrice.getTime());
+                BigDecimal price = lastPrice.getPrice().getNano() == 0 ? BigDecimal.valueOf(lastPrice.getPrice().getUnits(), 0) :
+                        BigDecimal.valueOf(lastPrice.getPrice().getUnits()).add(BigDecimal.valueOf(lastPrice.getPrice().getNano(), 9));
+                updateLastPrice(lastPrice.getFigi(), price, lastPrice.getTime());
             } else if (response.hasOrderbook()) {
                 log.info("Новые данные по стакану: {}", response);
             } else if (response.hasSubscribeCandlesResponse()) {
@@ -102,12 +110,6 @@ public class ApiService {
         };
 
         api.getMarketDataStreamService().newStream("stream", processor, message -> {
-//            COMMON_INFO.computeIfPresent("Notifications", (s, data) -> {
-//                data.add(new Notification("Описание ошибки", "Стрим разорван!", "error",
-//                        "modal",
-//                        Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).getTime().toString(), true));
-//                return data;
-//            });
             try {
                 throw new Exception(message);
             } catch (Exception e) {
@@ -178,6 +180,10 @@ public class ApiService {
         }
     }
 
+    public void sendOrderDb(InvestApi api, Strategy strategy) {
+
+    }
+
     public void sendOrder(InvestApi api, Strategy strategy) {
         //Выставляем заявку
         UserCache userCache = USER_STORE.get(strategy.getUserName());
@@ -185,74 +191,91 @@ public class ApiService {
         Strategy changingStrategy = strategyList
                 .stream()
                 .filter(str -> str.getName().equals(strategy.getName())).findFirst().get();
-        var minLot = changingStrategy.getMinLot();
         if (!changingStrategy.getIsActive()) {
             return;
         }
-        String time = DateUtils.getCurrentTime();
-        if (changingStrategy.getConsumer().get(0).equals("test")) {
-            Long v = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
+        long position = 0;
+        BigDecimal executionPrice = null;
+        String time = null;
+        ErrorData errorData = changingStrategy.getErrorData();
+        Long commissions=0L;
+
+        if (changingStrategy.getConsumer().contains("terminal")) {
+            OrderDirection direction = null;
             if (strategy.getDirection().equals("buy")) {
-                long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
-                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
-                for (int i = 1; i <= Math.abs(position / minLot); i++) {
-                    changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
-                }
-                String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time);
-                userCache.addLogs(text);
-                if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
-                    telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
-                }
-            }
-            if (strategy.getDirection().equals("sell")) {
-                long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
-                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
-                for (int i = 1; i <= Math.abs(position / minLot); i++) {
-                    changingStrategy.addOrder(new Order(v, minLot, strategy.getDirection(), time));
-                }
-                String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time);
-                userCache.addLogs(text);
-                if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
-                    telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+                direction = OrderDirection.ORDER_DIRECTION_BUY;
+            } else if (strategy.getDirection().equals("sell")) {
+                direction = OrderDirection.ORDER_DIRECTION_SELL;
+            } else {
+                if (changingStrategy.getCurrentPosition() < 0) {
+                    direction = OrderDirection.ORDER_DIRECTION_BUY;
+                } else {
+                    direction = OrderDirection.ORDER_DIRECTION_SELL;
                 }
             }
-            if (strategy.getDirection().equals("hold")) {
-                if (changingStrategy.getCurrentPosition() != 0) {
-                    long position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
-                    String text = String.format(changingStrategy.getCurrentPosition() < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), v, strategy.getPriceTv(), time);
-                    userCache.addLogs(text);
-                    if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
-                        telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
-                    }
-                    for (int i = 1; i <= Math.abs(position / minLot); i++) {
-                        changingStrategy.addOrder(new Order(v, minLot, changingStrategy.getCurrentPosition() < 0 ? "buy" : "sell", time));
-                    }
-                    changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
-                }
-            }
-            strategyList.set(Integer.parseInt(changingStrategy.getId()), changingStrategy);
-            userCache.setStrategies(strategyList);
-            USER_STORE.replace(strategy.getUserName(), userCache);
-        } else {
-            OrderDirection direction = strategy.getDirection().equals("buy") ? OrderDirection.ORDER_DIRECTION_BUY :
-                    strategy.getDirection().equals("sell") ? OrderDirection.ORDER_DIRECTION_SELL : (balance > 0 ? OrderDirection.ORDER_DIRECTION_SELL : OrderDirection.ORDER_DIRECTION_BUY);
-            Long quantity = strategy.getDirection().equals("hold") ? Math.abs(balance) : strategy.getQuantity();
-            //Выставляем заявку на покупку по лимитной цене
-//            var orderId = api.getOrdersService()
-//                    .postOrderSync(
-//                            strategy.getFigi(),
-//                            quantity,
-//                            price,
-//                            direction,
-//                            mainAccountId,
-//                            OrderType.ORDER_TYPE_MARKET,
-//                            UUID.randomUUID().toString()).getOrderId();
 
-//            getOrders(api, mainAccountId);
-//            getPosition(api, mainAccountId);
-//            getPortfolio(api, mainAccountId);
+            var accounts = api.getUserService().getAccountsSync();
+            if (accounts.size() == 0) {
+                //Открываем счёт
+                String accountId = api.getSandboxService().openAccountSync();
+                //Пополнить счёт
+                api.getSandboxService().payIn(accountId, MoneyValue.newBuilder().setUnits(5000000).setCurrency("RUB").build());
+                accounts = api.getUserService().getAccountsSync();
+            }
+            var mainAccount = accounts.get(0).getId();
+            var price = Quotation.newBuilder().build();
+            position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
+//            //Выставляем заявку на покупку по рыночной цене
+            PostOrderResponse orderResponse = null;
+            time = DateUtils.getCurrentTime();
+            try {
+                orderResponse = api.getOrdersService()
+                        .postOrderSync(
+                                changingStrategy.getFigi(),
+                                Math.abs(position),
+                                price,
+                                direction,
+                                mainAccount,
+                                OrderType.ORDER_TYPE_MARKET,
+                                UUID.randomUUID().toString());
+            } catch (Exception e) {
+                errorData.setMessage(e.getMessage());
+                errorData.setTime(time);
+                return;
+            }
+            executionPrice = CommonUtils.getFromMoneyValue(orderResponse.getExecutedOrderPrice());
+            commissions = orderResponse.getExecutedCommission().getUnits();
+            if (useSandbox) {
+                Optional<PortfolioPosition> portfolioPosition = getPortfolio(api, mainAccount).getPositionsList().stream().filter(i -> i.getFigi().equals(changingStrategy.getFigi())).findFirst();
+
+                if (portfolioPosition.isPresent()) {
+                    var realQuantity = portfolioPosition.get().getQuantity();
+                    if (realQuantity.getUnits() != strategy.getQuantity()) {
+                        errorData.setMessage(String.format("Фактическое вол-во лотов:%s, планируемое:%s", realQuantity.getUnits(), strategy.getQuantity()));
+                        errorData.setTime(time);
+                        changingStrategy.setErrorData(errorData);
+                        return;
+                    }
+                } else {
+                    if (strategy.getQuantity() != 0) {
+                        errorData.setMessage(String.format("Фактическое вол-во лотов:%s, планируемое:%s", 0, strategy.getQuantity()));
+                        errorData.setTime(time);
+                        changingStrategy.setErrorData(errorData);
+                        return;
+                    }
+                }
+                if (!CollectionUtils.isEmpty(getOrders(api, mainAccount))) {
+                    errorData.setMessage("Есть неисполненные ордера!");
+                    errorData.setTime(time);
+                    return;
+                }
+            }
+        } else if (changingStrategy.getConsumer().contains("test")) {
+            executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
+            position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
         }
-
+        userCache.addCommission(commissions);
+        updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time);
         Message message = new Message();
         message.setSenderName("server");
         message.setMessage(userCache.getStrategies());
@@ -261,13 +284,59 @@ public class ApiService {
         streamService.sendDataToUser(Set.of(strategy.getUserName()), message);
     }
 
-    private static List<OrderState> getOrders(InvestApi api, String accountId) {
-        var orders = api.getOrdersService().getOrdersSync(accountId);
-        for (OrderState order : orders) {
-            log.info(order);
+    private void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, long position, String time) {
+        var minLot = changingStrategy.getMinLot();
+        String printPrice = CommonUtils.formatNumber(executionPrice);
+
+        if (strategy.getDirection().equals(changingStrategy.getCurrentPosition() > 0 ? "buy" : changingStrategy.getCurrentPosition() < 0 ? "sell" : "hold")) {
+            changingStrategy.addEnterAveragePrice(executionPrice, false);
+        } else {
+            changingStrategy.addEnterAveragePrice(executionPrice, true);
         }
 
-        return orders;
+        if (strategy.getDirection().equals("buy")) {
+            changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
+            for (int i = 1; i <= Math.abs(position / minLot); i++) {
+                changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
+            }
+            String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), printPrice, strategy.getPriceTv(), time);
+            userCache.addLogs(text);
+            if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+            }
+        }
+        if (strategy.getDirection().equals("sell")) {
+            changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
+            for (int i = 1; i <= Math.abs(position / minLot); i++) {
+                changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
+            }
+            String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), printPrice, strategy.getPriceTv(), time);
+            userCache.addLogs(text);
+            if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+            }
+        }
+        if (strategy.getDirection().equals("hold")) {
+            if (changingStrategy.getCurrentPosition() != 0) {
+                String text = String.format(changingStrategy.getCurrentPosition() < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), printPrice, strategy.getPriceTv(), time);
+                userCache.addLogs(text);
+                if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                    telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+                }
+                for (int i = 1; i <= Math.abs(position / minLot); i++) {
+                    changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition() < 0 ? "buy" : "sell", time));
+                }
+                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
+            }
+        }
+
+        strategyList.set(Integer.parseInt(changingStrategy.getId()), changingStrategy);
+        userCache.setStrategies(strategyList);
+        USER_STORE.replace(strategy.getUserName(), userCache);
+    }
+
+    private static List<OrderState> getOrders(InvestApi api, String accountId) {
+        return api.getOrdersService().getOrdersSync(accountId);
     }
 
     private static PortfolioResponse getPortfolio(InvestApi api, String accountId) {
@@ -293,39 +362,25 @@ public class ApiService {
 
     public List<AccountDto> getAccountInfo(InvestApi api, String userName) {
         UserCache userCache = USER_STORE.get(userName);
-//        List<Account> listAccount = api.getUserService().getAccountsSync();
-//        PortfolioResponse portfolioResponse = getPortfolio(api, listAccount.get(0).getId());
-//        PositionsResponse positionsResponse = getPosition(api, listAccount.get(0).getId());
-//        if (listAccount.size() == 0) {
-//            //Открываем счёт
-//            String accountId = api.getSandboxService().openAccountSync();
-//            //Пополнить счёт
-//            api.getSandboxService().payIn(accountId, MoneyValue.newBuilder().setUnits(100000).setCurrency("RUB").build());
-//            List<Account> accounts = api.getUserService().getAccountsSync();
-//            return List.of(new AccountDto(accounts.get(0).getId(), portfolioResponse.getTotalAmountCurrencies().getUnits()));
-//        }
-//        GetMarginAttributesResponse marginAttributesResponse=api.getUserService().getMarginAttributesSync(listAccount.get(0).getId());
-//        AccountDto accountDto = new AccountDto(listAccount.get(0).getId(), portfolioResponse.getTotalAmountCurrencies().getUnits());
-        AccountDto accountDto=new AccountDto();
+        AccountDto accountDto = new AccountDto();
         accountDto.setLogs(userCache.getLogs());
-//        accountDto.setLastPrice(USER_STORE.get("Test").getMap().get("RIH3"));
-//        accountDto.setLastTimeUpdate(USER_STORE.get("Test").getUpdateTime() != null ? new SimpleDateFormat("MM/dd/yyyy HH:mm:ss").format(new java.util.Date(USER_STORE.get("Test").getUpdateTime().getSeconds() * 1000)) : null);
         List<Notification> notificationList = COMMON_INFO.get("Notifications");
         if (!userName.equals("Admin")) {
             notificationList = notificationList.stream().filter(i -> !i.getForAdmin()).collect(Collectors.toList());
+        } else {
+            if (useSandbox) {
+                var accounts = api.getUserService().getAccountsSync();
+                var mainAccount = accounts.get(0).getId();
+                List<PortfolioPosition> portfolioPositions = getPortfolio(api, mainAccount).getPositionsList();
+                portfolioPositions.forEach(i -> accountDto.addPortfolio(i.getFigi(), i.getQuantity().getUnits()));
+            } else {
+                accountDto.setPortfolio(userCache.getPortfolios());
+            }
         }
         accountDto.setNotifications(notificationList.stream().limit(1000).collect(Collectors.toList()));
         accountDto.setTelegramSubscriptionExist(userCache.getUser().getChatId() != null);
         accountDto.setViewedNotifyIds(userCache.getUser().getViewedNotifyIds());
 
-//        if (positionsResponse.getSecuritiesCount() != 0) {
-//            PositionsSecurities positionsSecurities = positionsResponse.getSecurities(0);
-//            accountDto.setFigi(positionsSecurities.getFigi());
-//            accountDto.setBalance(positionsSecurities.getBalance());
-//            balance = positionsSecurities.getBalance();
-//        } else {
-//            balance = 0L;
-//        }
         return List.of(accountDto);
     }
 }

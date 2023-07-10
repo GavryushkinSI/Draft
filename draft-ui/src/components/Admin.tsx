@@ -18,7 +18,7 @@ import {
     Row
 } from "react-bootstrap";
 import Icon from "./common/Icon";
-import {EConsumer, IStrategy, Message} from "../models/models";
+import {EConsumer, EProducer, IStrategy, Message} from "../models/models";
 import {getFieldsFromArray, includeInArray, stringTruncate} from "../utils/utils";
 import Login from "./common/Login";
 import SockJS from "sockjs-client";
@@ -30,14 +30,20 @@ import {ButtonLink} from "@paljs/ui";
 import RowFiled from "./common/RowFiled";
 import PreLoad from "./common/PreLoad";
 import ViewDescriptionNotification from "./common/ViewDescriptionNotification";
+import MyToolTip from "./common/MyToolTip";
+import {useNavigate} from "react-router-dom";
+import {ROOT} from "../Route/consts";
+import Gap from "./common/Gap";
 
 let stompClient: any = null;
 const Admin: React.FC = () => {
+    const navigate = useNavigate();
     const actions: Service = useActions(Service);
     const [userName, setUserName] = useState(localStorage.getItem("userName"));
     const dispatch: Dispatch<any> = useDispatch();
     const [expendedSideBar, setExpendedSidebar] = useState(false);
     const [showLogs, setShowLogs] = useState(true);
+    const [nameStrategyFilter, setNameStrategyFilter] = useState<string>("");
     const [handleStrategy, setHandleStrategy] = useState<any>();
     const [showFeedBack, setFeedBack] = useState(false);
     const [textFeedBack, setTextFeedBack] = useState<any>();
@@ -167,7 +173,7 @@ const Admin: React.FC = () => {
 
     return <Container fluid>
         <Notifications/>
-        {notifyView?.show&&renderViewNotify()}
+        {notifyView?.show && renderViewNotify()}
         {isLoading && (<PreLoad/>)}
         <ModalView accept={() => {
             void actions.feedback(textFeedBack, userName!, () => {
@@ -183,58 +189,113 @@ const Admin: React.FC = () => {
                 </Form.Group>
             </Form>}/>
         <Row style={{flexWrap: "nowrap"}}>
-            {expendedSideBar && (
-                <Offcanvas className="s" show={expendedSideBar} onHide={() => setExpendedSidebar(!expendedSideBar)}>
-                    <Offcanvas.Header className="text-white"
-                                      style={{backgroundColor: "#212529", borderBottom: "2px solid black"}} closeButton>
-                        <Offcanvas.Title>
-                            <Row>
-                                <Col>
-                                    <h5>TView_Parser</h5>
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col style={{paddingLeft: 110, marginTop: -16}} className="ms-2">
-                                    <span style={{fontSize: 11}}>v.1.000.000</span>
-                                </Col>
-                            </Row>
-                        </Offcanvas.Title>
-                    </Offcanvas.Header>
-                    <Offcanvas.Body className="bg-custom-1">
-                        <Row>
-                            <Col>
-                                <Button className="ps-1 pt-1" onClick={() => {
-                                    actions.clear(userName!, () => {
-                                            actions.getUserInfo(userName!);
-                                            dispatch(addNotification("Info", 'Очищен лог!'));
-                                        },
-                                        (error: any) => dispatch(addNotification("Info", error)))
-                                }}>
-                                    <Icon icon={"bi bi-trash3-fill"} size={15} title={'Clear'}/>
-                                    {" Очистить лог"}
-                                </Button>
-                                {userName === 'Admin' && (<Button className="ps-1" onClick={() => {
-                                    actions.reconnectStream(() => {
-                                            dispatch(addNotification("Info", 'Переподключили стрим!'));
-                                        },
-                                        (error: any) => dispatch(addNotification("Info", error)))
-                                }}>
-                                    <Icon icon={"bi bi-ethernet"} size={15} title={'Clear'}/>
-                                    {" Переподключить стрим"}
-                                </Button>)}
-                                {userName === 'Admin' && (<Button className="ps-1" onClick={() => {
-                                    actions.saveDataInTable(userName!, () => {
-                                            dispatch(addNotification("Info", 'Успешно!'));
-                                        },
-                                        (error: any) => dispatch(addNotification("Info", error)))
-                                }}>
-                                    <Icon icon={"bi bi-save"} size={15} title={'Save'}/>
-                                    {" Сохранить юзеров в БД"}
-                                </Button>)}
-                            </Col>
-                        </Row>
-                    </Offcanvas.Body>
-                </Offcanvas>)}
+            <Col style={{maxWidth: 40}} className="bg-custom-1">
+                <Row>
+                    <Col>
+                        <div className="main_logo"
+                             style={{color: "white", textShadow: "3px 3px 2px #0d6efd", marginTop: 40}}>TV
+                        </div>
+                        <hr style={{color: "white", textShadow: "3px 3px 2px #0d6efd", marginTop: 25}}/>
+                    </Col>
+                </Row>
+                <MyToolTip text={'Публичные стратегии'} textInner={<Icon
+                    onClick={async () => {
+                        navigate(ROOT().DRAFT.PUBLIC_STRATEGY.PATH)
+                    }}
+                    hoverColor={"lightgreen"} icon={"bi bi-robot"} size={17} title={''}/>}/>
+                <Gap/>
+                <MyToolTip text={'Очистить лог'} textInner={<Icon onClick={() => {
+                    actions.clear(userName!, () => {
+                        actions.getUserInfo(userName!)
+                    });
+                    dispatch(addNotification("Info", 'Очищен лог!'));
+                }} hoverColor={"lightgreen"} icon={"bi bi-trash3-fill"} size={17} title={''}/>}/>
+                <Gap/>
+                {userName === "Admin" && (<>
+                    <MyToolTip text={'Переподключить стрим'} textInner={<Icon onClick={() => {
+                        actions.reconnectStream(() => {
+                            dispatch(addNotification("Info", 'Переподключили стрим!'));
+                        }, (error: any) => dispatch(addNotification("Info", error)));
+                    }
+                    } hoverColor={"lightgreen"} icon={"bi bi-ethernet"} size={17} title={''}/>}/>
+                    <Gap/>
+                    <MyToolTip text={'Сохранить в БД'} textInner={<Icon onClick={
+                        () => {
+                            actions.saveDataInTable(userName!, () => {
+                                    dispatch(addNotification("Info", 'Успешно!'))
+                                },
+                                (error: any) => dispatch(addNotification("Info", error)));
+                        }
+                    } hoverColor={"lightgreen"} icon={"bi bi-save"} size={17} title={''}/>}/>
+                    <Gap/>
+                    <MyToolTip text={'Перейти в админ-панель'} textInner={<Icon onClick={async () => {
+                        navigate(ROOT().DRAFT.ADMIN_PANEL.PATH)
+                    }} hoverColor={"lightgreen"} icon={"bi bi-list-columns"} size={17} title={''}/>}/>
+                    <Gap/>
+                </>)}
+                <MyToolTip text={'Статьи'} textInner={<Icon onClick={async () => {
+                    navigate(ROOT().DRAFT.PAGE_WITH_ARTICLES.PATH)
+                }} hoverColor={"lightgreen"} icon={"bi bi-book"} size={17} title={''}/>}/>
+            </Col>
+            {/*{expendedSideBar && (*/}
+            {/*    <Offcanvas className="s" show={expendedSideBar} onHide={() => setExpendedSidebar(!expendedSideBar)}>*/}
+            {/*        <Offcanvas.Header className="text-white"*/}
+            {/*                          style={{backgroundColor: "#212529", borderBottom: "2px solid black"}} closeButton>*/}
+            {/*            <Offcanvas.Title>*/}
+            {/*                <Row>*/}
+            {/*                    <Col>*/}
+            {/*                        <h5>TView_Parser</h5>*/}
+            {/*                    </Col>*/}
+            {/*                </Row>*/}
+            {/*                <Row>*/}
+            {/*                    <Col style={{paddingLeft: 110, marginTop: -16}} className="ms-2">*/}
+            {/*                        <span style={{fontSize: 11}}>v.1.000.000</span>*/}
+            {/*                    </Col>*/}
+            {/*                </Row>*/}
+            {/*            </Offcanvas.Title>*/}
+            {/*        </Offcanvas.Header>*/}
+            {/*        <Offcanvas.Body className="bg-custom-1">*/}
+            {/*            <Row>*/}
+            {/*                <Col>*/}
+            {/*                    <Button className="ps-1 pt-1" onClick={() => {*/}
+            {/*                        actions.clear(userName!, () => {},*/}
+            {/*                            (error: any) => dispatch(addNotification("Info", error)))*/}
+            {/*                    }}>*/}
+            {/*                        <Icon icon={"bi bi-robot"} size={15} title={'Публичные стратегии'}/>*/}
+            {/*                        {" Публичные стратегии"}*/}
+            {/*                    </Button>*/}
+            {/*                    <Button className="ps-1 pt-1" onClick={() => {*/}
+            {/*                        actions.clear(userName!, () => {*/}
+            {/*                                actions.getUserInfo(userName!);*/}
+            {/*                                dispatch(addNotification("Info", 'Очищен лог!'));*/}
+            {/*                            },*/}
+            {/*                            (error: any) => dispatch(addNotification("Info", error)))*/}
+            {/*                    }}>*/}
+            {/*                        <Icon icon={"bi bi-trash3-fill"} size={15} title={'Очистить лог'}/>*/}
+            {/*                        {" Очистить лог"}*/}
+            {/*                    </Button>*/}
+            {/*                    {userName === 'Admin' && (<Button className="ps-1" onClick={() => {*/}
+            {/*                        actions.reconnectStream(() => {*/}
+            {/*                                dispatch(addNotification("Info", 'Переподключили стрим!'));*/}
+            {/*                            },*/}
+            {/*                            (error: any) => dispatch(addNotification("Info", error)))*/}
+            {/*                    }}>*/}
+            {/*                        <Icon icon={"bi bi-ethernet"} size={15} title={'Clear'}/>*/}
+            {/*                        {" Переподключить стрим"}*/}
+            {/*                    </Button>)}*/}
+            {/*                    {userName === 'Admin' && (<Button className="ps-1" onClick={() => {*/}
+            {/*                        actions.saveDataInTable(userName!, () => {*/}
+            {/*                                dispatch(addNotification("Info", 'Успешно!'));*/}
+            {/*                            },*/}
+            {/*                            (error: any) => dispatch(addNotification("Info", error)))*/}
+            {/*                    }}>*/}
+            {/*                        <Icon icon={"bi bi-save"} size={15} title={'Save'}/>*/}
+            {/*                        {" Сохранить юзеров в БД"}*/}
+            {/*                    </Button>)}*/}
+            {/*                </Col>*/}
+            {/*            </Row>*/}
+            {/*        </Offcanvas.Body>*/}
+            {/*    </Offcanvas>)}*/}
             <Col className="bg-custom-2" style={{height: "100vh"}}>
                 <Row style={{flexWrap: "nowrap"}}>
                     <Col style={{paddingTop: 20}}>
@@ -246,17 +307,19 @@ const Admin: React.FC = () => {
                                         className="me-auto my-2 my-lg-0"
                                         navbarScroll
                                     >
-                                        <Nav.Link>
-                                            <Button variant={"outline-primary"} onClick={() => {
-                                                setExpendedSidebar(!expendedSideBar)
-                                            }}>
-                                                <Icon icon={"bi bi-list-task"} size={22} color={"white"}
-                                                      title={'sideBar'}/>
-                                            </Button>
-                                        </Nav.Link>
-                                        <Nav.Link style={{paddingTop: 19}} className="text-white">
-                                            {`👤 ${userName || ''}`}
-                                        </Nav.Link>
+                                        {/*<Nav.Link>*/}
+                                        {/*    <Button variant={"outline-primary"} onClick={() => {*/}
+                                        {/*        setExpendedSidebar(!expendedSideBar)*/}
+                                        {/*    }}>*/}
+                                        {/*        <Icon icon={"bi bi-list-task"} size={22} color={"white"}*/}
+                                        {/*              title={'sideBar'}/>*/}
+                                        {/*    </Button>*/}
+                                        {/*</Nav.Link>*/}
+                                        {!!userName && (<Nav.Link className="text-white">
+                                            <Icon color={"lightblue"} hoverColor={"lightgreen"} icon={"bi bi-person"}
+                                                  title={"Имя пользователя"} size={22}/>
+                                            <span style={{color: "lightblue"}}>{userName}</span>
+                                        </Nav.Link>)}
                                     </Nav>
                                     <Form className="d-flex">
                                         <ButtonLink onClick={() => {
@@ -288,7 +351,7 @@ const Admin: React.FC = () => {
                                                   color="white"
                                                   title={''}
                                                   hoverColor={'lightgreen'}/>
-                                            <span>{(user?.notifications?.length - (user?.viewedNotifyIds?.length||0)) || 0}</span>
+                                            <span>{(user?.notifications?.length - (user?.viewedNotifyIds?.length || 0)) || 0}</span>
                                         </ButtonLink>
                                         <ButtonLink className="icon" onClick={() => {
                                             localStorage.clear()
@@ -310,7 +373,9 @@ const Admin: React.FC = () => {
                                                 let notViewed: boolean = !includeInArray(user?.viewedNotifyIds, item.id);
                                                 switch (item.type) {
                                                     case "info":
-                                                        return <div style={{backgroundColor:notViewed?"rgb(30 30 47 / 58%)":""}} className="notifications-item" onClick={() => {
+                                                        return <div
+                                                            style={{backgroundColor: notViewed ? "rgb(30 30 47 / 58%)" : ""}}
+                                                            className="notifications-item" onClick={() => {
                                                             if (item.typeView === "modal") {
                                                                 setNotifyView({
                                                                     ...notifyView,
@@ -332,7 +397,9 @@ const Admin: React.FC = () => {
                                                             </div>
                                                         </div>
                                                     case "info_success":
-                                                        return <div style={{backgroundColor:notViewed?"rgb(30 30 47 / 58%)":""}} className="notifications-item" onClick={() => {
+                                                        return <div
+                                                            style={{backgroundColor: notViewed ? "rgb(30 30 47 / 58%)" : ""}}
+                                                            className="notifications-item" onClick={() => {
                                                             if (item.typeView === "modal") {
                                                                 setNotifyView({
                                                                     ...notifyView,
@@ -355,7 +422,9 @@ const Admin: React.FC = () => {
                                                             </div>
                                                         </div>
                                                     case "error":
-                                                        return <div style={{backgroundColor:notViewed?"rgb(30 30 47 / 58%)":""}} className="notifications-item" onClick={() => {
+                                                        return <div
+                                                            style={{backgroundColor: notViewed ? "rgb(30 30 47 / 58%)" : ""}}
+                                                            className="notifications-item" onClick={() => {
                                                             if (item.typeView === "modal") {
                                                                 setNotifyView({
                                                                     ...notifyView,
@@ -416,12 +485,9 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": (found?.currentPosition || 0) + 1,
-                                    "consumer": [EConsumer.TEST]
+                                    "quantity": (found?.currentPosition || 0) + 1
                                 }
-                                , () => {
-                                    dispatch(addNotification("Info", 'Успешная покупка'))
-                                }
+                                , () => {}
                                 , (error: any) => {
                                     dispatch(addNotification("Info", error))
                                 })
@@ -441,12 +507,9 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": (found?.currentPosition || 0) - 1,
-                                    "consumer": [EConsumer.TEST]
+                                    "quantity": (found?.currentPosition || 0) - 1
                                 },
-                                () => {
-                                    dispatch(addNotification("Info", 'Успешная продажа'))
-                                },
+                                () => {},
                                 (error: any) => dispatch(addNotification("Info", error)))
                         }} variant={"outline-danger"}
                         >
@@ -464,12 +527,9 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": 0,
-                                    "consumer": [EConsumer.TEST]
+                                    "quantity": 0
                                 },
-                                () => {
-                                    dispatch(addNotification("Info", 'Успешное закрытие сделки'))
-                                },
+                                () => {},
                                 (error: any) => dispatch(addNotification("Info", error)))
                         }} variant={"outline-primary"}>
                             <Icon icon={"bi bi-x-lg"} size={15} title={'Hold'}/>
@@ -487,15 +547,27 @@ const Admin: React.FC = () => {
                         <div onClick={(e: any) => {
                             // setShowLogs(!showLogs)
                         }} className="text-outline custom-text"
-                        >{'Логи:'
-                        }</div>
+                        >{'Логи (priceTv - цена срабатывания ордера на Tradingview): '}</div>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col>
+                <Form.Select onChange={(e) => {
+                    setNameStrategyFilter(e.target.value === 'all' ? "" : e.target.value)
+                }} className="ms-2 mb-1" name="filter_strategy" style={{width: 240}}>
+                    <option key={'12345'} value={'all'}>{'Все'}</option>
+                    {strategy?.map((i) => {
+                        return <option key={i.id} value={i.name}>{i.name}</option>
+                    })}
+                </Form.Select>
                     </Col>
                 </Row>
                 {showLogs && (<Row>
                     <Col>
-                        <ListGroup style={{maxHeight: 450, overflowY: "auto", paddingLeft: 10}}>
-                            {user?.logs?.map((i: any, index: number) => {
-                                return <ListGroup.Item style={{color: "#8C909A"}} className="bg-custom-2"
+                        <ListGroup style={{maxHeight: 200, overflowY: "auto", paddingLeft: 10}}>
+                            {user?.logs?.filter((i: any) => i.startsWith(nameStrategyFilter))?.map((i: any, index: number) => {
+                                return <ListGroup.Item style={{color: "#8C909A", cursor: "pointer"}}
+                                                       className="bg-custom-2"
                                                        key={index}>{`${i}`}</ListGroup.Item>
                             })}
                         </ListGroup>

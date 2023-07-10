@@ -1,16 +1,19 @@
 package ru.app.draft.models;
 
+import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Data
+@Builder
 public class Order {
-    private Long price;
+    private BigDecimal price;
 
     public Order() {}
 
-    public Order(Long price, Long quantity, String direction, String date) {
+    public Order(BigDecimal price, Long quantity, String direction, String date) {
         this.price = price;
         this.quantity = quantity;
         this.direction = direction;

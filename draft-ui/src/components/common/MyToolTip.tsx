@@ -1,9 +1,10 @@
 import {Button, OverlayTrigger, Tooltip} from "react-bootstrap";
 import Icon from "./Icon";
 import {ButtonLink} from "@paljs/ui";
+import React from "react";
 
 interface IProps {
-    text: string;
+    text: string|any;
     textInner?: string|any;
     style?: any;
     placement?:string;

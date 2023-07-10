@@ -1,6 +1,9 @@
 package ru.app.draft.entity;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "strategy")
@@ -40,6 +43,24 @@ public class Strategy {
 
     @Column(name = "minlot")
     private Integer minLot;
+
+    @Column(name = "consumers")
+    private String consumers;
+
+    @Column(name = "enter_average_price")
+    private String enterAveragePrice;
+
+    @OneToMany(orphanRemoval = true)
+    @JoinColumn(name = "strategy_id")
+    private List<Order> orders = new ArrayList<>();
+
+    public List<Order> getOrders() {
+        return orders;
+    }
+
+    public void setOrders(List<Order> orders) {
+        this.orders = orders;
+    }
 
     public Boolean getActive() {
         return active;
@@ -127,5 +148,21 @@ public class Strategy {
 
     public void setIdStrategy(Integer idStrategy) {
         this.idStrategy = idStrategy;
+    }
+
+    public String getConsumers() {
+        return consumers;
+    }
+
+    public void setConsumers(String consumers) {
+        this.consumers = consumers;
+    }
+
+    public String getEnterAveragePrice() {
+        return enterAveragePrice;
+    }
+
+    public void setEnterAveragePrice(String enterAveragePrice) {
+        this.enterAveragePrice = enterAveragePrice;
     }
 }

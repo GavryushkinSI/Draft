@@ -26,7 +26,7 @@ public class User {
     private String email;
 
     @Column(name = "last_visit")
-    private Instant lastVisit;
+    private String lastVisit;
 
     @OneToMany(orphanRemoval = true)
     @JoinColumn(name = "user_id")
@@ -40,11 +40,11 @@ public class User {
         this.strategies = strategies;
     }
 
-    public Instant getLastVisit() {
+    public String getLastVisit() {
         return lastVisit;
     }
 
-    public void setLastVisit(Instant lastVisit) {
+    public void setLastVisit(String lastVisit) {
         this.lastVisit = lastVisit;
     }
 

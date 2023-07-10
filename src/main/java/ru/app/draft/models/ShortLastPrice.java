@@ -4,11 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Setter
 @Getter
 @AllArgsConstructor
 public class ShortLastPrice {
     private String figi;
-    private Long price;
+    private BigDecimal price;
     private String updateTime;
 }

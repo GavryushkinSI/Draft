@@ -1,4 +1,5 @@
 import {Button, Container, Spinner} from "react-bootstrap";
+import React from "react";
 
 const PreLoad = () => {
     return <>

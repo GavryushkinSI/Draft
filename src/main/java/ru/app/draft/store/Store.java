@@ -7,10 +7,12 @@ import ru.app.draft.annotations.Audit;
 import ru.app.draft.models.*;
 import ru.app.draft.services.MarketDataStreamService;
 
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Log4j2
 public class Store {
@@ -27,7 +29,7 @@ public class Store {
             .<String, Set<CandleData>>build()
             .asMap();
 
-//    Текущие актуальный сторы
+    //    Текущие актуальный сторы
     public final static ConcurrentMap<String, UserCache> USER_STORE = CacheBuilder.newBuilder()
             .maximumSize(1000)
             .<String, UserCache>build()
@@ -48,7 +50,12 @@ public class Store {
             .<String, List<Ticker>>build()
             .asMap();
 
-    public static void updateLastPrice(String figi,Long newValue, Timestamp time) {
+    public final static ConcurrentMap<String, List<MetricItem>> METRICS = CacheBuilder.newBuilder()
+            .maximumSize(10000)
+            .<String, List<MetricItem>>build()
+            .asMap();
+
+    public static void updateLastPrice(String figi, BigDecimal newValue, Timestamp time) {
         LAST_PRICE.computeIfPresent(figi, (s, data) -> {
             data.setUpdateTime(time);
             data.setPrice(newValue);

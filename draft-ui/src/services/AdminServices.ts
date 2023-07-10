@@ -17,4 +17,10 @@ export class AdminServices {
             failCallback && failCallback();
         });
     }
+
+    public getMetrics(successCallback?: () => void, failCallback?: () => void) {
+        return http.get('/getMetrics').catch(() => {
+            failCallback && failCallback();
+        });
+    }
 }
