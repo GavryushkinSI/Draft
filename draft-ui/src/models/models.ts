@@ -1,5 +1,5 @@
-import {max, min} from "lodash";
-import {profitFactor} from "../utils/utils";
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+export type TAnyRecord = Record<string, any>;
 
 export interface Message {
     message: any;
