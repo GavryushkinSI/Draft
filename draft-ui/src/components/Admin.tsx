@@ -41,7 +41,6 @@ const Admin: React.FC = () => {
     const actions: Service = useActions(Service);
     const [userName, setUserName] = useState(localStorage.getItem("userName"));
     const dispatch: Dispatch<any> = useDispatch();
-    const [expendedSideBar, setExpendedSidebar] = useState(false);
     const [showLogs, setShowLogs] = useState(true);
     const [nameStrategyFilter, setNameStrategyFilter] = useState<string>("");
     const [handleStrategy, setHandleStrategy] = useState<any>();
@@ -237,65 +236,6 @@ const Admin: React.FC = () => {
                     navigate(ROOT().DRAFT.PAGE_WITH_ARTICLES.PATH)
                 }} hoverColor={"lightgreen"} icon={"bi bi-book"} size={17} title={''}/>}/>
             </Col>
-            {/*{expendedSideBar && (*/}
-            {/*    <Offcanvas className="s" show={expendedSideBar} onHide={() => setExpendedSidebar(!expendedSideBar)}>*/}
-            {/*        <Offcanvas.Header className="text-white"*/}
-            {/*                          style={{backgroundColor: "#212529", borderBottom: "2px solid black"}} closeButton>*/}
-            {/*            <Offcanvas.Title>*/}
-            {/*                <Row>*/}
-            {/*                    <Col>*/}
-            {/*                        <h5>TView_Parser</h5>*/}
-            {/*                    </Col>*/}
-            {/*                </Row>*/}
-            {/*                <Row>*/}
-            {/*                    <Col style={{paddingLeft: 110, marginTop: -16}} className="ms-2">*/}
-            {/*                        <span style={{fontSize: 11}}>v.1.000.000</span>*/}
-            {/*                    </Col>*/}
-            {/*                </Row>*/}
-            {/*            </Offcanvas.Title>*/}
-            {/*        </Offcanvas.Header>*/}
-            {/*        <Offcanvas.Body className="bg-custom-1">*/}
-            {/*            <Row>*/}
-            {/*                <Col>*/}
-            {/*                    <Button className="ps-1 pt-1" onClick={() => {*/}
-            {/*                        actions.clear(userName!, () => {},*/}
-            {/*                            (error: any) => dispatch(addNotification("Info", error)))*/}
-            {/*                    }}>*/}
-            {/*                        <Icon icon={"bi bi-robot"} size={15} title={'Публичные стратегии'}/>*/}
-            {/*                        {" Публичные стратегии"}*/}
-            {/*                    </Button>*/}
-            {/*                    <Button className="ps-1 pt-1" onClick={() => {*/}
-            {/*                        actions.clear(userName!, () => {*/}
-            {/*                                actions.getUserInfo(userName!);*/}
-            {/*                                dispatch(addNotification("Info", 'Очищен лог!'));*/}
-            {/*                            },*/}
-            {/*                            (error: any) => dispatch(addNotification("Info", error)))*/}
-            {/*                    }}>*/}
-            {/*                        <Icon icon={"bi bi-trash3-fill"} size={15} title={'Очистить лог'}/>*/}
-            {/*                        {" Очистить лог"}*/}
-            {/*                    </Button>*/}
-            {/*                    {userName === 'Admin' && (<Button className="ps-1" onClick={() => {*/}
-            {/*                        actions.reconnectStream(() => {*/}
-            {/*                                dispatch(addNotification("Info", 'Переподключили стрим!'));*/}
-            {/*                            },*/}
-            {/*                            (error: any) => dispatch(addNotification("Info", error)))*/}
-            {/*                    }}>*/}
-            {/*                        <Icon icon={"bi bi-ethernet"} size={15} title={'Clear'}/>*/}
-            {/*                        {" Переподключить стрим"}*/}
-            {/*                    </Button>)}*/}
-            {/*                    {userName === 'Admin' && (<Button className="ps-1" onClick={() => {*/}
-            {/*                        actions.saveDataInTable(userName!, () => {*/}
-            {/*                                dispatch(addNotification("Info", 'Успешно!'));*/}
-            {/*                            },*/}
-            {/*                            (error: any) => dispatch(addNotification("Info", error)))*/}
-            {/*                    }}>*/}
-            {/*                        <Icon icon={"bi bi-save"} size={15} title={'Save'}/>*/}
-            {/*                        {" Сохранить юзеров в БД"}*/}
-            {/*                    </Button>)}*/}
-            {/*                </Col>*/}
-            {/*            </Row>*/}
-            {/*        </Offcanvas.Body>*/}
-            {/*    </Offcanvas>)}*/}
             <Col className="bg-custom-2" style={{height: "100vh"}}>
                 <Row style={{flexWrap: "nowrap"}}>
                     <Col style={{paddingTop: 20}}>
@@ -307,14 +247,6 @@ const Admin: React.FC = () => {
                                         className="me-auto my-2 my-lg-0"
                                         navbarScroll
                                     >
-                                        {/*<Nav.Link>*/}
-                                        {/*    <Button variant={"outline-primary"} onClick={() => {*/}
-                                        {/*        setExpendedSidebar(!expendedSideBar)*/}
-                                        {/*    }}>*/}
-                                        {/*        <Icon icon={"bi bi-list-task"} size={22} color={"white"}*/}
-                                        {/*              title={'sideBar'}/>*/}
-                                        {/*    </Button>*/}
-                                        {/*</Nav.Link>*/}
                                         {!!userName && (<Nav.Link className="text-white">
                                             <Icon color={"lightblue"} hoverColor={"lightgreen"} icon={"bi bi-person"}
                                                   title={"Имя пользователя"} size={22}/>

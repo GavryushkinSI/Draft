@@ -1,6 +1,16 @@
 const path = require('path');
+const optimization = require("./optimization");
+const PROJECT_NAME = 'draft-ui';
+
+const isProduction = (
+    process.argv.some(arg => arg === '-p' || arg === '--production') ||
+    process.env.NODE_ENV === 'production'
+);
 
 const config = {
+    mode: isProduction ? 'production' : 'development',
+    optimization: optimization(isProduction),
+    devtool: !isProduction ? 'source-map' : false,
     entry: "./src/index.tsx",
     module: {
         rules: [
@@ -39,11 +49,14 @@ const config = {
     output: {
         path: path.resolve(__dirname, "build"),
         filename: "bundle.js",
+        chunkFilename: isProduction ? 'js/[contenthash].js' : undefined,
+        libraryTarget: 'umd',
+        clean: true,
     },
     devServer: {
         static: path.join(__dirname, "build"),
         compress: true,
-        port: 4000,
+        port: 3000,
     },
 };
 

@@ -4,7 +4,6 @@ import {combineReducers, createStore} from "redux";
 import {devToolsEnhancer} from '@redux-devtools/extension';
 import {BrowserRouter, Route, Routes, useNavigate} from "react-router-dom";
 import {Provider} from "react-redux";
-import MainPage from "./components/Admin";
 import "./styles/common.css";
 import "./styles/sideBar.css";
 import "./styles/developPage.css";
@@ -13,10 +12,8 @@ import "bootstrap-icons/font/bootstrap-icons.css"
 import notificationReducer, {INotificationState} from "./reducers/notificationReducers";
 import {IStrategy} from "./models/models";
 import "./styles/notification.css";
-import AdminPanel from "./components/AdminPanel";
-import Articles from "./components/Articles";
-import PublicStrategy from "./components/PublicStrategy";
 import {ROOT} from "./Route/consts";
+import Admin from "./components/Admin";
 
 const initial = {
     data: [],
@@ -195,18 +192,24 @@ const configureStore = () => {
 
 const store = configureStore();
 
+const MainPage = React.lazy(() => import(/* webpackChunkName: "MainPage" */ './components/Admin'));
+const AdminPanel = React.lazy(() => import(/* webpackChunkName: "AdminPanel" */ './components/AdminPanel'));
+const Articles = React.lazy(() => import(/* webpackChunkName: "Articles" */ './components/Articles'));
+const PublicStrategy = React.lazy(() => import(/* webpackChunkName: "PublicStrategy" */ './components/PublicStrategy'));
 
 function Root() {
     return (
         <Provider store={store}>
-            <BrowserRouter>
-                <Routes>
-                    <Route path={ROOT().DRAFT.MAIN_PAGE.PATH} element={<MainPage/>}/>
-                    <Route path={ROOT().DRAFT.ADMIN_PANEL.PATH} element={<AdminPanel/>}/>
-                    <Route path={ROOT().DRAFT.PAGE_WITH_ARTICLES.PATH} element={<Articles/>}/>
-                    <Route path={ROOT().DRAFT.PUBLIC_STRATEGY.PATH} element={<PublicStrategy/>}/>
-                </Routes>
-            </BrowserRouter>
+            <React.Suspense fallback={<div>{'Загрузка...'}</div>}>
+                <BrowserRouter>
+                    <Routes>
+                        <Route path={ROOT().DRAFT.MAIN_PAGE.PATH} element={<MainPage/>}/>
+                        <Route path={ROOT().DRAFT.ADMIN_PANEL.PATH} element={<AdminPanel/>}/>
+                        <Route path={ROOT().DRAFT.PAGE_WITH_ARTICLES.PATH} element={<Articles/>}/>
+                        <Route path={ROOT().DRAFT.PUBLIC_STRATEGY.PATH} element={<PublicStrategy/>}/>
+                    </Routes>
+                </BrowserRouter>
+            </React.Suspense>
         </Provider>
     )
 }
