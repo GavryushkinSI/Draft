@@ -17,7 +17,7 @@ import {generateUserName, getStrategyEstimate, profitFactor, saveRow} from "../u
 import BackTestTab from "./BackTestTab";
 import ModalView from "./common/ModalView";
 import {STRATEGY_MAP} from "../backtest/params";
-import {calcMagicTrend} from "../strategies/strategy";
+// import {calcMagicTrend} from "../strategies/strategy";
 import Icon from "./common/Icon";
 
 const SMA = require('technicalindicators').SMA;

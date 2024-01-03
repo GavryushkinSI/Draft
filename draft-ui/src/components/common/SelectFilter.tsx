@@ -10,10 +10,11 @@ interface IProps {
     style?: CSSProperties;
     options?: any;
     placeholder?: string;
+    producer?:string;
 }
 
 const SelectFilter = (props: IProps) => {
-    const options: readonly any[] = useSelector((state: IAppState) =>
+    const options = useSelector((state: IAppState) =>
         state.ticker.data);
 
     const defaultProps: CSSProperties = {minWidth: 300, maxHeight: 38, marginBottom: 40, marginTop: 15}
@@ -25,7 +26,7 @@ const SelectFilter = (props: IProps) => {
                 value={props.value}
                 isClearable
                 isSearchable
-                options={props.options || options}
+                options={props.options || (props.producer==='BYBIT'?options?.BYBIT:options?.TKS)}
                 placeholder={props.placeholder || 'Выберите тикер'}
                 onChange={(e: any) => {
                     props.onChange && props.onChange({target: {value: e?.value, name: 'ticker'}})

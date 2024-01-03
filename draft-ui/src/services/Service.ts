@@ -4,6 +4,7 @@ import {EConsumer, IArticle, IComment, IStrategy} from "../models/models";
 import {batch, useStore} from "react-redux";
 import {removeRow, saveRow} from "../utils/utils";
 import moment from "moment";
+import {addNotification} from "../actions/notificationActions";
 
 export class Service {
 
@@ -54,16 +55,16 @@ export class Service {
                     const notifications = data?.notifications?.reverse();
                     const logs = data?.logs?.reverse();
                     const portfolio = data?.portfolio;
-                    batch(()=> {
+                    batch(() => {
                         this.dispatch({
                             type: EActionTypes.SET_PORTFOLIO,
                             payload: portfolio
                         });
-                    this.dispatch({
-                        type: EActionTypes.GET_USER_INFO,
-                        payload: {...response.data[0], notifications, logs}
+                        this.dispatch({
+                            type: EActionTypes.GET_USER_INFO,
+                            payload: {...response.data[0], notifications, logs}
+                        });
                     });
-                });
                 }
             ).catch((errors: any) => console.log(errors));
     }
@@ -187,10 +188,20 @@ export class Service {
         })
     }
 
-    public setViewedNotifyIds(ids:string[], userName:string){
+    public setViewedNotifyIds(ids: string[], userName: string) {
         this.dispatch({type: EActionTypes.CHANGE_VIEWED_NOTIFY_IDS, payload: ids});
         void http.post(`/setViewedNotifyIds/${userName}`, ids).then((response) => {
             this.dispatch({type: EActionTypes.CHANGE_VIEWED_NOTIFY_IDS, payload: response.data});
         })
+    }
+
+    public clearError(strategy: IStrategy, userName: string, successCallback?: () => void, errorCallback?: () => void) {
+        void this.addOrUpdateStrategy(
+            userName,
+            {
+                ...strategy, errorData: {message: undefined, time: undefined},
+                successCallback,
+                errorCallback
+            });
     }
 }

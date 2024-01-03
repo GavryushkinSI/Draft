@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -14,5 +15,5 @@ public class Ticker implements Serializable {
     private String label;
     private String figi;
     private String classCode;
-    private Long minLot;
+    private BigDecimal minLot;
 }

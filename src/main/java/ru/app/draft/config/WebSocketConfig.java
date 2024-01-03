@@ -1,8 +1,14 @@
 package ru.app.draft.config;
 
+import com.bybit.api.client.config.BybitApiConfig;
+import com.bybit.api.client.restApi.BybitApiAccountRestClient;
+import com.bybit.api.client.restApi.BybitApiLendingRestClient;
+import com.bybit.api.client.restApi.BybitApiMarketRestClient;
+import com.bybit.api.client.restApi.BybitApiPositionRestClient;
+import com.bybit.api.client.restApi.BybitApiTradeRestClient;
+import com.bybit.api.client.service.BybitApiClientFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +24,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import ru.app.draft.models.Notification;
 import ru.app.draft.services.ApiService;
+import ru.app.draft.services.ByBitService;
 import ru.app.draft.services.DbService;
 import ru.app.draft.services.TelegramBotService;
 import ru.tinkoff.piapi.core.InvestApi;
@@ -37,8 +44,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             "EuH3", "GKH3", "SRH3", "RIH3", "BRH3", "SiH3", "EDH3", "ALH3", "POH3", "MNH3", "AFH3", "VBH3", "SFH3", "NAH3", "MMH3", "CRH3",
             "EuM3", "GKM3", "SRM3", "RIM3", "BRM3", "SiM3", "EDM3", "ALM3", "POM3", "MNM3", "AFM3", "VBM3", "SFM3", "NAM3", "MMM3", "CRM3",
             "EuU3", "GKU3", "SRU3", "RIU3", "BRU3", "SiU3", "EDU3", "ALU3", "POU3", "MNU3", "AFU3", "VBU3", "SFU3", "NAU3", "MMU3", "CRU3",
-            "EuZ3", "GKZ3", "SRZ3", "RIZ3", "BRZ3", "SiZ3", "EDZ3", "ALZ3", "POZ3", "MNZ3", "AFZ3", "VBZ3", "SFZ3", "NAZ3", "MMZ3", "CRZ3",
-            "BRN3","NAM3",
+            "EuZ3", "GKZ3", "SRZ3", "RIZ3", "BRZ3", "SiZ3", "EDZ3", "ALZ3", "POZ3", "AFZ3", "VBZ3", "SFZ3", "NAZ3", "MMZ3", "CRZ3","GZZ3", "MNZ3", "LKZ3","GDZ3","SVZ3",
+            "BRN3",
             "SBER", "GAZP", "MGNT", "MOEX", "AFKS", "BANE", "HYDR", "PLZL", "VTBR", "ROSN", "MTSS", "GMKN");
 
     @Bean
@@ -64,7 +71,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     @Bean
-    public InvestApi createApi(@Value("${sandbox.token:123}") String sandboxToken, @Value("${real.token:123}") String realToken, @Value("${usesandbox}") Boolean useSandbox, @Qualifier("apiService") ApiService apiService, DbService dbService) {
+    public InvestApi createApi(@Value("${sandbox.token:123}") String sandboxToken, @Value("${real.token:123}") String realToken, @Value("${usesandbox}") Boolean useSandbox, @Qualifier("apiService") ApiService apiService, DbService dbService, ByBitService byBitService) {
         //InvestApi api = InvestApi.createSandbox(sandboxToken);
         InvestApi api = useSandbox ? InvestApi.createSandbox(sandboxToken) : InvestApi.create(realToken);
         COMMON_INFO.put("Notifications", new ArrayList<>());
@@ -112,18 +119,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             return data;
         });
         METRICS.put("methods", new ArrayList<>());
-        TICKERS.put("tickers", new ArrayList<>());
+        TICKERS_TKS.put("tickers", new ArrayList<>());
+        TICKERS_BYBIT.put("tickers", new ArrayList<>());
         apiService.getAllTickers(api, myTickers);
         dbService.getAllUsers();
 
         List<String> figsList = new ArrayList<>();
-        TICKERS.get("tickers").forEach(i -> figsList.add(i.getFigi()));
-        if(!useSandbox){
-            apiService.setPortfolioStream(api);
-            apiService.setOrdersStream(api);
-        }
-        apiService.setSubscriptionOnCandle(api, figsList);
+        TICKERS_TKS.get("tickers").forEach(i -> figsList.add(i.getFigi()));
+//        if(!useSandbox){
+//            apiService.setPortfolioStream(api);
+//            apiService.setOrdersStream(api);
+//        }
+        //apiService.setSubscriptionOnCandle(api, figsList);
         dbService.getAllComments();
+        byBitService.setStreamPublic();
+        byBitService.setStreamPrivate();
         return api;
     }
 
@@ -138,5 +148,31 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         }
 
         return telegramBotsApi;
+    }
+
+    @Bean
+    public BybitApiTradeRestClient createByBitRestClientOrder(@Value("${bybit.key}") String key,@Value("${bybit.serial}") String serial){
+        return BybitApiClientFactory.newInstance(key, serial, BybitApiConfig.MAINNET_DOMAIN).newTradeRestClient();
+    }
+
+    @Bean
+    public BybitApiPositionRestClient createByBitRestPositionClient(@Value("${bybit.key}") String key,@Value("${bybit.serial}") String serial){
+       return BybitApiClientFactory.newInstance(key, serial, BybitApiConfig.MAINNET_DOMAIN).newPositionRestClient();
+    }
+
+    @Bean
+    public BybitApiMarketRestClient createMarketDataRestClient(){
+        return BybitApiClientFactory.newInstance(BybitApiConfig.MAINNET_DOMAIN,true).newMarketDataRestClient();
+    }
+
+    @Bean
+    public BybitApiLendingRestClient createLendingRestClient(@Value("${bybit.key}") String key,@Value("${bybit.serial}") String serial)
+    {
+        return BybitApiClientFactory.newInstance(key, serial).newLendingRestClient();
+    }
+
+    @Bean
+    public BybitApiAccountRestClient getAccountInfo(@Value("${bybit.key}") String key,@Value("${bybit.serial}") String serial){
+        return BybitApiClientFactory.newInstance(key, serial, BybitApiConfig.MAINNET_DOMAIN).newAccountRestClient();
     }
 }

@@ -33,16 +33,18 @@ export interface IStrategy {
     isPublic?: boolean;
     pair?: any;
     errorData?: IErrorData;
+    minLot?:number;
 }
 
 interface IErrorData {
-    message: string;
-    time: string;
+    message?: string;
+    time?: string;
 }
 
 export enum EProducer {
-    TKS = "Tinkoff_Invest",
-    ALOR = "ALOR"
+    TKS = "TKS",
+    ALOR = "ALOR",
+    BYBIT = "BYBIT",
 }
 
 export enum EConsumer {

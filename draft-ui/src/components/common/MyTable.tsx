@@ -17,6 +17,7 @@ import MyToolTip from "./MyToolTip";
 import Gap from "./Gap";
 import MyEditor from "./MyEditor";
 import Portfolio from "../Portfolio";
+import NameComponent from "./NameComponent";
 
 const columns = [
     {field: 'id', fieldName: '№'},
@@ -35,7 +36,7 @@ const columns = [
 const MyTable: React.FC = () => {
     const userName = localStorage.getItem("userName");
     const [showGraph, setShowGraph] = useState<any>({show: false, nameStrategy: ""});
-    const [showDescriptionModal, setShowDescriptionModal] = useState<any>({show: false, name: undefined});
+    const [showDescriptionModal, setShowDescriptionModal] = useState<any>({show: false, strategy: undefined});
     const actions = useActions(Service);
     const dispatch: Dispatch<any> = useDispatch();
     const [hoverTable, setHoverTable] = useState(-1);
@@ -65,6 +66,11 @@ const MyTable: React.FC = () => {
                 dispatch(addNotification("Info", `Запись успешно сохранена!`))
             }, (error: any) => dispatch(addNotification("Info", error)));
         } else {
+            if(name==='producer'){
+                const producer:string= value==2?'BYBIT':'TKS';
+                setEditedRow({...editedRow, producer});
+                return;
+            }
             if (!value && name !== 'description') {
                 setValidation({...validation, [name]: 'Поле обязательно для заполнения!'});
                 setEditedRow({...editedRow, [name]: value});
@@ -151,9 +157,13 @@ const MyTable: React.FC = () => {
                 <Form className="bg-custom-1">
                     <Row>
                         <Col style={{maxWidth: 390}}>
-                            <Form.Select className="mb-2" disabled name="producer" style={{width: 351}}>
+                            <Form.Select
+                                onChange={handleChangeEdit}
+                                className="mb-2"
+                                name="producer"
+                                style={{width: 351}}>
                                 <option value="1">{EProducer.TKS}</option>
-                                <option value="2">{EProducer.ALOR}</option>
+                                <option value="2">{EProducer.BYBIT}</option>
                             </Form.Select>
                             <Form.Control
                                 className="mb-1"
@@ -166,7 +176,10 @@ const MyTable: React.FC = () => {
                                 style={{width: 351}}
                             />
                             <Form.Control.Feedback type="invalid">{validation.name}</Form.Control.Feedback>
-                            <SelectFilter style={{maxWidth: 351}} value={editedRow?.ticker ? {
+                            <SelectFilter
+                                style={{maxWidth: 351}}
+                                producer= {editedRow.producer}
+                                value={editedRow?.ticker ? {
                                 value: editedRow.ticker,
                                 label: editedRow.ticker
                             } : null}
@@ -307,10 +320,11 @@ const MyTable: React.FC = () => {
     const renderDescriptionModal = () => {
         const text = `{\n\r
                 "userName":"${userName}",\n\r
-                "name":"${showDescriptionModal.name}",\n\r
+                "name":"${showDescriptionModal.strategy?.name}",\n\r
                 "direction": "{{strategy.order.action}}",\n\r
                 "quantity": "{{strategy.position_size}}",\n\r
-                "priceTv":"{{strategy.order.price}}"\n\r}`;
+                "producer": "${showDescriptionModal.strategy?.producer}"\n\r}
+                `;
         return <ModalView header={'Как добавить стратегию в Tradingview:'} show={showDescriptionModal.show}
                           cancel={() => {
                               setShowDescriptionModal({show: false, name: undefined})
@@ -420,13 +434,15 @@ const MyTable: React.FC = () => {
                         </thead>
                         <tbody>
                         {strategy.length > 0 ? strategy?.map((row, index) => {
+
                             return <tr className={row.errorData?.message ? "errorStrategy" : ""} key={row.id! + 3005}
                                        style={hoverTable === index && clickTable !== index ? {
                                            color: "white",
                                            backgroundColor: "lightgray"
                                        } : clickTable === index ? {backgroundColor: "lightblue", color: "white"} : {}}
                                        onClick={() => {
-                                           setClickTable(index)
+                                           setClickTable(index);
+                                           setEditedRow(strategy.find((i: any) => i?.id === row?.id));
                                        }} onMouseLeave={() => {
                                 setHoverTable(-1)
                             }} onMouseEnter={() => {
@@ -435,14 +451,9 @@ const MyTable: React.FC = () => {
                             >
                                 <td className={"align-middle"}>{index + 1}</td>
                                 <td className={"align-middle"}>
-                                    {row?.description ?
-                                        (<MyToolTip style={{
-                                            marginTop: "-4px",
-                                            borderBottom: "1px dashed black",
-                                            color: "black"
-                                        }} text={row?.description} textInner={row?.name}/>) : row?.name}
+                                    <NameComponent row={row}/>
                                 </td>
-                                <td className={"align-middle"}>{EProducer.TKS}</td>
+                                <td className={"align-middle"}>{row.producer}</td>
                                 <td className={"align-middle"}>{row?.ticker}</td>
                                 <td className={"align-middle"}>{row.consumer?.map((i: any) => {
                                     return <Form.Check
@@ -511,7 +522,7 @@ const MyTable: React.FC = () => {
                                     </ButtonGroup>
                                     <ButtonGroup>
                                         <Button onClick={() => {
-                                            setShowDescriptionModal({show: true, name: row.name})
+                                            setShowDescriptionModal({show: true, strategy: row})
                                         }} variant={"dark"}>
                                             <Icon icon={"bi bi-info-circle"} size={15} title={''}/>
                                         </Button>

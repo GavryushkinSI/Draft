@@ -1,14 +1,9 @@
 package ru.app.draft.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.springframework.data.util.Pair;
-import ru.app.draft.utils.PairDeserializer;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -23,22 +18,21 @@ public class Strategy implements Serializable {
     private String userName;
     private String name;
     private String direction;
-    private Long quantity;
+    private BigDecimal quantity;
     private String figi;
     private String ticker;
     private Boolean isActive;
     private List<String> consumer;
     private List<Order> orders;
-    private Long currentPosition = 0L;
+    private BigDecimal currentPosition = BigDecimal.ZERO;
     private Long priceTv;
-    @JsonIgnoreProperties
     private String producer;
     @JsonIgnoreProperties
     private String position;
     @JsonIgnoreProperties
     private String slippage;
     @JsonIgnoreProperties
-    private Long minLot;
+    private BigDecimal minLot;
     private String description;
     private ErrorData errorData = new ErrorData();
     private List<String> enterAveragePrice = new ArrayList<>();
@@ -46,7 +40,7 @@ public class Strategy implements Serializable {
     public Strategy() {
     }
 
-    public Strategy(String id, String userName, String name, String direction, Long quantity, String figi, String ticker, Boolean isActive, List<String> consumer, List<Order> orders, String description, Long minLot) {
+    public Strategy(String id, String userName, String name, String direction, BigDecimal quantity, String figi, String ticker, Boolean isActive, List<String> consumer, List<Order> orders, String description, BigDecimal minLot, String producer) {
         this.id = id;
         this.userName = userName;
         this.name = name;
@@ -59,6 +53,7 @@ public class Strategy implements Serializable {
         this.orders = orders;
         this.description = description;
         this.minLot = minLot;
+        this.producer = producer;
     }
 
     public void addOrder(Order order) {

@@ -229,6 +229,6 @@ body {
     text-decoration-line: underline;
 }
 
-.errorStrategy {
-    background-color: lightpink;
+.errorStrategy>* {
+    background-color: #dc3545!important;
 }

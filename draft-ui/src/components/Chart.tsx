@@ -1,6 +1,6 @@
 // import CanvasJSReact from '../libraries/canvasjs.react';
 import CanvasJSReact from '../libraries/canvasjs.stock.react';
-import {Component} from "react";
+import React, {Component} from "react";
 import moment from "moment";
 
 const CanvasJS = CanvasJSReact.CanvasJS;

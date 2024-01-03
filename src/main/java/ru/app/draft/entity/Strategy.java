@@ -33,7 +33,7 @@ public class Strategy {
     private String description;
 
     @Column(name = "\"position\"", nullable = false)
-    private Integer position;
+    private BigDecimal position;
 
     @Column(name = "direction", length = 10)
     private String direction;
@@ -42,10 +42,13 @@ public class Strategy {
     private Boolean active = false;
 
     @Column(name = "minlot")
-    private Integer minLot;
+    private BigDecimal minLot;
 
     @Column(name = "consumers")
     private String consumers;
+
+    @Column(name = "producer")
+    private String producer;
 
     @Column(name = "enter_average_price")
     private String enterAveragePrice;
@@ -78,11 +81,11 @@ public class Strategy {
         this.direction = direction;
     }
 
-    public Integer getPosition() {
+    public BigDecimal getPosition() {
         return position;
     }
 
-    public void setPosition(Integer position) {
+    public void setPosition(BigDecimal position) {
         this.position = position;
     }
 
@@ -134,11 +137,19 @@ public class Strategy {
         this.description = description;
     }
 
-    public Integer getMinLot() {
+    public String getProducer() {
+        return producer;
+    }
+
+    public void setProducer(String producer) {
+        this.producer = producer;
+    }
+
+    public BigDecimal getMinLot() {
         return minLot;
     }
 
-    public void setMinLot(Integer minLot) {
+    public void setMinLot(BigDecimal minLot) {
         this.minLot = minLot;
     }
 

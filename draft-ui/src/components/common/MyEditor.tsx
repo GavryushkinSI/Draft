@@ -8,7 +8,6 @@ import {useActions} from "../../hooks/hooks";
 import {useDispatch} from "react-redux";
 import {addNotification} from "../../actions/notificationActions";
 import {IArticle} from "../../models/models";
-import {Editor} from "draft-js";
 
 interface IProps {
     renderHeader?:boolean;
