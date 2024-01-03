@@ -12,10 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.app.draft.annotations.Audit;
 import ru.app.draft.exceptions.AuthorizationException;
 import ru.app.draft.models.*;
-import ru.app.draft.services.ApiService;
-import ru.app.draft.services.DbService;
-import ru.app.draft.services.MarketDataStreamService;
-import ru.app.draft.services.TelegramBotService;
+import ru.app.draft.services.*;
 import ru.app.draft.utils.DateUtils;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
@@ -34,13 +31,15 @@ public class MainController {
     private final TelegramBotService telegramBotService;
     private final DbService dbService;
     private final ApiService apiService;
+    private final ByBitService byBitService;
     private final InvestApi api;
 
-    public MainController(MarketDataStreamService marketDataStreamService, TelegramBotService telegramBotService, DbService dbService, ApiService apiService, InvestApi api) {
+    public MainController(MarketDataStreamService marketDataStreamService, TelegramBotService telegramBotService, DbService dbService, ApiService apiService, ByBitService byBitService, InvestApi api) {
         this.marketDataStreamService = marketDataStreamService;
         this.telegramBotService = telegramBotService;
         this.dbService = dbService;
         this.apiService = apiService;
+        this.byBitService = byBitService;
         this.api = api;
     }
 
@@ -60,7 +59,7 @@ public class MainController {
             if (v.getUpdateTime() != null) {
                 Message message = new Message();
                 message.setSenderName("server");
-                message.setMessage(new ShortLastPrice(k, v.getPrice(), DateUtils.getTime(v.getUpdateTime().getSeconds())));
+                message.setMessage(new ShortLastPrice(k, v.getPrice(),null, null, DateUtils.getTime(v.getUpdateTime().getSeconds())));
                 message.setStatus(Status.JOIN);
                 message.setCommand("lastPrice");
                 marketDataStreamService.sendDataToUser(Set.of(messageFromUser.getSenderName()), message);
@@ -83,8 +82,11 @@ public class MainController {
 
     @Audit
     @GetMapping("/app/getAllTickers")
-    public ResponseEntity<List<Ticker>> getAllTickers() {
-        return ResponseEntity.ok(TICKERS.get("tickers"));
+    public ResponseEntity<Map<String, List<Ticker>>> getAllTickers() {
+        return ResponseEntity.ok(Map.of(
+                "TKS", TICKERS_TKS.get("tickers"),
+                "BYBIT", TICKERS_BYBIT.get("tickers")
+        ));
     }
 
     @GetMapping("/app/test")
@@ -102,7 +104,11 @@ public class MainController {
     @PostMapping("/app/tv")
     @Timed(value = "myapp.method.execution_time", description = "Execution time of the method")
     public void tradingViewSignalPoint(@RequestBody Strategy strategy) {
-        apiService.sendOrder(api, strategy);
+        if (Objects.equals(strategy.getProducer(), "BYBIT")) {
+            byBitService.sendSignal(strategy);
+        } else {
+            apiService.sendOrder(api, strategy);
+        }
     }
 
     @Audit
@@ -111,17 +117,27 @@ public class MainController {
         UserCache userCache = USER_STORE.get(userName);
         List<Strategy> strategyList = userCache.getStrategies();
         if (StringUtils.hasText(strategy.getId())) {
+            Strategy changingStrategy = strategyList.get(Integer.parseInt(strategy.getId()));
+            strategy.setFigi(strategy.getTicker());
+            strategy.setMinLot(changingStrategy.getMinLot());
+            strategy.setOrders(changingStrategy.getOrders());
+            strategy.setEnterAveragePrice(changingStrategy.getEnterAveragePrice());
             strategyList.set(Integer.parseInt(strategy.getId()), strategy);
         } else {
-            Ticker ticker = apiService.getFigi(api, List.of(strategy.getTicker()));
-            if (!LAST_PRICE.containsKey(ticker.getFigi())) {
-                LAST_PRICE.put(ticker.getFigi(), new LastPrice(null, null));
+            Ticker ticker;
+            if (!Objects.equals(strategy.getProducer(), "BYBIT")) {
+                ticker = apiService.getFigi(api, List.of(strategy.getTicker()));
+            }else{
+                ticker = byBitService.getFigi(List.of(strategy.getTicker()));
             }
-            LastPrice lastPrice = LAST_PRICE.get(ticker.getFigi());
-            lastPrice.addSubscriber(userName);
-            LAST_PRICE.replace(ticker.getFigi(), lastPrice);
-            String uuid = String.valueOf(strategyList.size());
-            strategyList.add(new Strategy(uuid,
+                if (!LAST_PRICE.containsKey(ticker.getFigi())) {
+                    LAST_PRICE.put(ticker.getFigi(), new LastPrice(null, null));
+                }
+                LastPrice lastPrice = LAST_PRICE.get(ticker.getFigi());
+                lastPrice.addSubscriber(userName);
+                LAST_PRICE.replace(ticker.getFigi(), lastPrice);
+            strategyList.add(new Strategy(
+                    String.valueOf(strategyList.size()),
                     strategy.getUserName(),
                     strategy.getName(),
                     strategy.getDirection(),
@@ -130,7 +146,10 @@ public class MainController {
                     strategy.getTicker(),
                     strategy.getIsActive(),
                     strategy.getConsumer(),
-                    new ArrayList<>(), strategy.getDescription(), ticker.getMinLot()));
+                    new ArrayList<>(),
+                    strategy.getDescription(),
+                    ticker.getMinLot(),
+                    strategy.getProducer()));
         }
 
         userCache.setStrategies(strategyList);
@@ -205,7 +224,7 @@ public class MainController {
             if (v.getUpdateTime() != null) {
                 Message message = new Message();
                 message.setSenderName("server");
-                message.setMessage(new ShortLastPrice(k, v.getPrice(), DateUtils.getTime(v.getUpdateTime().getSeconds())));
+                message.setMessage(new ShortLastPrice(k, v.getPrice(), null, null, DateUtils.getTime(v.getUpdateTime().getSeconds())));
                 message.setStatus(Status.JOIN);
                 message.setCommand("lastPrice");
                 Set<String> subscriber = v.getNameSubscriber();

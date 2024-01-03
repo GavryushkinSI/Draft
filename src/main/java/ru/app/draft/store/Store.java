@@ -3,7 +3,6 @@ package ru.app.draft.store;
 import com.google.common.cache.CacheBuilder;
 import com.google.protobuf.Timestamp;
 import lombok.extern.log4j.Log4j2;
-import ru.app.draft.annotations.Audit;
 import ru.app.draft.models.*;
 import ru.app.draft.services.MarketDataStreamService;
 
@@ -12,7 +11,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @Log4j2
 public class Store {
@@ -45,8 +43,13 @@ public class Store {
             .<String, LastPrice>build()
             .asMap();
 
-    public final static ConcurrentMap<String, List<Ticker>> TICKERS = CacheBuilder.newBuilder()
-            .maximumSize(2000)
+    public final static ConcurrentMap<String, List<Ticker>> TICKERS_TKS = CacheBuilder.newBuilder()
+            .maximumSize(100)
+            .<String, List<Ticker>>build()
+            .asMap();
+
+    public final static ConcurrentMap<String, List<Ticker>> TICKERS_BYBIT = CacheBuilder.newBuilder()
+            .maximumSize(100)
             .<String, List<Ticker>>build()
             .asMap();
 

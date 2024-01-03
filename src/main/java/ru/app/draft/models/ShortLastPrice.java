@@ -12,5 +12,7 @@ import java.math.BigDecimal;
 public class ShortLastPrice {
     private String figi;
     private BigDecimal price;
+    private BigDecimal bid;
+    private BigDecimal ask;
     private String updateTime;
 }

@@ -22,7 +22,7 @@ public class Order {
     private BigDecimal price;
 
     @Column(name = "quantity", nullable = false)
-    private Long quantity;
+    private BigDecimal quantity;
 
     @Column(name = "direction", nullable = false)
     private String direction;
@@ -34,7 +34,7 @@ public class Order {
 
     }
 
-    public Order(Integer id, Strategy strategy, BigDecimal price, Long quantity, String direction, String date) {
+    public Order(Integer id, Strategy strategy, BigDecimal price, BigDecimal quantity, String direction, String date) {
         this.id = id;
         this.strategy = strategy;
         this.price = price;
@@ -59,11 +59,11 @@ public class Order {
         this.direction = direction;
     }
 
-    public Long getQuantity() {
+    public BigDecimal getQuantity() {
         return quantity;
     }
 
-    public void setQuantity(Long quantity) {
+    public void setQuantity(BigDecimal quantity) {
         this.quantity = quantity;
     }
 

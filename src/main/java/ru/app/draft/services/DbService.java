@@ -1,6 +1,5 @@
 package ru.app.draft.services;
 
-import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -75,9 +74,10 @@ public class DbService {
                 strategy.setName(s.getName());
                 strategy.setTicker(s.getTicker());
                 strategy.setFigi(s.getFigi());
-                strategy.setPosition(Math.toIntExact(s.getCurrentPosition()));
+                strategy.setPosition(s.getCurrentPosition());
                 strategy.setDescription(s.getDescription());
-                strategy.setMinLot(Math.toIntExact(s.getMinLot()));
+                strategy.setProducer(s.getProducer());
+                strategy.setMinLot(s.getMinLot());
                 strategy.setConsumers(s.getConsumer().toString().replaceAll("\\[","").replaceAll("]","").replaceAll(" ",""));
                 strategy.setEnterAveragePrice(s.getEnterAveragePrice().toString().replaceAll("\\[","").replaceAll("]","").replaceAll(" ",""));
                 s.getOrders().forEach(o->{
@@ -97,14 +97,12 @@ public class DbService {
         });
 
         List<LastPrice> lastPricesEntity = new ArrayList<>();
-        LAST_PRICE.forEach((k, v) -> {
-            v.getNameSubscriber().forEach(i -> {
-                LastPrice lastPrice = new LastPrice();
-                lastPrice.setFigi(k);
-                lastPrice.setNameSubscriber(i);
-                lastPricesEntity.add(lastPrice);
-            });
-        });
+        LAST_PRICE.forEach((k, v) -> v.getNameSubscriber().forEach(i -> {
+            LastPrice lastPrice = new LastPrice();
+            lastPrice.setFigi(k);
+            lastPrice.setNameSubscriber(i);
+            lastPricesEntity.add(lastPrice);
+        }));
         lastPriceRepository.saveAll(lastPricesEntity);
     }
 
@@ -117,9 +115,9 @@ public class DbService {
             List<Strategy> strategyList = new ArrayList<>(strategyEntity.size());
             strategyEntity.forEach(n -> {
                 Strategy strategy = new Strategy(String.valueOf(n.getIdStrategy()), n.getUsers().getLogin(),
-                        n.getName(), n.getDirection(), 0L, n.getFigi(), n.getTicker(),
-                        n.getActive(), null, null, n.getDescription(), (long) n.getMinLot());
-                strategy.setCurrentPosition(n.getPosition() != null ? (long) n.getPosition() : null);
+                        n.getName(), n.getDirection(), BigDecimal.ZERO, n.getFigi(), n.getTicker(),
+                        n.getActive(), null, null, n.getDescription(), n.getMinLot(), n.getProducer());
+                strategy.setCurrentPosition(n.getPosition() != null ? n.getPosition() : null);
                 strategyList.add(strategy);
 
                 new ru.app.draft.models.Order();

@@ -2,7 +2,6 @@ package ru.app.draft.services;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import ru.app.draft.annotations.Audit;
@@ -17,6 +16,7 @@ import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.StreamProcessor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -43,20 +43,25 @@ public class ApiService extends AbstractApiService {
     }
 
     public Ticker getFigi(InvestApi api, List<String> tickers) {
-        return TICKERS.get("tickers").stream().filter(i -> i.getValue().equals(tickers.get(0))).findFirst().get();
+        return TICKERS_TKS.get("tickers").stream().filter(i -> i.getValue().equals(tickers.get(0))).findFirst().get();
     }
 
-    public List<Ticker> getAllTickers(InvestApi api, List<String> filter) {
-        List<Ticker> tickers = api.getInstrumentsService().getAllFuturesSync().stream().map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), (long) i.getLot())).collect(Collectors.toList());
+    public void getAllTickers(InvestApi api, List<String> filter) {
+            List<Ticker> tickers = api.getInstrumentsService().getAllFuturesSync().stream().map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot()))).collect(Collectors.toList());
         tickers.addAll(api.getInstrumentsService()
                 .getAllSharesSync()
                 .stream()
                 .filter(i -> i.getClassCode().equals("TQBR"))
-                .map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), (long) i.getLot()))
+                .map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot())))
                 .collect(Collectors.toList()));
         tickers = tickers.stream().filter(i -> filter.contains(i.getValue())).collect(Collectors.toList());
-        TICKERS.replace("tickers", tickers);
-        return tickers;
+        TICKERS_TKS.replace("tickers", tickers);
+        //ByBit
+        List<Ticker> byBitTickers = List.of(
+                new Ticker("BTCUSDT","BTCUSDT","BTCUSDT","BYBITFUT", BigDecimal.valueOf(0.001)),
+                new Ticker("ETHUSDT","ETHUSDT","ETHUSDT","BYBITFUT", BigDecimal.valueOf(0.1))
+        );
+        TICKERS_BYBIT.replace("tickers", byBitTickers);
     }
 
     @Audit
@@ -114,7 +119,7 @@ public class ApiService extends AbstractApiService {
                 throw new Exception(message);
             } catch (Exception e) {
                 List<String> figsList = new ArrayList<>();
-                TICKERS.get("tickers").forEach(i -> figsList.add(i.getFigi()));
+                TICKERS_TKS.get("tickers").forEach(i -> figsList.add(i.getFigi()));
                 this.setSubscriptionOnCandle(api, figsList);
             }
         }).subscribeLastPrices(figs);
@@ -194,20 +199,20 @@ public class ApiService extends AbstractApiService {
         if (!changingStrategy.getIsActive()) {
             return;
         }
-        long position = 0;
+        BigDecimal position = BigDecimal.ZERO;
         BigDecimal executionPrice = null;
         String time = null;
         ErrorData errorData = changingStrategy.getErrorData();
-        Long commissions=0L;
+        long commissions=0L;
+        OrderDirection direction = null;
 
         if (changingStrategy.getConsumer().contains("terminal")) {
-            OrderDirection direction = null;
             if (strategy.getDirection().equals("buy")) {
                 direction = OrderDirection.ORDER_DIRECTION_BUY;
             } else if (strategy.getDirection().equals("sell")) {
                 direction = OrderDirection.ORDER_DIRECTION_SELL;
             } else {
-                if (changingStrategy.getCurrentPosition() < 0) {
+                if (changingStrategy.getCurrentPosition().longValue()<0) {
                     direction = OrderDirection.ORDER_DIRECTION_BUY;
                 } else {
                     direction = OrderDirection.ORDER_DIRECTION_SELL;
@@ -224,7 +229,7 @@ public class ApiService extends AbstractApiService {
             }
             var mainAccount = accounts.get(0).getId();
             var price = Quotation.newBuilder().build();
-            position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
+            position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
 //            //Выставляем заявку на покупку по рыночной цене
             PostOrderResponse orderResponse = null;
             time = DateUtils.getCurrentTime();
@@ -232,7 +237,7 @@ public class ApiService extends AbstractApiService {
                 orderResponse = api.getOrdersService()
                         .postOrderSync(
                                 changingStrategy.getFigi(),
-                                Math.abs(position),
+                                Math.abs(position.longValue()),
                                 price,
                                 direction,
                                 mainAccount,
@@ -250,14 +255,14 @@ public class ApiService extends AbstractApiService {
 
                 if (portfolioPosition.isPresent()) {
                     var realQuantity = portfolioPosition.get().getQuantity();
-                    if (realQuantity.getUnits() != strategy.getQuantity()) {
+                    if (realQuantity.getUnits() != strategy.getQuantity().longValue()) {
                         errorData.setMessage(String.format("Фактическое вол-во лотов:%s, планируемое:%s", realQuantity.getUnits(), strategy.getQuantity()));
                         errorData.setTime(time);
                         changingStrategy.setErrorData(errorData);
                         return;
                     }
                 } else {
-                    if (strategy.getQuantity() != 0) {
+                    if (strategy.getQuantity().longValue() != 0) {
                         errorData.setMessage(String.format("Фактическое вол-во лотов:%s, планируемое:%s", 0, strategy.getQuantity()));
                         errorData.setTime(time);
                         changingStrategy.setErrorData(errorData);
@@ -272,7 +277,7 @@ public class ApiService extends AbstractApiService {
             }
         } else if (changingStrategy.getConsumer().contains("test")) {
             executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
-            position = strategy.getQuantity() - changingStrategy.getCurrentPosition();
+            position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
         }
         userCache.addCommission(commissions);
         updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time);
@@ -284,49 +289,49 @@ public class ApiService extends AbstractApiService {
         streamService.sendDataToUser(Set.of(strategy.getUserName()), message);
     }
 
-    private void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, long position, String time) {
+    private void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time) {
         var minLot = changingStrategy.getMinLot();
         String printPrice = CommonUtils.formatNumber(executionPrice);
 
-        if (strategy.getDirection().equals(changingStrategy.getCurrentPosition() > 0 ? "buy" : changingStrategy.getCurrentPosition() < 0 ? "sell" : "hold")) {
+        if (strategy.getDirection().equals(changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0 ? "buy" : changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "sell" : "hold")) {
             changingStrategy.addEnterAveragePrice(executionPrice, false);
         } else {
             changingStrategy.addEnterAveragePrice(executionPrice, true);
         }
 
         if (strategy.getDirection().equals("buy")) {
-            changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
-            for (int i = 1; i <= Math.abs(position / minLot); i++) {
+            changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+            for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
                 changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
             }
-            String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), printPrice, strategy.getPriceTv(), time);
+            String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
             userCache.addLogs(text);
             if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
                 telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
             }
         }
         if (strategy.getDirection().equals("sell")) {
-            changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
-            for (int i = 1; i <= Math.abs(position / minLot); i++) {
+            changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+            for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
                 changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
             }
-            String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), printPrice, strategy.getPriceTv(), time);
+            String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
             userCache.addLogs(text);
             if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
                 telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
             }
         }
         if (strategy.getDirection().equals("hold")) {
-            if (changingStrategy.getCurrentPosition() != 0) {
-                String text = String.format(changingStrategy.getCurrentPosition() < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position), printPrice, strategy.getPriceTv(), time);
+            if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) != 0) {
+                String text = String.format(changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
                 userCache.addLogs(text);
                 if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
                     telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
                 }
-                for (int i = 1; i <= Math.abs(position / minLot); i++) {
-                    changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition() < 0 ? "buy" : "sell", time));
+                for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
+                    changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time));
                 }
-                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition() + position);
+                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
             }
         }
 

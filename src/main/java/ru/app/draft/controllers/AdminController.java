@@ -33,7 +33,7 @@ public class AdminController {
         List<ShortLastPrice> list = new ArrayList<>();
         LAST_PRICE.forEach((k, v) -> {
             if (v.getUpdateTime() != null) {
-                list.add(new ShortLastPrice(k, v.getPrice(), DateUtils.getTime(v.getUpdateTime().getSeconds())));
+                list.add(new ShortLastPrice(k, v.getPrice(),null, null, DateUtils.getTime(v.getUpdateTime().getSeconds())));
             }
         });
 

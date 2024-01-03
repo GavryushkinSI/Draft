@@ -1,6 +1,7 @@
 package ru.app.draft.entity;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -18,7 +19,7 @@ public class LastPrice {
     private String figi;
 
     @Column(name = "price")
-    private Integer price;
+    private BigDecimal price;
 
     @Column(name = "update_time")
     private Instant updateTime;
@@ -31,11 +32,11 @@ public class LastPrice {
         this.updateTime = updateTime;
     }
 
-    public Integer getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Integer price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 

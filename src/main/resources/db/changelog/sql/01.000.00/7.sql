@@ -4,8 +4,8 @@
 CREATE TABLE orders (
                         "id" serial NOT NULL UNIQUE,
                         "strategy_id" bigint NOT NULL,
-                        "price" DECIMAL NOT NULL,
-                        "quantity" bigint NOT NULL,
+                        "price" numeric(20,5) NOT NULL,
+                        "quantity" numeric(20,5) NOT NULL,
                         "direction" VARCHAR(255) NOT NULL,
                         "date" VARCHAR(255) NOT NULL,
                         CONSTRAINT "orders_pk" PRIMARY KEY ("id")
