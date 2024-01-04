@@ -1,8 +1,8 @@
 import axios from "axios";
 
-export const webSocketUrl = process?.env?.NODE_ENV === 'development' ? 'http://localhost:9000/ws' : '/ws';
+export const webSocketUrl = typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development' ? 'http://localhost:9000/ws' : '/ws';
 export default axios.create({
-    baseURL: process?.env?.NODE_ENV === 'development' ? "http://localhost:9000/app" : "/api",
+    baseURL: typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development' ? "http://localhost:9000/app" : "/api",
     headers: {
         "Content-type": "application/json"
     }
