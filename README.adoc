@@ -23,6 +23,19 @@
 На пром проект доставляется ввиде докер контейнера путём выкачки образа из репозитория docker hub.
 Запуск выкачки образов и последующий запуск контейнеров осуществляется командой docker-compose up.
 Команду запускать в директории расположения файла docker-compose.yml (см. файл docker-compose.yml).
+- Автоматическое развертывание с выкачкой с github:
+cd /
+&& docker stop $(docker ps -aq)
+&& docker ps -aq | xargs -I % docker rm %
+&& cd test
+&& rm -rf Draft
+&& git clone https://github.com/GavryushkinSI/Draft.git
+&& cd Draft
+&& docker build -t parsesignal/draft:back_01.000.000 .
+&& cd draft-ui
+&& docker build -t parsesignal/draft:ui_01.000.000 .
+&& cd ..
+&& docker-compose up
 
 === Концепт проекта
 Пользователь логиниться на сайте. Далее добавляет стратегию для тестирования. Непосредственно сигналы
