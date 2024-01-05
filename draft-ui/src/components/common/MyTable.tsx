@@ -363,10 +363,10 @@ const MyTable: React.FC = () => {
                 </li>
                 <li>
                     URL для отправки сигналов<br/>
-                    <div className="mt-2 text-bg-success">{'http://89.223.68.98/api/tv'}</div>
+                    <div className="mt-2 text-bg-success">{'http://77.232.130.186/api/tv'}</div>
                     <br/>
                     <Button className="me-2" onClick={(e: any) => {
-                        void copyTextToClipboard('http://89.223.68.98/api/tv');
+                        void copyTextToClipboard('http://77.232.130.186/api/tv');
                         const x = document.getElementById('test2');
                         x!.innerText = 'Скопировано!'
                     }} variant={"outline-success"}>
