@@ -21,21 +21,35 @@ public abstract class AbstractTradeService {
     }
 
 
-    public void sendSignal(Strategy strategy){
+    public void sendSignal(Strategy strategy) {
 
     }
 
     abstract Object getPositionInfo(String ticker);
 
     public void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time) {
-        if(executionPrice!=null) {
+        if (executionPrice != null) {
             var minLot = changingStrategy.getMinLot();
             String printPrice = CommonUtils.formatNumber(executionPrice);
 
-            if (strategy.getDirection().equals(changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0 ? "buy" : changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "sell" : "hold")) {
+            if (strategy.getDirection()
+                            .equals(changingStrategy.getCurrentPosition()
+                                    .compareTo(BigDecimal.ZERO) > 0 ?
+                                    "buy" :
+                                    changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ?
+                                            "sell" :
+                                            "hold")
+            ) {
                 changingStrategy.addEnterAveragePrice(executionPrice, false);
-            } else {
-                changingStrategy.addEnterAveragePrice(executionPrice, true);
+            }else{
+                if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0 && strategy.getQuantity().compareTo(BigDecimal.ZERO) > 0 ||
+                        changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 && strategy.getQuantity().compareTo(BigDecimal.ZERO) < 0 ||
+                        strategy.getQuantity().compareTo(BigDecimal.ZERO) == 0 ||
+                strategy.getDirection().equals("hold")) {
+
+                } else {
+                    changingStrategy.addEnterAveragePrice(executionPrice, true);
+                }
             }
 
             if (strategy.getDirection().equals("buy")) {
@@ -81,7 +95,7 @@ public abstract class AbstractTradeService {
         sendMessageInSocket(userCache.getStrategies(), strategy.getUserName());
     }
 
-    private void sendMessageInSocket(List<Strategy> strategyList, String userName){
+    private void sendMessageInSocket(List<Strategy> strategyList, String userName) {
         Message message = new Message();
         message.setSenderName("server");
         message.setMessage(strategyList);

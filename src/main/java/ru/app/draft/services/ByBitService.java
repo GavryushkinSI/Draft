@@ -67,8 +67,6 @@ public class ByBitService extends AbstractTradeService {
 
     @Override
     public void sendSignal(Strategy strategy) {
-        Map<String, Object> accountMap = getPositionInfo(null);
-        //accountMap.get("result").get("list").get(0).get("coin").get(0).get("equity")
         UserCache userCache = USER_STORE.get(strategy.getUserName());
         List<Strategy> strategyList = userCache.getStrategies();
         Strategy changingStrategy = strategyList
@@ -181,7 +179,6 @@ public class ByBitService extends AbstractTradeService {
 
             @Override
             public void onMessage(@NotNull WebSocket webSocket, @NotNull String text) {
-                //log.info("BYBIT:{}",text);
                 if (text != null) {
                     try {
                         Map<String, Object> result = (Map<String, Object>) JSON.parse(text);
