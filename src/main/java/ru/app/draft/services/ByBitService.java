@@ -77,44 +77,38 @@ public class ByBitService extends AbstractTradeService {
             return;
         }
 
-        BigDecimal position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
-        OrderDirection direction;
+        OrderDirection direction = null;
         BigDecimal executionPrice = null;
-        ErrorData errorData = changingStrategy.getErrorData();
+        ErrorData errorData = null;
         try {
             if (strategy.getDirection().equals("buy")) {
-                if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) <= 0) {
-                    throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "покупка", strategy.getQuantity()));
-                }
                 direction = OrderDirection.ORDER_DIRECTION_BUY;
             } else if (strategy.getDirection().equals("sell")) {
-                if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) >= 0) {
-                    throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "продажа", strategy.getQuantity()));
-                }
                 direction = OrderDirection.ORDER_DIRECTION_SELL;
             } else {
-                if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0) {
+                if (changingStrategy.getCurrentPosition().longValue() < 0) {
                     direction = OrderDirection.ORDER_DIRECTION_BUY;
                 } else {
                     direction = OrderDirection.ORDER_DIRECTION_SELL;
                 }
             }
 
+            errorData = null;
             if (changingStrategy.getConsumer().contains("terminal")) {
-                Map<String, Object> result = sendOrder(direction, position.toString(), changingStrategy.getTicker());
+                Map<String, Object> result = sendOrder(direction, String.valueOf(strategy.getQuantity()), changingStrategy.getTicker());
                 executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
-
-            } else if (changingStrategy.getConsumer().contains("test")) {
+            } else if (strategy.getConsumer().contains("test")) {
                 executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
             }
         } catch (Exception e) {
+            errorData = new ErrorData();
             errorData.setMessage("Ошибка: " + e.getMessage());
             errorData.setTime(DateUtils.getCurrentTime());
             changingStrategy.setErrorData(errorData);
         }
 
         String time = DateUtils.getCurrentTime();
-        updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time);
+        updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, strategy.getQuantity(), time);
     }
 
     @Override
@@ -140,21 +134,13 @@ public class ByBitService extends AbstractTradeService {
                 .symbol(ticker)
                 .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
                 .orderType(TradeOrderType.MARKET)
-                .qty(String.valueOf(Math.abs(Double.parseDouble(quantity))))
+                .qty(quantity)
                 .build();
 
         var response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(newOrderRequest);
         if (!Objects.equal(response.get("retCode"), 0)) {
             throw new OrderNotExecutedException(String.format("Ошибка исполнения ордера %s, %s, %s", ticker, direction.name(), quantity));
         }
-//        try {
-//            Thread.sleep(3000);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException("Был прерван текущий поток!");
-//        }
-//        var positionDataRequest = PositionDataRequest.builder().category(CategoryType.LINEAR).symbol(ticker).orderId(((Map<String, Object>) response.get("result")).get("orderId").toString()).build();
-//        var result = (LinkedHashMap<String, Object>) positionRestClient.getExecutionList(positionDataRequest);
-//        return (LinkedHashMap<String, Object>) ((List) ((LinkedHashMap<String, Object>) result.get("result")).get("list")).get(0);
         return response;
     }
 
@@ -206,10 +192,12 @@ public class ByBitService extends AbstractTradeService {
 
             @Override
             public void onClosed(@NotNull WebSocket webSocket, int code, @NotNull String reason) {
-                super.onClosed(webSocket, code, reason);
+                setStreamPublic();
             }
         });
     }
+
+
 
     public void setStreamPrivate() {
         OkHttpClient privateClient = new OkHttpClient.Builder().build();
@@ -238,7 +226,7 @@ public class ByBitService extends AbstractTradeService {
 
             @Override
             public void onClosed(@NotNull WebSocket webSocket, int code, @NotNull String reason) {
-                super.onClosed(webSocket, code, reason);
+                setStreamPublic();
             }
 
             @Override

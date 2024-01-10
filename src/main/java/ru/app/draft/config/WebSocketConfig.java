@@ -133,7 +133,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         //apiService.setSubscriptionOnCandle(api, figsList);
         dbService.getAllComments();
         byBitService.setStreamPublic();
-        byBitService.setStreamPrivate();
+        //byBitService.setStreamPrivate();
         return api;
     }
 
