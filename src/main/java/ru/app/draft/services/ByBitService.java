@@ -97,7 +97,7 @@ public class ByBitService extends AbstractTradeService {
             if (changingStrategy.getConsumer().contains("terminal")) {
                 Map<String, Object> result = sendOrder(direction, String.valueOf(strategy.getQuantity()), changingStrategy.getTicker());
                 executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
-            } else if (strategy.getConsumer().contains("test")) {
+            } else if (changingStrategy.getConsumer().contains("test")) {
                 executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
             }
         } catch (Exception e) {
