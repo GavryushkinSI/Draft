@@ -32,28 +32,28 @@ public abstract class AbstractTradeService {
             var minLot = changingStrategy.getMinLot();
             String printPrice = CommonUtils.formatNumber(executionPrice);
 
-            if (strategy.getDirection()
-                            .equals(changingStrategy.getCurrentPosition()
-                                    .compareTo(BigDecimal.ZERO) > 0 ?
-                                    "buy" :
-                                    changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ?
-                                            "sell" :
-                                            "hold")
-            ) {
-                changingStrategy.addEnterAveragePrice(executionPrice, false);
-            }else{
-                if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0 && strategy.getQuantity().compareTo(BigDecimal.ZERO) > 0 ||
-                        changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 && strategy.getQuantity().compareTo(BigDecimal.ZERO) < 0 ||
-                        strategy.getQuantity().compareTo(BigDecimal.ZERO) == 0 ||
-                strategy.getDirection().equals("hold")) {
-
-                } else {
-                    changingStrategy.addEnterAveragePrice(executionPrice, true);
-                }
-            }
+//            if (strategy.getDirection()
+//                            .equals(changingStrategy.getCurrentPosition()
+//                                    .compareTo(BigDecimal.ZERO) > 0 ?
+//                                    "buy" :
+//                                    changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ?
+//                                            "sell" :
+//                                            "hold")
+//            ) {
+//                changingStrategy.addEnterAveragePrice(executionPrice, false);
+//            }else{
+//                if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0 && strategy.getQuantity().compareTo(BigDecimal.ZERO) > 0 ||
+//                        changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 && strategy.getQuantity().compareTo(BigDecimal.ZERO) < 0 ||
+//                        strategy.getQuantity().compareTo(BigDecimal.ZERO) == 0 ||
+//                strategy.getDirection().equals("hold")) {
+//
+//                } else {
+//                    changingStrategy.addEnterAveragePrice(executionPrice, true);
+//                }
+//            }
 
             if (strategy.getDirection().equals("buy")) {
-                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+                //changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
                 for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
                     changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
                 }
@@ -63,8 +63,8 @@ public abstract class AbstractTradeService {
                     telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
                 }
             }
-            if (strategy.getDirection().equals("sell")) {
-                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
+             if (strategy.getDirection().equals("sell")) {
+                //changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
                 for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
                     changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
                 }
@@ -84,7 +84,7 @@ public abstract class AbstractTradeService {
                     for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
                         changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time));
                     }
-                    changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
+                    //changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
                 }
             }
         }

@@ -418,7 +418,7 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": found.minLot!,
+                                    "quantity": (found.currentPosition || 0) + found.minLot!,
                                 }
                                 , () => {}
                                 , (error: any) => {
@@ -441,7 +441,7 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": found.minLot!,
+                                    "quantity": (found.currentPosition || 0) - found.minLot!,
                                 },
                                 () => {},
                                 (error: any) => dispatch(addNotification("Info", error)))
@@ -457,12 +457,12 @@ const Admin: React.FC = () => {
                                 return;
                             }
                             actions.sendOrder({
-                                    "direction": (found?.currentPosition||0)>0?"sell":"buy",
+                                    "direction": "hold",
                                     "producer":found.producer,
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": found?.currentPosition || 0
+                                    "quantity": 0
                                 },
                                 () => {},
                                 (error: any) => dispatch(addNotification("Info", error)))
