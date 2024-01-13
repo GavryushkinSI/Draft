@@ -322,7 +322,7 @@ const MyTable: React.FC = () => {
                 "userName":"${userName}",\n\r
                 "name":"${showDescriptionModal.strategy?.name}",\n\r
                 "direction": "{{strategy.order.action}}",\n\r
-                "quantity": "{{strategy.order.contracts}}",\n\r
+                "quantity": "{{strategy.position_size}}",\n\r
                 "producer": "${showDescriptionModal.strategy?.producer}"\n\r}
                 `;
         return <ModalView header={'Как добавить стратегию в Tradingview:'} show={showDescriptionModal.show}
