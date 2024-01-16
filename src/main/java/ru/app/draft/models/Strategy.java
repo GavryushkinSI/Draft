@@ -34,6 +34,9 @@ public class Strategy implements Serializable {
     @JsonIgnoreProperties
     private BigDecimal minLot;
     private String description;
+    private BigDecimal triggerPrice;
+    private String orderName;
+    private String orderLinkedId;
     private ErrorData errorData = new ErrorData();
     private List<String> enterAveragePrice = new ArrayList<>();
 
