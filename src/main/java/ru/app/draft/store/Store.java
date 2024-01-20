@@ -11,9 +11,14 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Log4j2
 public class Store {
+
+
+    public final static AtomicInteger REMOVE_EXEC_STATUS = new AtomicInteger(0);
 
     private final static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -56,6 +61,11 @@ public class Store {
     public final static ConcurrentMap<String, List<MetricItem>> METRICS = CacheBuilder.newBuilder()
             .maximumSize(10000)
             .<String, List<MetricItem>>build()
+            .asMap();
+
+    public final static ConcurrentMap<String, Strategy> ORDERS_MAP = CacheBuilder.newBuilder()
+            .maximumSize(1000)
+            .<String, Strategy>build()
             .asMap();
 
     public static void updateLastPrice(String figi, BigDecimal newValue, Timestamp time) {

@@ -51,8 +51,6 @@ public class ByBitService extends AbstractTradeService {
 
     private static final String PING_DATA = "{\"op\":\"ping\"}";
 
-    public static Map<String, Strategy> orders = new HashMap<>();
-
     public ByBitService(TelegramBotService telegramBotService, MarketDataStreamService streamService, BybitApiTradeRestClient orderRestClient, BybitApiPositionRestClient positionRestClient, BybitApiMarketRestClient marketRestClient, BybitApiLendingRestClient lendingRestClient, BybitApiAccountRestClient accountClient, ObjectMapper mapper) {
         super(telegramBotService, streamService);
         this.telegramBotService = telegramBotService;
@@ -73,11 +71,18 @@ public class ByBitService extends AbstractTradeService {
         Map<String, Object> map = null;
         BigDecimal executionPrice = null;
         BigDecimal position = null;
+        UserCache userCache = null;
+        List<Strategy> strategyList = null;
         try {
-            map = setCurrentPosition(strategy);
-            if (map.size() == 0) {
+            map = setCurrentPosition(strategy, null, null, null);
+
+            if (map != null) {
+                userCache = USER_STORE.get(strategy.getUserName());
+                strategyList = userCache.getStrategies();
+            } else {
                 return;
             }
+
             changingStrategy = (Strategy) map.get("changingStrategy");
             if (!changingStrategy.getIsActive()) {
                 return;
@@ -85,19 +90,19 @@ public class ByBitService extends AbstractTradeService {
 
             position = (BigDecimal) map.get("position");
             OrderDirection direction = (OrderDirection) map.get("direction");
-            errorData = changingStrategy.getErrorData();
             if (changingStrategy.getConsumer().contains("terminal")) {
                 var ordeId = (Optional<String>) map.get("orderId");
-                var triggerPrice = (Optional<String>) map.get("triggerPrice");
-                Map<String, Object> result = sendOrder(direction, position.toString(), changingStrategy.getTicker(), ordeId.isPresent()?ordeId.get():null, triggerPrice.isPresent()?triggerPrice.get():null);
+                var triggerPrice = (Optional<BigDecimal>) map.get("triggerPrice");
+                var isAmendOrder = (Boolean) map.get("isAmendOrder");
+                Map<String, Object> result = sendOrder(direction, position.toString(), changingStrategy.getTicker(), ordeId.isPresent() ? ordeId.get() : null, triggerPrice.isPresent() ? String.valueOf(triggerPrice.get()) : null, isAmendOrder);
                 executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
             } else if (changingStrategy.getConsumer().contains("test")) {
                 executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
             }
         } catch (Exception e) {
             if (changingStrategy == null) {
-                UserCache userCache = USER_STORE.get(strategy.getUserName());
-                List<Strategy> strategyList = userCache.getStrategies();
+                userCache = USER_STORE.get(strategy.getUserName());
+                strategyList = userCache.getStrategies();
                 changingStrategy = strategyList
                         .stream()
                         .filter(str -> str.getName().equals(strategy.getName())).findFirst().get();
@@ -107,30 +112,77 @@ public class ByBitService extends AbstractTradeService {
             errorData.setTime(DateUtils.getCurrentTime());
             changingStrategy.setErrorData(errorData);
         }
-        String time = DateUtils.getCurrentTime();
-        List<Strategy> strategyList = (List<Strategy>) map.get("strategyList");
-        UserCache userCache = (UserCache) map.get("userCache");
-        updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time);
+        if (strategy.getTriggerPrice() == null || errorData != null) {
+            String time = DateUtils.getCurrentTime();
+            updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time);
+        }
     }
 
-    private Map<String, Object> setCurrentPosition(Strategy strategy) {
-        UserCache userCache = USER_STORE.get(strategy.getUserName());
+    public Map<String, Object> setCurrentPosition(@Nullable Strategy strategy, String orderLinkedId, BigDecimal executionPrice, BigDecimal lastPrice) {
+        UserCache userCache = USER_STORE.get("Admin");
         List<Strategy> strategyList = userCache.getStrategies();
+
+        if (orderLinkedId != null || lastPrice != null) {
+            ORDERS_MAP.entrySet().stream()
+                    .forEach(entry -> {
+                        Strategy str = entry.getValue();
+                        if (!str.getIsExecution()) {
+                            if (lastPrice == null) {
+                                if (str.getOrderLinkedId().equals(orderLinkedId)) {
+                                    Strategy changingStrategyFromCond = strategyList
+                                            .stream()
+                                            .filter(i -> i.getName().equals(str.getName())).findFirst().get();
+                                    BigDecimal position = str.getQuantity().subtract(changingStrategyFromCond.getCurrentPosition());
+                                    changingStrategyFromCond.setCurrentPosition(str.getQuantity());
+                                    strategyList.set(Integer.parseInt(changingStrategyFromCond.getId()), changingStrategyFromCond);
+                                    userCache.setStrategies(strategyList);
+                                    USER_STORE.replace(str.getUserName(), userCache);
+                                    String time = DateUtils.getCurrentTime();
+                                    updateStrategyCache(strategyList, str, changingStrategyFromCond, executionPrice, userCache, position, time);
+                                    str.setIsExecution(true);
+                                    entry.setValue(str);
+                                }
+                            } else {
+                                String direct = str.getDirection();
+                                BigDecimal trPrice = str.getTriggerPrice();
+                                if ((direct.equals("buy") && trPrice.compareTo(lastPrice) <= 0)
+                                        || (direct.equals("sell") && trPrice.compareTo(lastPrice) >= 0)
+                                ) {
+                                    Strategy changingStrategyFromCond = strategyList
+                                            .stream()
+                                            .filter(i -> i.getName().equals(str.getName())).findFirst().get();
+
+                                    BigDecimal position = str.getQuantity().subtract(changingStrategyFromCond.getCurrentPosition());
+                                    changingStrategyFromCond.setCurrentPosition(str.getQuantity());
+                                    strategyList.set(Integer.parseInt(changingStrategyFromCond.getId()), changingStrategyFromCond);
+                                    userCache.setStrategies(strategyList);
+                                    USER_STORE.replace(str.getUserName(), userCache);
+                                    String time = DateUtils.getCurrentTime();
+                                    updateStrategyCache(strategyList, str, changingStrategyFromCond, lastPrice, userCache, position, time);
+                                    str.setIsExecution(true);
+                                    entry.setValue(str);
+                                }
+                            }
+                        }
+                    });
+            return null;
+        }
+
         Strategy changingStrategy = strategyList
                 .stream()
-                .filter(str -> str.getName().equals(strategy.getName())).findFirst().get();
+                .filter(item -> item.getName().equals(strategy.getName())).findFirst().get();
 
         if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) == 0) {
-            return new HashMap<>(0);
+            return null;
         }
 
         OrderDirection direction = null;
         if (strategy.getDirection().equals("buy")) {
-            if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) <= 0) {
+            if (strategy.getTriggerPrice() == null && strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) <= 0) {
                 throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "покупка", strategy.getQuantity()));
             }
             direction = OrderDirection.ORDER_DIRECTION_BUY;
-        } else if (strategy.getDirection().equals("sell")) {
+        } else if (strategy.getTriggerPrice() == null && strategy.getDirection().equals("sell")) {
             if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) >= 0) {
                 throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "продажа", strategy.getQuantity()));
             }
@@ -143,25 +195,55 @@ public class ByBitService extends AbstractTradeService {
             }
         }
 
+
+        boolean isAmendOrder = false;
+        Strategy replacingStrategy = ORDERS_MAP.get(strategy.getOrderName());
+        String newOrderLinkedId = UUID.randomUUID().toString();
+        boolean isExecutStrategy = replacingStrategy != null ? replacingStrategy.getIsExecution() != true : true;
+        boolean triggerPriceNotNull = strategy.getTriggerPrice() != null;
+        boolean removeExceStatus = false;
+        if (triggerPriceNotNull) {
+            if (strategy.getQuantity().compareTo(BigDecimal.ZERO) > 0 && changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0
+                    || strategy.getQuantity().compareTo(BigDecimal.ZERO) < 0 && changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0
+                    || strategy.getQuantity().compareTo(BigDecimal.ZERO) < 0 && changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0
+                    || strategy.getQuantity().compareTo(BigDecimal.ZERO) > 0 && changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0
+            ) {
+                removeExceStatus = true;
+            }
+        }
+        if (triggerPriceNotNull) {
+            if (ORDERS_MAP.containsKey(strategy.getOrderName())) {
+                if (isExecutStrategy && removeExceStatus || !isExecutStrategy) {
+                    //if order execute open new order
+                    if (isExecutStrategy && removeExceStatus) {
+                        newOrderLinkedId = UUID.randomUUID().toString();
+                        replacingStrategy.setOrderLinkedId(newOrderLinkedId);
+                    } else {
+                        //amend order
+                        newOrderLinkedId = replacingStrategy.getOrderLinkedId();
+                        isAmendOrder = true;
+                    }
+                    replacingStrategy.setIsExecution(false);
+                    replacingStrategy.setQuantity(strategy.getQuantity());
+                    replacingStrategy.setTriggerPrice(strategy.getTriggerPrice());
+                    replacingStrategy.setDirection(strategy.getDirection());
+                    ORDERS_MAP.replace(strategy.getOrderName(), replacingStrategy);
+                }
+            } else {
+                newOrderLinkedId = UUID.randomUUID().toString();
+                strategy.setCurrentPosition(strategy.getQuantity());
+                strategy.setOrderLinkedId(newOrderLinkedId);
+                ORDERS_MAP.put(strategy.getOrderName(), strategy);
+            }
+        }
+
         BigDecimal position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
-        changingStrategy.setCurrentPosition(strategy.getQuantity());
+        if (triggerPriceNotNull != true) {
+            changingStrategy.setCurrentPosition(strategy.getQuantity());
+        }
         strategyList.set(Integer.parseInt(changingStrategy.getId()), changingStrategy);
         userCache.setStrategies(strategyList);
         USER_STORE.replace(strategy.getUserName(), userCache);
-
-        if (strategy.getTriggerPrice() != null) {
-            if (orders.containsKey(strategy.getOrderName())) {
-                Strategy oldStrategy = orders.get(strategy.getOrderName());
-                oldStrategy.setCurrentPosition(strategy.getQuantity());
-                oldStrategy.setTriggerPrice(strategy.getTriggerPrice());
-                orders.replace(strategy.getOrderName(), strategy);
-            } else {
-                var orderLinkedId = UUID.randomUUID().toString();
-                strategy.setCurrentPosition(strategy.getQuantity());
-                strategy.setOrderLinkedId(orderLinkedId);
-                orders.put(strategy.getName(), strategy);
-            }
-        }
 
         Map<String, Object> map = ImmutableMap.of(
                 "userCache", userCache,
@@ -169,7 +251,8 @@ public class ByBitService extends AbstractTradeService {
                 "changingStrategy", changingStrategy,
                 "position", position,
                 "direction", direction,
-                "orderId", Optional.ofNullable(strategy.getOrderLinkedId()),
+                "orderId", Optional.ofNullable(orderLinkedId),
+                "isAmendOrder", isAmendOrder,
                 "triggerPrice", Optional.ofNullable(strategy.getTriggerPrice())
         );
 
@@ -177,8 +260,8 @@ public class ByBitService extends AbstractTradeService {
     }
 
     @Override
-    Map<String, Object> getPositionInfo(String ticker) {
-        var positionListRequest = PositionDataRequest.builder().category(CategoryType.LINEAR).symbol(ticker).build();
+    public Map<String, Object> getPositionInfo() {
+        var positionListRequest = PositionDataRequest.builder().category(CategoryType.LINEAR).settleCoin("USDT").build();
         return (Map<String, Object>) positionRestClient.getPositionInfo(positionListRequest);
     }
 
@@ -193,8 +276,9 @@ public class ByBitService extends AbstractTradeService {
         return (Map<String, Object>) walletBalanceData;
     }
 
-    LinkedHashMap<String, Object> sendOrder(OrderDirection direction, String position, String ticker, String orderId, String triggerPrice) {
+    LinkedHashMap<String, Object> sendOrder(OrderDirection direction, String position, String ticker, String orderId, String triggerPrice, Boolean isAmendOrder) {
         TradeOrderRequest tradeOrderRequest = null;
+        LinkedHashMap<String, Object> response = null;
         if (triggerPrice == null) {
             tradeOrderRequest = TradeOrderRequest.builder()
                     .category(CategoryType.LINEAR)
@@ -204,23 +288,41 @@ public class ByBitService extends AbstractTradeService {
                     .orderLinkId(orderId)
                     .qty(String.valueOf(Math.abs(Double.parseDouble(position))))
                     .build();
+            response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
         } else {
-            tradeOrderRequest = TradeOrderRequest.builder()
-                    .category(CategoryType.LINEAR)
-                    .symbol(ticker)
-                    .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
-                    .orderType(TradeOrderType.MARKET)
-                    .orderLinkId(orderId)
-                    .triggerPrice(triggerPrice)
-                    .triggerDirection(direction == OrderDirection.ORDER_DIRECTION_BUY ? 1 : 2)
-                    .tpTriggerBy(TriggerBy.LAST_PRICE)
-                    .qty(String.valueOf(Math.abs(Double.parseDouble(position))))
-                    .build();
+            if (isAmendOrder) {
+                tradeOrderRequest = TradeOrderRequest.builder()
+                        .category(CategoryType.LINEAR)
+                        .symbol(ticker)
+                        .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
+                        .orderType(TradeOrderType.MARKET)
+                        .orderLinkId(orderId)
+                        .triggerPrice(triggerPrice)
+                        .triggerDirection(direction == OrderDirection.ORDER_DIRECTION_BUY ? 1 : 2)
+                        .tpTriggerBy(TriggerBy.LAST_PRICE)
+                        .qty(String.valueOf(Math.abs(Double.parseDouble(position))))
+                        .build();
+                response = (LinkedHashMap<String, Object>) orderRestClient.amendOrder(tradeOrderRequest);
+            } else {
+                tradeOrderRequest = TradeOrderRequest.builder()
+                        .category(CategoryType.LINEAR)
+                        .symbol(ticker)
+                        .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
+                        .orderType(TradeOrderType.MARKET)
+                        .orderLinkId(orderId)
+                        .triggerPrice(triggerPrice)
+                        .triggerDirection(direction == OrderDirection.ORDER_DIRECTION_BUY ? 1 : 2)
+                        .tpTriggerBy(TriggerBy.LAST_PRICE)
+                        .qty(String.valueOf(Math.abs(Double.parseDouble(position))))
+                        .build();
+                response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
+            }
         }
 
-        var response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
-        if (!Objects.equal(response.get("retCode"), 0)) {
-            throw new OrderNotExecutedException(String.format("Ошибка исполнения ордера %s, %s, %s", ticker, direction.name(), position));
+        var retCode = response.get("retCode");
+        if (!Objects.equal(retCode, 0)) {
+            var message = response.get("retMsg");
+            throw new OrderNotExecutedException(String.format("Ошибка исполнения ордера %s, %s, %s. Message: %s.", ticker, direction.name(), position, message));
         }
         return response;
     }
@@ -254,14 +356,13 @@ public class ByBitService extends AbstractTradeService {
                         if (topic.contains("tickers")) {
                             String ticker = topic.split("\\.")[1];
                             Map<String, Object> data = ((Map<String, Object>) result.get("data"));
-                            //Object bid = data.get("bid1Price");
-                            //Object ask = data.get("ask1Price");
                             BigDecimal lastPrice = BigDecimal.valueOf(Double.parseDouble((String) data.get("lastPrice")));
                             updateLastPrice(ticker, lastPrice, time);
+                            if (ORDERS_MAP.size() != 0) {
+                                setCurrentPosition(null, null, null, lastPrice);
+                            }
                         }
-                    } catch (Exception e) {
-                        //log.info("error");
-                    }
+                    } catch (Exception e) {}
                 }
             }
 
@@ -301,7 +402,16 @@ public class ByBitService extends AbstractTradeService {
 
             @Override
             public void onMessage(@NotNull WebSocket webSocket, @NotNull String text) {
-                super.onMessage(webSocket, text);
+                if (text != null && ORDERS_MAP.size() != 0) {
+                    try {
+                        Map<String, Object> result = (Map<String, Object>) JSON.parse(text);
+                        String topic = (String) result.get("topic");
+                        Map<String, Object> map = ((Map<String, Object>) ((List<Object>) result.get("data")).get(0));
+                        BigDecimal execPrice = (BigDecimal) map.get("execPrice");
+                        String orderLinkId = (String) map.get("orderLinkId");
+                        setCurrentPosition(null, orderLinkId, execPrice, null);
+                    } catch (Exception ex) {}
+                }
             }
 
             @Override
@@ -311,7 +421,7 @@ public class ByBitService extends AbstractTradeService {
 
             @Override
             public void onFailure(@NotNull WebSocket webSocket, @NotNull Throwable t, @Nullable Response response) {
-                log.info(t.getMessage());
+               //log.info(t.getMessage());
             }
         });
     }
@@ -332,11 +442,15 @@ public class ByBitService extends AbstractTradeService {
         return JSON.toJSONString(authMap);
     }
 
-    public static Map<String, Strategy> getOrders() {
-        return orders;
+    public static Map<String, Strategy> getOrdersMap() {
+        return ORDERS_MAP;
     }
 
-    public static void setOrders(Map<String, Strategy> orders) {
-        ByBitService.orders = orders;
+    public Map<String, Object> getOpenOrders(){
+        TradeOrderRequest tradeOrderRequest = TradeOrderRequest.builder()
+                .category(CategoryType.LINEAR)
+                .symbol("BTCUSDT")
+                .build();
+        return (Map<String, Object>) orderRestClient.getOpenOrders(tradeOrderRequest);
     }
 }

@@ -69,7 +69,16 @@ public class MainController {
 
     @Audit
     @GetMapping("/app/getUserInfo/{userName}")
+    @SuppressWarnings("ALL")
     public ResponseEntity<List<AccountDto>> getUserInfo(@PathVariable String userName) {
+//        Map<String, Object> result = byBitService.getPositionInfo();
+//        try {
+//            if ((int) result.get("retCode") == 0) {
+//                List<Object> data = (List<Object>) ((Map<String, Object>) byBitService.getPositionInfo().get("result")).get("list");
+//                AccountDto accountDto = new AccountDto();
+//                data.stream().forEach(i->accountDto.addPortfolio(i.get("symbol"), i.get("size")));
+//            }
+//        }catch(Exception e){}
         return ResponseEntity.ok(apiService.getAccountInfo(api, userName));
     }
 

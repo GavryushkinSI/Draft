@@ -25,32 +25,12 @@ public abstract class AbstractTradeService {
 
     }
 
-    abstract Object getPositionInfo(String ticker);
+    abstract Object getPositionInfo();
 
     public synchronized void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time) {
         if (executionPrice != null) {
             var minLot = changingStrategy.getMinLot();
             String printPrice = CommonUtils.formatNumber(executionPrice);
-
-//            if (strategy.getDirection()
-//                            .equals(changingStrategy.getCurrentPosition()
-//                                    .compareTo(BigDecimal.ZERO) > 0 ?
-//                                    "buy" :
-//                                    changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ?
-//                                            "sell" :
-//                                            "hold")
-//            ) {
-//                changingStrategy.addEnterAveragePrice(executionPrice, false);
-//            }else{
-//                if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0 && strategy.getQuantity().compareTo(BigDecimal.ZERO) > 0 ||
-//                        changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 && strategy.getQuantity().compareTo(BigDecimal.ZERO) < 0 ||
-//                        strategy.getQuantity().compareTo(BigDecimal.ZERO) == 0 ||
-//                strategy.getDirection().equals("hold")) {
-//
-//                } else {
-//                    changingStrategy.addEnterAveragePrice(executionPrice, true);
-//                }
-//            }
 
             if (strategy.getDirection().equals("buy")) {
                 //changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
