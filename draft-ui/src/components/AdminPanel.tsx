@@ -20,7 +20,6 @@ const AdminPanel: React.FC = () => {
     const renderChart = useMemo(() => {
         if(metrics) {
             const result = groupBy(metrics, 'method');
-            // console.log(Object.keys(result).map(key => ({method: key, dataPoints: result[key]})));
             return <Chart isAdmin data={Object.keys(result).map(key => ({method: key, dataPoints: result[key]}))}/>
         }
     }, [metrics])

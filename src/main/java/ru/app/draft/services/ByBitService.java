@@ -12,6 +12,7 @@ import com.bybit.api.client.domain.trade.Side;
 import com.bybit.api.client.restApi.*;
 import com.bybit.api.client.domain.trade.request.TradeOrderRequest;
 import com.bybit.api.client.security.HmacSHA256Signer;
+import com.bybit.api.client.service.BybitApiClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
@@ -343,7 +344,10 @@ public class ByBitService extends AbstractTradeService {
 
             @Override
             public void onFailure(@NotNull WebSocket webSocket, @NotNull Throwable t, @Nullable Response response) {
-                log.info(t.getMessage());
+                try{
+                    Thread.sleep(5000);
+                    setErrorAndSetOnUi(String.format("WebSocket failure reason: %s", t.getMessage()));
+                }catch (Exception e){}
                 setStreamPublic();
             }
 
@@ -375,6 +379,12 @@ public class ByBitService extends AbstractTradeService {
 
             @Override
             public void onClosed(@NotNull WebSocket webSocket, int code, @NotNull String reason) {
+                try{
+                    Thread.sleep(5000);
+                    setErrorAndSetOnUi(String.format("WebSocket closed reason: %s", reason));
+                }catch (Exception e){
+
+                }
                 setStreamPublic();
             }
         });

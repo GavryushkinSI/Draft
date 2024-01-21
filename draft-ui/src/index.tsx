@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from 'react-dom';
 import {combineReducers, createStore} from "redux";
 import {devToolsEnhancer} from '@redux-devtools/extension';
-import {BrowserRouter, Route, Routes, useNavigate} from "react-router-dom";
+import {BrowserRouter, Route, Routes} from "react-router-dom";
 import {Provider} from "react-redux";
 import "./styles/common.css";
 import "./styles/sideBar.css";
@@ -13,7 +13,6 @@ import notificationReducer, {INotificationState} from "./reducers/notificationRe
 import {IStrategy} from "./models/models";
 import "./styles/notification.css";
 import {ROOT} from "./Route/consts";
-import Admin from "./components/Admin";
 
 const initial = {
     data: [],
@@ -31,6 +30,7 @@ export enum EActionTypes {
     CHANGE_VIEWED_NOTIFY_IDS = "CHANGE_VIEWED_NOTIFY_IDS",
     GET_TICKER = "GET_TICKER",
     SET_PORTFOLIO = "SET_PORTFOLIO",
+    SET_APP_ERROR='SET_APP_ERROR',
 }
 
 /**
@@ -106,6 +106,7 @@ export interface IAppState {
     notifications: INotificationState;
     strategy: any;
     portfolio: any;
+    appError:any;
 }
 
 /**
@@ -140,6 +141,18 @@ const portfolioReducer = (state = [], action: IAction): any => {
         case EActionTypes.SET_PORTFOLIO:
             return {
                 ...state,
+                data: action.payload,
+            };
+
+        default:
+            return state;
+    }
+}
+
+const appErrorReducer= (state = null, action: IAction): any => {
+    switch (action.type) {
+        case EActionTypes.SET_APP_ERROR:
+            return {
                 data: action.payload,
             };
 
@@ -184,6 +197,7 @@ const configureStore = () => {
                 strategy: strategyReducer,
                 user: userReducer,
                 portfolio: portfolioReducer,
+                appError: appErrorReducer,
             }),
             devToolsEnhancer()
         )

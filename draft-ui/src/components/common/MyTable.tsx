@@ -18,6 +18,7 @@ import Gap from "./Gap";
 import MyEditor from "./MyEditor";
 import Portfolio from "../Portfolio";
 import NameComponent from "./NameComponent";
+import LastPrice from "./LastPrice";
 
 const columns = [
     {field: 'id', fieldName: '№'},
@@ -28,7 +29,7 @@ const columns = [
     {field: 'status', fieldName: 'Статус'},
     {field: 'currentPosition', fieldName: 'Текущая позиция'},
     {filed: 'fixProfit', fieldName: 'Тек. доход'},
-    {filed: 'nonFixProfit', fieldName: 'Ср.цена посл.сд.'},
+    // {filed: 'nonFixProfit', fieldName: 'Ср.цена посл.сд.'},
     {filed: 'lastPrice', fieldName: 'Посл. цена'},
     {field: '', fieldName: ''},
 ];
@@ -53,9 +54,6 @@ const MyTable: React.FC = () => {
 
     const user: any = useSelector((state: IAppState) =>
         state.user.data);
-
-    const lastPrice: Map<string, any> = useSelector((state: IAppState) =>
-        state.lastPrice.data);
 
     const handleChangeEdit = (e: any, rowId?: any) => {
         const {name, value} = e.target;
@@ -483,17 +481,11 @@ const MyTable: React.FC = () => {
                                         return i.id === Number(row.id)
                                     })?.graphResult?.slice(-1)[0]?.y) || 0}
                                 </td>
+                                {/*<td className={"align-middle text-center"}>*/}
+                                {/*    {formatNumber(calcLastAvrPrice(row), 4)}*/}
+                                {/*</td>*/}
                                 <td className={"align-middle text-center"}>
-                                    {formatNumber(calcLastAvrPrice(row), 4)}
-                                </td>
-                                <td className={"align-middle text-center"}>
-                                    {lastPrice.get(row.figi!) ?
-                                        (<MyToolTip style={{
-                                            marginTop: "-4px",
-                                            borderBottom: "1px dashed black",
-                                            color: "black"
-                                        }} placement={"top"} text={`updateTime: ${lastPrice.get(row.figi!)?.time}`}
-                                                    textInner={lastPrice.get(row.figi!)?.price}/>) : 'wait...'}
+                                    <LastPrice row={row}/>
                                 </td>
                                 <td style={{verticalAlign: "middle"}}>
                                     <ButtonGroup className={"me-2"}>

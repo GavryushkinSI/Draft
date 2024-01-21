@@ -2,6 +2,7 @@ package ru.app.draft.services;
 
 import ru.app.draft.models.*;
 import ru.app.draft.utils.CommonUtils;
+import ru.app.draft.utils.DateUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -82,5 +83,15 @@ public abstract class AbstractTradeService {
         message.setCommand("strategy");
         message.setStatus(Status.JOIN);
         streamService.sendDataToUser(Set.of(userName), message);
+    }
+
+    public void setErrorAndSetOnUi(String mes){
+        Message message = new Message();
+        message.setSenderName("server");
+        message.setMessage(mes);
+        message.setStatus(Status.JOIN);
+        message.setCommand("error");
+        message.setStatus(Status.JOIN);
+        streamService.sendDataToUser(Set.of("Admin"), message);
     }
 }

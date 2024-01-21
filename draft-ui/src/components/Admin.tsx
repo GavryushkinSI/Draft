@@ -18,8 +18,8 @@ import {
     Row
 } from "react-bootstrap";
 import Icon from "./common/Icon";
-import {EConsumer, EProducer, IStrategy, Message} from "../models/models";
-import {getFieldsFromArray, includeInArray, stringTruncate} from "../utils/utils";
+import {IStrategy, Message} from "../models/models";
+import {includeInArray, stringTruncate} from "../utils/utils";
 import Login from "./common/Login";
 import SockJS from "sockjs-client";
 import {over} from "stompjs";
@@ -34,6 +34,7 @@ import MyToolTip from "./common/MyToolTip";
 import {useNavigate} from "react-router-dom";
 import {ROOT} from "../Route/consts";
 import Gap from "./common/Gap";
+import AppError from "./AppError";
 
 let stompClient: any = null;
 const Admin: React.FC = () => {
@@ -171,6 +172,7 @@ const Admin: React.FC = () => {
     }
 
     return <Container fluid>
+        <AppError/>
         <Notifications/>
         {notifyView?.show && renderViewNotify()}
         {isLoading && (<PreLoad/>)}

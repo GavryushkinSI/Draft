@@ -22,6 +22,9 @@ export class Service {
             case "portfolio":
                 this.dispatch({type: EActionTypes.SET_PORTFOLIO, payload: data});
                 break;
+            case "error":
+                this.dispatch({type: EActionTypes.SET_APP_ERROR, payload: data});
+                break;
             default:
                 break;
         }
@@ -196,12 +199,10 @@ export class Service {
     }
 
     public clearError(strategy: IStrategy, userName: string, successCallback?: () => void, errorCallback?: () => void) {
-        void this.addOrUpdateStrategy(
-            userName,
-            {
-                ...strategy, errorData: {message: undefined, time: undefined},
-                successCallback,
-                errorCallback
-            });
+        void this.addOrUpdateStrategy(userName, {...strategy, errorData: {message: undefined, time: undefined}}, successCallback, errorCallback);
+    }
+
+    public clickError(): void {
+        this.dispatch({type: EActionTypes.SET_APP_ERROR, payload: null});
     }
 }
