@@ -344,6 +344,7 @@ public class ByBitService extends AbstractTradeService {
             @Override
             public void onFailure(@NotNull WebSocket webSocket, @NotNull Throwable t, @Nullable Response response) {
                 log.info(t.getMessage());
+                setStreamPublic();
             }
 
             @Override

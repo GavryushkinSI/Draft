@@ -18,6 +18,7 @@ import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -229,6 +230,8 @@ public class MainController {
 
     @Scheduled(fixedDelay = 50000)
     public void getAllTickersTask() {
+//        new Date().getTime();
+//        LAST_PRICE.get("BTCUSDT").getUpdateTime().getSeconds();
         LAST_PRICE.forEach((k, v) -> {
             if (v.getUpdateTime() != null) {
                 Message message = new Message();
