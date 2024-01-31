@@ -30,6 +30,7 @@ import ru.tinkoff.piapi.contract.v1.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static com.bybit.api.client.constant.Util.generateTransferID;
 import static ru.app.draft.store.Store.*;
@@ -340,6 +341,7 @@ public class ByBitService extends AbstractTradeService {
         subscribeMsg.put("op", "subscribe");
         subscribeMsg.put("req_id", generateTransferID());
         subscribeMsg.put("args", List.of("tickers.BTCUSDT", "tickers.ETHUSDT"));
+
         WebSocket webSocket = publicClient.newWebSocket(request, new WebSocketListener() {
 
             @Override
@@ -357,6 +359,7 @@ public class ByBitService extends AbstractTradeService {
                     try {
                         Map<String, Object> result = (Map<String, Object>) JSON.parse(text);
                         String topic = (String) result.get("topic");
+                        if(topic!=null){
                         Timestamp time = getTimeStamp((Long) result.get("ts"));
                         if (topic.contains("tickers")) {
                             String ticker = topic.split("\\.")[1];
@@ -367,12 +370,16 @@ public class ByBitService extends AbstractTradeService {
                                 setCurrentPosition(null, null, null, lastPrice);
                             }
                         }
+                        }
                     } catch (Exception e) {}
                 }
             }
 
             @Override
             public void onOpen(@NotNull WebSocket webSocket, @NotNull Response response) {
+                Thread pingThread = createPingThread(webSocket);
+                pingThread.setName("thread-public-ping");
+                pingThread.start();
                 webSocket.send(JSON.toJSONString(subscribeMsg));
                 log.info("success_bybit_public_stream");
             }
@@ -463,5 +470,24 @@ public class ByBitService extends AbstractTradeService {
                 .symbol("BTCUSDT")
                 .build();
         return (Map<String, Object>) orderRestClient.getOpenOrders(tradeOrderRequest);
+    }
+
+    @NotNull
+    private Thread createPingThread(WebSocket ws) {
+        return new Thread(() -> {
+            while(true) {
+                try {
+                    if (ws != null) {
+                        ws.send("{\"op\":\"ping\"}");
+                        TimeUnit.SECONDS.sleep(20);
+                        continue;
+                    }
+                } catch (InterruptedException var3) {
+                    setErrorAndSetOnUi(String.format("WebSocket failure pingpong: %s", var3.getMessage()));
+                    setStreamPublic();
+                }
+                return;
+            }
+        });
     }
 }
