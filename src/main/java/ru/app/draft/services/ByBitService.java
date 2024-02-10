@@ -340,7 +340,9 @@ public class ByBitService extends AbstractTradeService {
         Map<String, Object> subscribeMsg = new LinkedHashMap<>();
         subscribeMsg.put("op", "subscribe");
         subscribeMsg.put("req_id", generateTransferID());
-        subscribeMsg.put("args", List.of("tickers.BTCUSDT", "tickers.ETHUSDT"));
+        subscribeMsg.put("args", List.of("tickers.BTCUSDT", "tickers.ETHUSDT", "tickers.APTUSDT","tickers.ORDIUSDT",
+                "tickers.FETUSDT", "tickers.XRPUSDT", "tickers.AVAXUSDT","tickers.GRTUSDT"
+                ));
 
         WebSocket webSocket = publicClient.newWebSocket(request, new WebSocketListener() {
 

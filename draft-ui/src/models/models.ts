@@ -20,7 +20,7 @@ export interface IStrategy {
     name?: string | undefined;
     producer?: EProducer | undefined;
     ticker?: string;
-    quantity?: number;
+    quantity?: any;
     slippage?: number;
     consumer?: EConsumer[];
     isActive?: boolean;

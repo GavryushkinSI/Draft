@@ -420,7 +420,7 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": (found.currentPosition || 0) + found.minLot!,
+                                    "quantity": ((found.currentPosition || 0) + found.minLot!)?.toFixed(4),
                                 }
                                 , () => {}
                                 , (error: any) => {
@@ -443,7 +443,7 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": (found.currentPosition || 0) - found.minLot!,
+                                    "quantity": ((found.currentPosition || 0) - found.minLot!).toFixed(4),
                                 },
                                 () => {},
                                 (error: any) => dispatch(addNotification("Info", error)))
