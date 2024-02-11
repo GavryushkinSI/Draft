@@ -64,8 +64,10 @@ public class ApiService extends AbstractApiService {
                 new Ticker("ORDIUSDT","ORDIUSDT","ORDIUSDT","BYBITFUT", BigDecimal.valueOf(0.1)),
                 new Ticker("FETUSDT","FETUSDT","FETUSDT","BYBITFUT", BigDecimal.valueOf(1.0)),
                 new Ticker("XRPUSDT","XRPUSDT","XRPUSDT","BYBITFUT", BigDecimal.valueOf(1.0)),
-                new Ticker("AVAXUSDT","XRPUSDT","XRPUSDT","BYBITFUT", BigDecimal.valueOf(0.1)),
-                new Ticker("GRTUSDT","GRTUSDT","GRTUSDT","BYBITFUT", BigDecimal.valueOf(1.0))
+                new Ticker("GRTUSDT","GRTUSDT","GRTUSDT","BYBITFUT", BigDecimal.valueOf(1.0)),
+                new Ticker("AVAXUSDT","AVAXUSDT","AVAXUSDT","BYBITFUT", BigDecimal.valueOf(0.1)),
+                new Ticker("ARBUSDT","ARBUSDT","ARBUSDT","BYBITFUT", BigDecimal.valueOf(1.0)),
+                new Ticker("DOTUSDT","DOTUSDT","DOTUSDT","BYBITFUT", BigDecimal.valueOf(1.0))
         );
         TICKERS_BYBIT.replace("tickers", byBitTickers);
     }
