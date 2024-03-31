@@ -2,7 +2,6 @@ package ru.app.draft.services;
 
 import ru.app.draft.models.*;
 import ru.app.draft.utils.CommonUtils;
-import ru.app.draft.utils.DateUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -34,26 +33,30 @@ public abstract class AbstractTradeService {
             String printPrice = CommonUtils.formatNumber(executionPrice);
 
             if (strategy.getDirection().equals("buy")) {
-                //changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
                 for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
                     changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
                 }
                 String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
                 userCache.addLogs(text);
+                try{
                 if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
                     telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
                 }
+                }catch(Exception ignored){}
             }
              if (strategy.getDirection().equals("sell")) {
-                //changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
+                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
                 for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
                     changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
                 }
                 String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
                 userCache.addLogs(text);
-                if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
-                    telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
-                }
+                try {
+                    if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                        telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+                    }
+                }catch(Exception ignored){}
             }
             if (strategy.getDirection().equals("hold")) {
                 if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) != 0) {
@@ -71,7 +74,7 @@ public abstract class AbstractTradeService {
         }
         strategyList.set(Integer.parseInt(changingStrategy.getId()), changingStrategy);
         userCache.setStrategies(strategyList);
-        USER_STORE.replace(strategy.getUserName(), userCache);
+        USER_STORE.replace("Admin", userCache);
 
         sendMessageInSocket(userCache.getStrategies(), strategy.getUserName());
     }
@@ -80,9 +83,10 @@ public abstract class AbstractTradeService {
         Message message = new Message();
         message.setSenderName("server");
         message.setMessage(strategyList);
+        message.setStatus(Status.JOIN);
         message.setCommand("strategy");
         message.setStatus(Status.JOIN);
-        streamService.sendDataToUser(Set.of(userName), message);
+        streamService.sendDataToUser(Set.of("Admin"), message);
     }
 
     public void setErrorAndSetOnUi(String mes){

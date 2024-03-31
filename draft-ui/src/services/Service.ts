@@ -12,6 +12,7 @@ export class Service {
     }
 
     public setData(data: any, command: string, callback?: () => void) {
+        console.log("test",data, command);
         switch (command) {
             case "strategy":
                 this.setDataStrategy(data, callback);

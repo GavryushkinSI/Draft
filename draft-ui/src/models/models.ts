@@ -34,6 +34,14 @@ export interface IStrategy {
     pair?: any;
     errorData?: IErrorData;
     minLot?:number;
+    options?:IStrategyOptions;
+}
+
+export interface IStrategyOptions{
+    useGrid:boolean;
+    countOfGrid:number;
+    offsetOfGrid:number;
+    lotOfOneGrid:number;
 }
 
 interface IErrorData {

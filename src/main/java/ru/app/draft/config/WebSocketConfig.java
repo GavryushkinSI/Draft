@@ -1,11 +1,7 @@
 package ru.app.draft.config;
 
 import com.bybit.api.client.config.BybitApiConfig;
-import com.bybit.api.client.restApi.BybitApiAccountRestClient;
-import com.bybit.api.client.restApi.BybitApiLendingRestClient;
-import com.bybit.api.client.restApi.BybitApiMarketRestClient;
-import com.bybit.api.client.restApi.BybitApiPositionRestClient;
-import com.bybit.api.client.restApi.BybitApiTradeRestClient;
+import com.bybit.api.client.restApi.*;
 import com.bybit.api.client.service.BybitApiClientFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -133,7 +129,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         //apiService.setSubscriptionOnCandle(api, figsList);
         dbService.getAllComments();
         byBitService.setStreamPublic();
-        //byBitService.setStreamPrivate();
+        byBitService.setStreamPrivate();
         return api;
     }
 
@@ -174,5 +170,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     public BybitApiAccountRestClient getAccountInfo(@Value("${bybit.key}") String key,@Value("${bybit.serial}") String serial){
         return BybitApiClientFactory.newInstance(key, serial, BybitApiConfig.MAINNET_DOMAIN).newAccountRestClient();
+    }
+
+    @Bean
+    public BybitApiAsyncTradeRestClient createAsyncClient(@Value("${bybit.key}") String key,@Value("${bybit.serial}") String serial){
+        return BybitApiClientFactory.newInstance(key, serial, BybitApiConfig.MAINNET_DOMAIN).newAsyncTradeRestClient();
     }
 }

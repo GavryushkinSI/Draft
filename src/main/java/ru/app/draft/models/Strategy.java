@@ -41,6 +41,7 @@ public class Strategy implements Serializable {
     private List<String> enterAveragePrice = new ArrayList<>();
     private String comment;
     private Boolean isExecution = false;
+    private StrategyOptions options=new StrategyOptions();
 
     public Strategy() {
     }

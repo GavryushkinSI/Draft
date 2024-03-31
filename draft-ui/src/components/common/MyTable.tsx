@@ -104,6 +104,22 @@ const MyTable: React.FC = () => {
 
                 return;
             }
+            if(name.includes("options")){
+                if(name==="optionsUseGrid"){
+                    console.log(value);
+                    setEditedRow({...editedRow, options:{...editedRow.options, useGrid:value === "on" && editedRow?.options?.useGrid == false}})
+                }
+                if(name==="optionsCountGrid"){
+                    setEditedRow({...editedRow, options:{...editedRow.options, countOfGrid:value}})
+                }
+                if(name==="optionsOffsetGrid"){
+                    setEditedRow({...editedRow, options:{...editedRow.options, offsetOfGrid:value}})
+                }
+                if(name==="optionsLotOfGrid"){
+                    setEditedRow({...editedRow, options:{...editedRow.options, lotOfOneGrid:value}})
+                }
+                return;
+            }
             setValidation({...validation, [name]: undefined});
             setEditedRow({...editedRow, [name]: value});
         }
@@ -261,6 +277,53 @@ const MyTable: React.FC = () => {
                                 text={'Стратегия будет видна всем пользователям в разделе \"Публичные стратегии\". В текущем релизе недоступно.'}/>
                         </Col>
                     </Row>
+                    <Row>
+                        <Col style={{display:"flex", alignItems:"center"}}>
+                                <Form.Check
+                                    className="me-2"
+                                    type="switch"
+                                    name='optionsUseGrid'
+                                    id="custom-switch"
+                                    label="Использовать сетку при срабатывании сигнала"
+                                    checked={editedRow?.options?.useGrid === true}
+                                    onChange={handleChangeEdit}
+                                />
+                                <Form.Control name="optionsCountGrid" value={editedRow?.options?.countOfGrid || 3}
+                                              className="me-2"
+                                              onChange={handleChangeEdit}
+                                              placeholder={'count_grid'} type="text" style={{width:80}}
+                                />
+                                <Form.Control name="optionsOffsetGrid" value={editedRow?.options?.offsetOfGrid || 0.6}
+                                              className="me-2"
+                                              onChange={handleChangeEdit}
+                                              placeholder={'offset_grid'} type="text" style={{width:80}}
+                                />
+                            <Form.Control name="optionsLotOfGrid" value={editedRow?.options?.lotOfOneGrid|| 0.001}
+                                          onChange={handleChangeEdit}
+                                          placeholder={'offset_grid'} type="text" style={{width:80}}
+                            />
+                        </Col>
+                    </Row>
+                    {/*<Row>*/}
+                    {/*    <Col>*/}
+                    {/*        <Button className="me-2" variant="outline-success">*/}
+                    {/*            +Add Stop*/}
+                    {/*        </Button>*/}
+                    {/*    </Col>*/}
+                    {/*</Row>*/}
+                    {/*<Row>*/}
+                    {/*    <Col>*/}
+                    {/*        <Form.Control name="stopDirection" value={editedRow?.options?.lotOfOneGrid|| 0.001}*/}
+                    {/*                      onChange={handleChangeEdit}*/}
+                    {/*                      placeholder={'offset_grid'} type="text" style={{width:80}}/>*/}
+                    {/*        <Form.Control name="stopLot" value={editedRow?.options?.lotOfOneGrid|| 0.001}*/}
+                    {/*                      onChange={handleChangeEdit}*/}
+                    {/*                      placeholder={'offset_grid'} type="text" style={{width:80}}/>*/}
+                    {/*        <Form.Control name="stopPrice" value={editedRow?.options?.lotOfOneGrid|| 0.001}*/}
+                    {/*                      onChange={handleChangeEdit}*/}
+                    {/*                      placeholder={'offset_grid'} type="text" style={{width:80}}/>*/}
+                    {/*    </Col>*/}
+                    {/*</Row>*/}
                     <Row>
                         <Col style={{maxWidth: 100}}>
                             <Button className={"me-2 mt-2"} variant="outline-light" onClick={() => {

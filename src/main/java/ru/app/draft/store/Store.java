@@ -13,6 +13,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 
 @Log4j2
 public class Store {
@@ -63,9 +64,9 @@ public class Store {
             .<String, List<MetricItem>>build()
             .asMap();
 
-    public final static ConcurrentMap<String, Strategy> ORDERS_MAP = CacheBuilder.newBuilder()
+    public final static ConcurrentMap<String, List<String>> ORDERS_MAP = CacheBuilder.newBuilder()
             .maximumSize(1000)
-            .<String, Strategy>build()
+            .<String, List<String>>build()
             .asMap();
 
     public static void updateLastPrice(String figi, BigDecimal newValue, Timestamp time) {
@@ -113,5 +114,12 @@ public class Store {
                 });
                 break;
         }
+    }
+
+    public static void modifyOrdersMap(String orderId, String name){
+        ORDERS_MAP.computeIfPresent(name, (s, strings) -> {
+            strings.add(orderId);
+            return strings;
+        });
     }
 }

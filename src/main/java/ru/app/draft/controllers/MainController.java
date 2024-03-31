@@ -47,9 +47,6 @@ public class MainController {
     @Audit
     @MessageMapping("/message")
     public void registrationUserOnContent(@Payload Message messageFromUser) {
-//        switch (messageFromUser.getCommand()) {
-//            case "getAllStrategy":
-//        }
         UserCache userCache = USER_STORE.get(messageFromUser.getSenderName());
         User user = userCache.getUser();
         user.setLastVisit(DateUtils.getCurrentTime());
@@ -72,14 +69,6 @@ public class MainController {
     @GetMapping("/app/getUserInfo/{userName}")
     @SuppressWarnings("ALL")
     public ResponseEntity<List<AccountDto>> getUserInfo(@PathVariable String userName) {
-//        Map<String, Object> result = byBitService.getPositionInfo();
-//        try {
-//            if ((int) result.get("retCode") == 0) {
-//                List<Object> data = (List<Object>) ((Map<String, Object>) byBitService.getPositionInfo().get("result")).get("list");
-//                AccountDto accountDto = new AccountDto();
-//                data.stream().forEach(i->accountDto.addPortfolio(i.get("symbol"), i.get("size")));
-//            }
-//        }catch(Exception e){}
         return ResponseEntity.ok(apiService.getAccountInfo(api, userName));
     }
 
@@ -146,20 +135,22 @@ public class MainController {
                 LastPrice lastPrice = LAST_PRICE.get(ticker.getFigi());
                 lastPrice.addSubscriber(userName);
                 LAST_PRICE.replace(ticker.getFigi(), lastPrice);
-            strategyList.add(new Strategy(
-                    String.valueOf(strategyList.size()),
-                    strategy.getUserName(),
-                    strategy.getName(),
-                    strategy.getDirection(),
-                    strategy.getQuantity(),
-                    ticker.getFigi(),
-                    strategy.getTicker(),
-                    strategy.getIsActive(),
-                    strategy.getConsumer(),
-                    new ArrayList<>(),
-                    strategy.getDescription(),
-                    ticker.getMinLot(),
-                    strategy.getProducer()));
+                Strategy newStrategy=new Strategy(
+                        String.valueOf(strategyList.size()),
+                        strategy.getUserName(),
+                        strategy.getName(),
+                        strategy.getDirection(),
+                        strategy.getQuantity(),
+                        ticker.getFigi(),
+                        strategy.getTicker(),
+                        strategy.getIsActive(),
+                        strategy.getConsumer(),
+                        new ArrayList<>(),
+                        strategy.getDescription(),
+                        ticker.getMinLot(),
+                        strategy.getProducer());
+                newStrategy.setOptions(strategy.getOptions());
+                strategyList.add(newStrategy);
         }
 
         userCache.setStrategies(strategyList);
@@ -230,8 +221,6 @@ public class MainController {
 
     @Scheduled(fixedDelay = 50000)
     public void getAllTickersTask() {
-//        new Date().getTime();
-//        LAST_PRICE.get("BTCUSDT").getUpdateTime().getSeconds();
         LAST_PRICE.forEach((k, v) -> {
             if (v.getUpdateTime() != null) {
                 Message message = new Message();
