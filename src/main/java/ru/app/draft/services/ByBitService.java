@@ -265,7 +265,6 @@ public class ByBitService extends AbstractTradeService {
 //        }
 
         BigDecimal position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
-        position = position.compareTo(BigDecimal.ZERO) < 0 ? position.multiply(BigDecimal.valueOf(-1.0)) : position;
 //        if (triggerPriceNotNull != true) {
 //            changingStrategy.setCurrentPosition(strategy.getQuantity());
 //        }

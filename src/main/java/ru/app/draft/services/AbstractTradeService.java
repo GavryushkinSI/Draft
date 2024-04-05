@@ -39,13 +39,19 @@ public abstract class AbstractTradeService {
                 }
                 String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
                 userCache.addLogs(text);
-                try{
-                if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
-                    telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+                try {
+                    if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                        telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+                    }
+                } catch (Exception ignored) {
                 }
-                }catch(Exception ignored){}
             }
-             if (strategy.getDirection().equals("sell")) {
+            if (strategy.getDirection().equals("sell")) {
+                if (position.compareTo(BigDecimal.ZERO) < 0) {
+                    changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+                } else {
+                    changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
+                }
                 changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
                 for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
                     changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
@@ -56,7 +62,8 @@ public abstract class AbstractTradeService {
                     if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
                         telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
                     }
-                }catch(Exception ignored){}
+                } catch (Exception ignored) {
+                }
             }
             if (strategy.getDirection().equals("hold")) {
                 if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) != 0) {
@@ -68,9 +75,9 @@ public abstract class AbstractTradeService {
                     for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
                         changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time));
                     }
-                    if(changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO)>0){
+                    if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0) {
                         changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
-                    }else{
+                    } else {
                         changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
                     }
                 }
@@ -93,7 +100,7 @@ public abstract class AbstractTradeService {
         streamService.sendDataToUser(Set.of("Admin"), message);
     }
 
-    public void setErrorAndSetOnUi(String mes){
+    public void setErrorAndSetOnUi(String mes) {
         Message message = new Message();
         message.setSenderName("server");
         message.setMessage(mes);
