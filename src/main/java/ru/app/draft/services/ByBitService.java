@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Timestamp;
+import liquibase.pro.packaged.B;
 import lombok.extern.log4j.Log4j2;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
@@ -104,7 +105,7 @@ public class ByBitService extends AbstractTradeService {
                 var ordeId = (String) map.get("orderId");
                 var triggerPrice = (Optional<BigDecimal>) map.get("triggerPrice");
                 var isAmendOrder = (Boolean) map.get("isAmendOrder");
-                Map<String, Object> result = sendOrder(direction, position.toString(), changingStrategy.getTicker(), ordeId, triggerPrice.isPresent() ? String.valueOf(triggerPrice.get()) : null, isAmendOrder, changingStrategy.getOptions(), LAST_PRICE.get(changingStrategy.getFigi()).getPrice(), changingStrategy.getName());
+                Map<String, Object> result = sendOrder(direction, position.toString(), changingStrategy.getTicker(), ordeId, triggerPrice.isPresent() ? String.valueOf(triggerPrice.get()) : null, isAmendOrder, changingStrategy.getOptions(), LAST_PRICE.get(changingStrategy.getFigi()).getPrice(), changingStrategy.getName(), strategy.getComment());
                 executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
             } else if (changingStrategy.getConsumer().contains("test")) {
                 executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
@@ -124,11 +125,11 @@ public class ByBitService extends AbstractTradeService {
         }
         if (changingStrategy.getConsumer().contains("test") || errorData != null) {
             String time = DateUtils.getCurrentTime();
-            updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time);
+            updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time, false);
         }
     }
 
-    public Map<String, Object> setCurrentPosition(@Nullable Strategy strategy, String orderLinkedId, BigDecimal executionPrice, BigDecimal lastPrice, String side, BigDecimal execQty) {
+    public synchronized Map<String, Object> setCurrentPosition(@Nullable Strategy strategy, String orderLinkedId, BigDecimal executionPrice, BigDecimal lastPrice, String side, BigDecimal execQty) {
         UserCache userCache = USER_STORE.get("Admin");
         List<Strategy> strategyList = userCache.getStrategies();
 
@@ -139,7 +140,7 @@ public class ByBitService extends AbstractTradeService {
                             .stream()
                             .filter(item -> item.getName().equals(k)).findFirst().get();
                     execStrategy.setDirection(side.toLowerCase());
-                    updateStrategyCache(strategyList, execStrategy, execStrategy, executionPrice, userCache, execQty, DateUtils.getCurrentTime());
+                    updateStrategyCache(strategyList, execStrategy, execStrategy, executionPrice, userCache, execQty, DateUtils.getCurrentTime(), false);
                 }
             });
             return null;
@@ -264,6 +265,7 @@ public class ByBitService extends AbstractTradeService {
 //        }
 
         BigDecimal position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
+        position=position.compareTo(BigDecimal.ZERO)<0?position.multiply(BigDecimal.valueOf(-1.0)):position;
 //        if (triggerPriceNotNull != true) {
 //            changingStrategy.setCurrentPosition(strategy.getQuantity());
 //        }
@@ -302,7 +304,7 @@ public class ByBitService extends AbstractTradeService {
         return (Map<String, Object>) walletBalanceData;
     }
 
-    LinkedHashMap<String, Object> sendOrder(OrderDirection direction, String position, String ticker, String orderId, String triggerPrice, Boolean isAmendOrder, StrategyOptions options, BigDecimal executionPrice, String name) {
+    LinkedHashMap<String, Object> sendOrder(OrderDirection direction, String position, String ticker, String orderId, String triggerPrice, Boolean isAmendOrder, StrategyOptions options, BigDecimal executionPrice, String name, String comment) {
         TradeOrderRequest tradeOrderRequest = null;
         LinkedHashMap<String, Object> response = null;
         List<String> list = ORDERS_MAP.get(name);
@@ -312,7 +314,7 @@ public class ByBitService extends AbstractTradeService {
         }
         list.clear();
         modifyOrdersMap(orderId, name);
-        if (options.getUseGrid()) {
+        if (options.getUseGrid() && comment!=null&& comment.contains("grid")) {
             tradeOrderRequest = TradeOrderRequest.builder()
                     .category(CategoryType.LINEAR)
                     .baseCoin(ticker.replace("USDT", ""))

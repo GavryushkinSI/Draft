@@ -62,6 +62,8 @@ const Admin: React.FC = () => {
         state.strategy.data);
     const isLoading: boolean = useSelector((state: IAppState) =>
         state.strategy.isLoading);
+    const tvLogs:any[]=useSelector((state: IAppState) =>
+        state.tvLog.data);
     const [size, setSize] = useState<any>(window.innerWidth);
 
     const userJoin = () => {
@@ -503,6 +505,25 @@ const Admin: React.FC = () => {
                     <Col>
                         <ListGroup style={{maxHeight: 200, overflowY: "auto", paddingLeft: 10}}>
                             {user?.logs?.filter((i: any) => i.startsWith(nameStrategyFilter))?.map((i: any, index: number) => {
+                                return <ListGroup.Item style={{color: "#8C909A", cursor: "pointer"}}
+                                                       className="bg-custom-2"
+                                                       key={index}>{`${i}`}</ListGroup.Item>
+                            })}
+                        </ListGroup>
+                    </Col>
+                </Row>)}
+                <Row>
+                    <Col className="ps-4">
+                        <div onClick={(e: any) => {
+                            // setShowLogs(!showLogs)
+                        }} className="text-outline custom-text"
+                        >{'Логи c Tradingview: '}</div>
+                    </Col>
+                </Row>
+                {showLogs && (<Row>
+                    <Col>
+                        <ListGroup style={{maxHeight: 200, overflowY: "auto", paddingLeft: 10}}>
+                            {tvLogs?.filter((i: any) => i.startsWith(nameStrategyFilter))?.map((i: any, index: number) => {
                                 return <ListGroup.Item style={{color: "#8C909A", cursor: "pointer"}}
                                                        className="bg-custom-2"
                                                        key={index}>{`${i}`}</ListGroup.Item>

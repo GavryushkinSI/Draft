@@ -26,6 +26,9 @@ export class Service {
             case "error":
                 this.dispatch({type: EActionTypes.SET_APP_ERROR, payload: data});
                 break;
+            case "log":
+                this.dispatch({type: EActionTypes.SET_TV_LOG, payload: data});
+                break;
             default:
                 break;
         }

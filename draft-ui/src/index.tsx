@@ -31,6 +31,7 @@ export enum EActionTypes {
     GET_TICKER = "GET_TICKER",
     SET_PORTFOLIO = "SET_PORTFOLIO",
     SET_APP_ERROR='SET_APP_ERROR',
+    SET_TV_LOG='SET_TV_LOG',
 }
 
 /**
@@ -107,6 +108,7 @@ export interface IAppState {
     strategy: any;
     portfolio: any;
     appError:any;
+    tvLog:any;
 }
 
 /**
@@ -161,6 +163,19 @@ const appErrorReducer= (state = null, action: IAction): any => {
     }
 }
 
+const tvLogReducer= (state = {data:[]}, action: IAction): any => {
+    switch (action.type) {
+        case EActionTypes.SET_TV_LOG:
+            return {
+                ...state,
+                //@ts-ignore
+                data: [ ...state?.data,action.payload]};
+
+        default:
+            return state;
+    }
+}
+
 const userReducer = (state = {}, action: any): any => {
     switch (action.type) {
         case EActionTypes.GET_USER_INFO: {
@@ -198,6 +213,7 @@ const configureStore = () => {
                 user: userReducer,
                 portfolio: portfolioReducer,
                 appError: appErrorReducer,
+                tvLog:tvLogReducer,
             }),
             devToolsEnhancer()
         )

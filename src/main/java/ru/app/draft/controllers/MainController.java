@@ -108,6 +108,7 @@ public class MainController {
         } else {
             apiService.sendOrder(api, strategy);
         }
+        sendLogFromTv(strategy);
     }
 
     @Audit
@@ -270,6 +271,15 @@ public class MainController {
         userCache.setUser(user);
         USER_STORE.replace(userName, userCache);
         return ResponseEntity.ok(user.getViewedNotifyIds());
+    }
+
+    private void sendLogFromTv(Strategy strategy){
+        Message message = new Message();
+        message.setSenderName("server");
+        message.setMessage(String.format("%s => %s, %s, comment: %s, time :%s",strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(), DateUtils.getCurrentTime()));
+        message.setStatus(Status.JOIN);
+        message.setCommand("log");
+        marketDataStreamService.sendDataToUser(Set.of("Admin"), message);
     }
 }
 
