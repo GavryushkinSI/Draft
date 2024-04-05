@@ -35,6 +35,7 @@ export interface IStrategy {
     errorData?: IErrorData;
     minLot?:number;
     options?:IStrategyOptions;
+    comment?:string;
 }
 
 export interface IStrategyOptions{
