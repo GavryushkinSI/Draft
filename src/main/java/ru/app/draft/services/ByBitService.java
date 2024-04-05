@@ -9,7 +9,6 @@ import com.bybit.api.client.domain.account.request.AccountDataRequest;
 import com.bybit.api.client.domain.institution.LendingDataRequest;
 import com.bybit.api.client.domain.position.request.PositionDataRequest;
 import com.bybit.api.client.domain.trade.Side;
-import com.bybit.api.client.restApi.*;
 import com.bybit.api.client.domain.trade.request.TradeOrderRequest;
 import com.bybit.api.client.restApi.BybitApiAccountRestClient;
 import com.bybit.api.client.restApi.BybitApiLendingRestClient;
@@ -68,7 +67,7 @@ public class ByBitService extends AbstractTradeService {
 
     private static final String PING_DATA = "{\"op\":\"ping\"}";
 
-    public ByBitService(TelegramBotService telegramBotService, MarketDataStreamService streamService, BybitApiTradeRestClient orderRestClient, BybitApiAsyncTradeRestClient asyncTradeRestClient, BybitApiPositionRestClient positionRestClient, BybitApiMarketRestClient marketRestClient, BybitApiLendingRestClient lendingRestClient, BybitApiAccountRestClient accountClient, ObjectMapper mapper) {
+    public ByBitService(TelegramBotService telegramBotService, MarketDataStreamService streamService, BybitApiTradeRestClient orderRestClient, BybitApiPositionRestClient positionRestClient, BybitApiMarketRestClient marketRestClient, BybitApiLendingRestClient lendingRestClient, BybitApiAccountRestClient accountClient, ObjectMapper mapper) {
         super(telegramBotService, streamService);
         this.telegramBotService = telegramBotService;
         this.streamService = streamService;
