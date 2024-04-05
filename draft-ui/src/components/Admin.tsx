@@ -62,7 +62,7 @@ const Admin: React.FC = () => {
         state.strategy.data);
     const isLoading: boolean = useSelector((state: IAppState) =>
         state.strategy.isLoading);
-    const tvLogs:any[]=useSelector((state: IAppState) =>
+    const tvLogs: any[] = useSelector((state: IAppState) =>
         state.tvLog.data);
     const [size, setSize] = useState<any>(window.innerWidth);
 
@@ -417,14 +417,16 @@ const Admin: React.FC = () => {
                                 return;
                             }
                             actions.sendOrder({
+                                    "comment": "grid",
                                     "direction": "buy",
-                                    "producer":found.producer,
+                                    "producer": found.producer,
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
                                     "quantity": ((found.currentPosition || 0) + found.minLot!)?.toFixed(4),
                                 }
-                                , () => {}
+                                , () => {
+                                }
                                 , (error: any) => {
                                     dispatch(addNotification("Info", error))
                                 })
@@ -440,14 +442,16 @@ const Admin: React.FC = () => {
                                 return;
                             }
                             actions.sendOrder({
+                                    "comment": "grid",
                                     "direction": "sell",
-                                    "producer":found.producer,
+                                    "producer": found.producer,
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
                                     "quantity": ((found.currentPosition || 0) - found.minLot!).toFixed(4),
                                 },
-                                () => {},
+                                () => {
+                                },
                                 (error: any) => dispatch(addNotification("Info", error)))
                         }} variant={"outline-danger"}
                         >
@@ -462,13 +466,14 @@ const Admin: React.FC = () => {
                             }
                             actions.sendOrder({
                                     "direction": "hold",
-                                    "producer":found.producer,
+                                    "producer": found.producer,
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
                                     "quantity": 0
                                 },
-                                () => {},
+                                () => {
+                                },
                                 (error: any) => dispatch(addNotification("Info", error)))
                         }} variant={"outline-primary"}>
                             <Icon icon={"bi bi-x-lg"} size={15} title={'Hold'}/>
@@ -491,14 +496,14 @@ const Admin: React.FC = () => {
                 </Row>
                 <Row>
                     <Col>
-                <Form.Select onChange={(e) => {
-                    setNameStrategyFilter(e.target.value === 'all' ? "" : e.target.value)
-                }} className="ms-2 mb-1" name="filter_strategy" style={{width: 240}}>
-                    <option key={'12345'} value={'all'}>{'Все'}</option>
-                    {strategy?.map((i) => {
-                        return <option key={i.id} value={i.name}>{i.name}</option>
-                    })}
-                </Form.Select>
+                        <Form.Select onChange={(e) => {
+                            setNameStrategyFilter(e.target.value === 'all' ? "" : e.target.value)
+                        }} className="ms-2 mb-1" name="filter_strategy" style={{width: 240}}>
+                            <option key={'12345'} value={'all'}>{'Все'}</option>
+                            {strategy?.map((i) => {
+                                return <option key={i.id} value={i.name}>{i.name}</option>
+                            })}
+                        </Form.Select>
                     </Col>
                 </Row>
                 {showLogs && (<Row>

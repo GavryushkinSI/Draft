@@ -265,7 +265,7 @@ public class ByBitService extends AbstractTradeService {
 //        }
 
         BigDecimal position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
-        position=position.compareTo(BigDecimal.ZERO)<0?position.multiply(BigDecimal.valueOf(-1.0)):position;
+        position = position.compareTo(BigDecimal.ZERO) < 0 ? position.multiply(BigDecimal.valueOf(-1.0)) : position;
 //        if (triggerPriceNotNull != true) {
 //            changingStrategy.setCurrentPosition(strategy.getQuantity());
 //        }
@@ -314,7 +314,7 @@ public class ByBitService extends AbstractTradeService {
         }
         list.clear();
         modifyOrdersMap(orderId, name);
-        if (options.getUseGrid() && comment!=null&& comment.contains("grid")) {
+        if (options.getUseGrid() && comment != null && comment.contains("grid")) {
             tradeOrderRequest = TradeOrderRequest.builder()
                     .category(CategoryType.LINEAR)
                     .baseCoin(ticker.replace("USDT", ""))
@@ -513,11 +513,11 @@ public class ByBitService extends AbstractTradeService {
                         Map<String, Object> result = (Map<String, Object>) JSON.parse(text);
                         String topic = (String) result.get("topic");
                         Map<String, Object> map = ((Map<String, Object>) ((List<Object>) result.get("data")).get(0));
-                        BigDecimal execPrice = BigDecimal.valueOf(Double.parseDouble((String)map.get("execPrice")));
-                        String side=(String) map.get("side");
-                        BigDecimal execQty=BigDecimal.valueOf(Double.parseDouble((String)map.get("execQty")));
+                        BigDecimal execPrice = BigDecimal.valueOf(Double.parseDouble((String) map.get("execPrice")));
+                        String side = (String) map.get("side");
+                        BigDecimal execQty = BigDecimal.valueOf(Double.parseDouble((String) map.get("execQty")));
                         String orderLinkId = (String) map.get("orderLinkId");
-                        setCurrentPosition(null, orderLinkId, execPrice, null, side,execQty);
+                        setCurrentPosition(null, orderLinkId, execPrice, null, side, execQty);
                     } catch (Exception ex) {
                     }
                 }
