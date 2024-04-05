@@ -21,9 +21,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Timestamp;
-import liquibase.pro.packaged.B;
 import lombok.extern.log4j.Log4j2;
-import okhttp3.*;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.util.CollectionUtils;
@@ -40,7 +43,12 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.bybit.api.client.constant.Util.generateTransferID;
-import static ru.app.draft.store.Store.*;
+import static ru.app.draft.store.Store.LAST_PRICE;
+import static ru.app.draft.store.Store.ORDERS_MAP;
+import static ru.app.draft.store.Store.TICKERS_BYBIT;
+import static ru.app.draft.store.Store.USER_STORE;
+import static ru.app.draft.store.Store.modifyOrdersMap;
+import static ru.app.draft.store.Store.updateLastPrice;
 
 @SuppressWarnings("ALL")
 @Service
@@ -50,7 +58,6 @@ public class ByBitService extends AbstractTradeService {
     private final TelegramBotService telegramBotService;
     private final MarketDataStreamService streamService;
     private final BybitApiTradeRestClient orderRestClient;
-    private final BybitApiAsyncTradeRestClient asyncTradeRestClient;
     private final BybitApiPositionRestClient positionRestClient;
     private final BybitApiMarketRestClient marketRestClient;
     private final BybitApiLendingRestClient lendingRestClient;
@@ -66,7 +73,6 @@ public class ByBitService extends AbstractTradeService {
         this.telegramBotService = telegramBotService;
         this.streamService = streamService;
         this.orderRestClient = orderRestClient;
-        this.asyncTradeRestClient = asyncTradeRestClient;
         this.positionRestClient = positionRestClient;
         this.marketRestClient = marketRestClient;
         this.lendingRestClient = lendingRestClient;
@@ -310,8 +316,9 @@ public class ByBitService extends AbstractTradeService {
         if (CollectionUtils.isEmpty(list)) {
             list = new ArrayList<>();
             ORDERS_MAP.put(name, list);
+        } else {
+            list.clear();
         }
-        list.clear();
         modifyOrdersMap(orderId, name);
         if (options.getUseGrid() && comment != null && comment.contains("grid")) {
             tradeOrderRequest = TradeOrderRequest.builder()
@@ -362,7 +369,7 @@ public class ByBitService extends AbstractTradeService {
                 }
             }
         }
-        if (!options.getUseGrid()) {
+        if (comment == null || !comment.contains("grid")) {
             if (triggerPrice == null) {
                 tradeOrderRequest = TradeOrderRequest.builder()
                         .category(CategoryType.LINEAR)
@@ -590,4 +597,15 @@ public class ByBitService extends AbstractTradeService {
             }
         });
     }
+
+//    private void handleError(LinkedHashMap<String, Object> response, String errorMsg){
+//        if (response == null) {
+//            throw new OrderNotExecutedException(String.format(errorMsg, "ответ null."));
+//        }
+//        var retCode = response.get("retCode");
+//        if (!Objects.equal(retCode, 0)) {
+//            var message = response.get("retMsg");
+//            throw new OrderNotExecutedException(String.format("Ошибка отмены ордеров. Message: %s.", message));
+//        }
+//    }
 }
