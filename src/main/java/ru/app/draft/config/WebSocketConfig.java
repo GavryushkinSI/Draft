@@ -135,15 +135,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Bean
     public TelegramBotsApi initTelegramBot(TelegramBotService service) {
-        TelegramBotsApi telegramBotsApi = null;
-        try {
-            telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
-            telegramBotsApi.registerBot(service);
-        } catch (TelegramApiException e) {
-            log.error("Error occurred: " + e.getMessage());
-        }
-
-        return telegramBotsApi;
+//            TelegramBotsApi telegramBotsApi = null;
+//            try {
+//                telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
+//                telegramBotsApi.registerBot(service);
+//            } catch (TelegramApiException e) {
+//                log.error("Error occurred: " + e.getMessage());
+//            }
+//
+//            return telegramBotsApi;
+        return  null;
     }
 
     @Bean

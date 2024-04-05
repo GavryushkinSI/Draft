@@ -52,7 +52,6 @@ public abstract class AbstractTradeService {
                 } else {
                     changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
                 }
-                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
                 for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
                     changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
                 }
