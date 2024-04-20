@@ -151,6 +151,7 @@ public class MainController {
                         ticker.getMinLot(),
                         strategy.getProducer());
                 newStrategy.setOptions(strategy.getOptions());
+                newStrategy.setCurrentPosition(byBitService.getPosition(newStrategy.getFigi()));
                 strategyList.add(newStrategy);
         }
 
@@ -271,6 +272,11 @@ public class MainController {
         userCache.setUser(user);
         USER_STORE.replace(userName, userCache);
         return ResponseEntity.ok(user.getViewedNotifyIds());
+    }
+
+    @DeleteMapping("/app/cancelAllOrders")
+    public void cancelAllOrders(){
+        byBitService.cancelOrders("BTC");
     }
 
     private void sendLogFromTv(Strategy strategy){

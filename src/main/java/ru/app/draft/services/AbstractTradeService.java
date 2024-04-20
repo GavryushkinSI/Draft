@@ -86,10 +86,10 @@ public abstract class AbstractTradeService {
         userCache.setStrategies(strategyList);
         USER_STORE.replace("Admin", userCache);
 
-        sendMessageInSocket(userCache.getStrategies(), strategy.getUserName());
+        sendMessageInSocket(userCache.getStrategies());
     }
 
-    private void sendMessageInSocket(List<Strategy> strategyList, String userName) {
+    public void sendMessageInSocket(List<Strategy> strategyList) {
         Message message = new Message();
         message.setSenderName("server");
         message.setMessage(strategyList);

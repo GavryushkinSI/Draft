@@ -386,6 +386,7 @@ const MyTable: React.FC = () => {
                 "quantity": "{{strategy.position_size}}",\n\r
                 "producer": "${showDescriptionModal.strategy?.producer}"\n\r}
                 `;
+        const alert = `alert(\"{\\"userName\\"\"+\":\"+\"\\"Admin\\"\"+\",\"+\"\\"name\\"\"+\":\"+\"\\"\"+str.tostring(name)+\"\\"\"+\",\"+\"\\"producer\\"\"+\":\"+\"\\"BYBIT\\"\"+\",\"+\"\\"direction\\"\"+\":\"+\"\\"sell\\"\"+\",\"+\"\\"quantity\\"\" + \":\"+ \"\\"\" + str.tostring(quantity) + \"\\"\" + \",\"+\"\\"triggerPrice\\"\" + \":\"+ \"\\"\" + str.tostring(upos) + \"\\"\" +\",\"+\"\\"comment\\"\" + \":\"+ \"\\"\" + str.tostring(comment) + \"\\"\" + \"}\", alert.freq_all)`;
         return <ModalView header={'Как добавить стратегию в Tradingview:'} show={showDescriptionModal.show}
                           cancel={() => {
                               setShowDescriptionModal({show: false, name: undefined})
@@ -417,6 +418,20 @@ const MyTable: React.FC = () => {
                         Скопировать
                     </Button>
                     <span id="test"/>
+                </li>
+                <li>
+                    Для alert-ов заполнить: <br/>
+                    Поле <em>Message</em> заполнить текстом ниже. <br/>
+                    <div className="mt-2 text-bg-success">{alert}</div>
+                    <br/>
+                    <Button className="me-2" onClick={(e: any) => {
+                        void copyTextToClipboard(alert);
+                        const x = document.getElementById('test3');
+                        x!.innerText = 'Скопировано!'
+                    }} variant={"outline-success"}>
+                        Скопировать
+                    </Button>
+                    <span id="test3"/>
                 </li>
                 <li>
                     Указать URL для отправки сигналов<br/>

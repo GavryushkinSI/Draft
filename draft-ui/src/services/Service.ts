@@ -139,6 +139,10 @@ export class Service {
             .catch((errors: any) => failCallback && failCallback(errors?.message));
     }
 
+    public cancelOrderOrders(){
+        http.delete(`/cancelAllOrders`).catch((errors: any) => console.log(errors?.message));
+    }
+
     public clear(userName: string, successCallback?: () => void, failCallback?: (error: any) => void) {
         http.get(`/clear/${userName}`)
             .then(() => {

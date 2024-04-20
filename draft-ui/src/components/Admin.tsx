@@ -26,7 +26,7 @@ import {over} from "stompjs";
 import {webSocketUrl} from "../utils/http-common";
 import SelectFilter from "./common/SelectFilter";
 import ModalView from "./common/ModalView";
-import {ButtonLink} from "@paljs/ui";
+import {ButtonLink, Checkbox} from "@paljs/ui";
 import RowFiled from "./common/RowFiled";
 import PreLoad from "./common/PreLoad";
 import ViewDescriptionNotification from "./common/ViewDescriptionNotification";
@@ -65,6 +65,7 @@ const Admin: React.FC = () => {
     const tvLogs: any[] = useSelector((state: IAppState) =>
         state.tvLog.data);
     const [size, setSize] = useState<any>(window.innerWidth);
+    const [useGrid, setUseGrid] =useState<boolean>(false);
 
     const userJoin = () => {
         const message = {
@@ -417,13 +418,13 @@ const Admin: React.FC = () => {
                                 return;
                             }
                             actions.sendOrder({
-                                    "comment": "grid",
                                     "direction": "buy",
                                     "producer": found.producer,
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
                                     "quantity": ((found.currentPosition || 0) + found.minLot!)?.toFixed(4),
+                                    "comment":`${useGrid==true?'grid':''}`,
                                 }
                                 , () => {
                                 }
@@ -442,13 +443,13 @@ const Admin: React.FC = () => {
                                 return;
                             }
                             actions.sendOrder({
-                                    "comment": "grid",
                                     "direction": "sell",
                                     "producer": found.producer,
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
                                     "quantity": ((found.currentPosition || 0) - found.minLot!).toFixed(4),
+                                    "comment":`${useGrid==true?'grid':''}`,
                                 },
                                 () => {
                                 },
@@ -479,6 +480,18 @@ const Admin: React.FC = () => {
                             <Icon icon={"bi bi-x-lg"} size={15} title={'Hold'}/>
                             {" Закрыть"}
                         </Button>
+                        <Form>
+                        <Form.Check // prettier-ignore
+                            id="use_grid"
+                            type="switch"
+                            label="use_grid"
+                            checked={useGrid}
+                            onChange={(e:any)=>{setUseGrid(e?.target?.value === "on" && !useGrid)}}
+                        />
+                            <Button variant={"dark"} onClick={()=>{actions.cancelOrderOrders()}}>
+                                {"Отменить все ордера"}
+                            </Button>
+                        </Form>
                     </>
                 </RowFiled>
                 <Row id="myTable">
