@@ -146,6 +146,12 @@ public class ByBitService extends AbstractTradeService {
                     .stream()
                     .filter(item -> item.getFigi().equals(symbol)).findFirst().get();
             executionPrice = LAST_PRICE.get(execStrategy.getFigi()).getPrice();
+            if (Objects.equal(currentPosition.doubleValue(), execStrategy.getCurrentPosition().doubleValue())) {
+                return null;
+            }
+            if (execStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) == 0) {
+                execStrategy.setDirection(side.toLowerCase());
+            }
             if (side.toLowerCase().equals("buy") && currentPosition.compareTo(execStrategy.getCurrentPosition()) > 0) {
                 execStrategy.setDirection("buy");
             }
