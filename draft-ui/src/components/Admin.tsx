@@ -64,6 +64,7 @@ const Admin: React.FC = () => {
         state.strategy.isLoading);
     const tvLogs: any[] = useSelector((state: IAppState) =>
         state.tvLog.data);
+    const [triggerPrice, setTriggerPrice] = useState("");
     const [size, setSize] = useState<any>(window.innerWidth);
     const [useGrid, setUseGrid] =useState<boolean>(false);
 
@@ -425,6 +426,7 @@ const Admin: React.FC = () => {
                                     "ticker": found.ticker,
                                     "quantity": ((found.currentPosition || 0) + found.minLot!)?.toFixed(4),
                                     "comment":`${useGrid==true?'grid':''}`,
+                                    "triggerPrice":triggerPrice
                                 }
                                 , () => {
                                 }
@@ -450,6 +452,7 @@ const Admin: React.FC = () => {
                                     "ticker": found.ticker,
                                     "quantity": ((found.currentPosition || 0) - found.minLot!).toFixed(4),
                                     "comment":`${useGrid==true?'grid':''}`,
+                                    "triggerPrice":triggerPrice
                                 },
                                 () => {
                                 },
@@ -480,14 +483,22 @@ const Admin: React.FC = () => {
                             <Icon icon={"bi bi-x-lg"} size={15} title={'Hold'}/>
                             {" Закрыть"}
                         </Button>
-                        <Form>
+                        <Form style={{display:"flex", alignItems:"center", marginTop:5}}>
                         <Form.Check // prettier-ignore
                             id="use_grid"
                             type="switch"
                             label="use_grid"
                             checked={useGrid}
+                            style={{marginRight:155}}
                             onChange={(e:any)=>{setUseGrid(e?.target?.value === "on" && !useGrid)}}
                         />
+                            <Form.Control
+                                className="me-2"
+                                style={{width:135}}
+                                value={triggerPrice}
+                                placeholder="TriggerPrice"
+                                onChange={(e:any)=>{setTriggerPrice(e?.target?.value)}}
+                            />
                             <Button variant={"dark"} onClick={()=>{actions.cancelOrderOrders()}}>
                                 {"Отменить все ордера"}
                             </Button>

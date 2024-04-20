@@ -421,7 +421,7 @@ public class ByBitService extends AbstractTradeService {
         }
 
         var retCode = response.get("retCode");
-        if (!Objects.equal(retCode, 0)) {
+        if (!Objects.equal(retCode, 0)&& !Objects.equal(retCode,110092)) {
             var message = response.get("retMsg");
             throw new OrderNotExecutedException(String.format("Ошибка исполнения ордера %s, %s, %s. Message: %s.", ticker, direction.name(), position, message));
         }

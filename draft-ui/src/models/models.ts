@@ -36,6 +36,7 @@ export interface IStrategy {
     minLot?:number;
     options?:IStrategyOptions;
     comment?:string;
+    triggerPrice?:string|null;
 }
 
 export interface IStrategyOptions{
