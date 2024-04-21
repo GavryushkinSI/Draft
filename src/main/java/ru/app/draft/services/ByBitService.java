@@ -518,7 +518,7 @@ public class ByBitService extends AbstractTradeService {
 
     public void setStreamPrivate() {
         OkHttpClient privateClient = new OkHttpClient.Builder().build();
-        Request request = new Request.Builder().url("wss://stream.bybit.com/v5/private?max_alive_time=1000m").build();
+        Request request = new Request.Builder().url("wss://stream.bybit.com/v5/private?max_alive_time=8m").build();
         Map<String, Object> subscribeMsg = new LinkedHashMap<>();
         subscribeMsg.clear();
         subscribeMsg.put("op", "subscribe");
@@ -528,7 +528,7 @@ public class ByBitService extends AbstractTradeService {
         WebSocket privateWebSocket = privateClient.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onOpen(@NotNull WebSocket webSocket, @NotNull Response response) {
-                Thread pingThread = createPingThread(webSocket);
+                Thread pingThread = createPingThread2(webSocket);
                 pingThread.setName("thread-private-ping");
                 pingThread.start();
                 webSocket.send(createAuthMessage());
@@ -537,7 +537,7 @@ public class ByBitService extends AbstractTradeService {
             }
 
             @Override
-            public void onMessage(@NotNull WebSocket webSocket, @NotNull String text) {
+            public void onMessage(@NotNull WebSocket webSocket, String text) {
                 if (text != null) {
                     try {
                         Map<String, Object> result = (Map<String, Object>) JSON.parse(text);
@@ -563,23 +563,25 @@ public class ByBitService extends AbstractTradeService {
             }
 
             @Override
-            public void onClosed(@NotNull WebSocket webSocket, int code, @NotNull String reason) {
+            public void onClosed(@NotNull WebSocket webSocket, int code, String reason) {
                 try {
+                    setErrorAndSetOnUi(String.format("WebSocket private stream closed reason: %s", reason));
                     Thread.sleep(5000);
-                    setErrorAndSetOnUi(String.format("WebSocket private stream failure reason: %s", reason));
+                    setStreamPrivate();
                 } catch (Exception e) {
+                    setErrorAndSetOnUi(String.format("WebSocket private stream closed reason two: %s", reason));
                 }
-                setStreamPrivate();
             }
 
             @Override
             public void onFailure(@NotNull WebSocket webSocket, @NotNull Throwable t, @Nullable Response response) {
                 try {
-                    Thread.sleep(5000);
                     setErrorAndSetOnUi(String.format("WebSocket private stream failure reason: %s", t.getMessage()));
+                    Thread.sleep(5000);
+                    setStreamPrivate();
                 } catch (Exception e) {
+                    setErrorAndSetOnUi(String.format("WebSocket private stream failure reason two: %s", t.getMessage()));
                 }
-                setStreamPrivate();
             }
         });
     }
@@ -620,6 +622,25 @@ public class ByBitService extends AbstractTradeService {
                     if (ws != null) {
                         ws.send("{\"op\":\"ping\"}");
                         TimeUnit.SECONDS.sleep(5000);
+                        continue;
+                    }
+                } catch (InterruptedException var3) {
+                    setErrorAndSetOnUi(String.format("WebSocket failure pingpong: %s", var3.getMessage()));
+                    setStreamPublic();
+                }
+                return;
+            }
+        });
+    }
+
+    @NotNull
+    private Thread createPingThread2(WebSocket ws) {
+        return new Thread(() -> {
+            while (true) {
+                try {
+                    if (ws != null) {
+                        ws.send("{\"op\":\"ping\"}");
+                        TimeUnit.SECONDS.sleep(18);
                         continue;
                     }
                 } catch (InterruptedException var3) {
