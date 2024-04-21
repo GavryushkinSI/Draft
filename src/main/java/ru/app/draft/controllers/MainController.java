@@ -18,6 +18,7 @@ import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -57,7 +58,7 @@ public class MainController {
             if (v.getUpdateTime() != null) {
                 Message message = new Message();
                 message.setSenderName("server");
-                message.setMessage(new ShortLastPrice(k, v.getPrice(),null, null, DateUtils.getTime(v.getUpdateTime().getSeconds())));
+                message.setMessage(new ShortLastPrice(k, v.getPrice(), null, null, DateUtils.getTime(v.getUpdateTime().getSeconds())));
                 message.setStatus(Status.JOIN);
                 message.setCommand("lastPrice");
                 marketDataStreamService.sendDataToUser(Set.of(messageFromUser.getSenderName()), message);
@@ -103,12 +104,12 @@ public class MainController {
     @PostMapping("/app/tv")
     @Timed(value = "myapp.method.execution_time", description = "Execution time of the method")
     public void tradingViewSignalPoint(@RequestBody Strategy strategy) {
+        sendLogFromTv(strategy);
         if (Objects.equals(strategy.getProducer(), "BYBIT")) {
             byBitService.sendSignal(strategy);
         } else {
             apiService.sendOrder(api, strategy);
         }
-        sendLogFromTv(strategy);
     }
 
     @Audit
@@ -127,32 +128,32 @@ public class MainController {
             Ticker ticker;
             if (!Objects.equals(strategy.getProducer(), "BYBIT")) {
                 ticker = apiService.getFigi(api, List.of(strategy.getTicker()));
-            }else{
+            } else {
                 ticker = byBitService.getFigi(List.of(strategy.getTicker()));
             }
-                if (!LAST_PRICE.containsKey(ticker.getFigi())) {
-                    LAST_PRICE.put(ticker.getFigi(), new LastPrice(null, null));
-                }
-                LastPrice lastPrice = LAST_PRICE.get(ticker.getFigi());
-                lastPrice.addSubscriber(userName);
-                LAST_PRICE.replace(ticker.getFigi(), lastPrice);
-                Strategy newStrategy=new Strategy(
-                        String.valueOf(strategyList.size()),
-                        strategy.getUserName(),
-                        strategy.getName(),
-                        strategy.getDirection(),
-                        strategy.getQuantity(),
-                        ticker.getFigi(),
-                        strategy.getTicker(),
-                        strategy.getIsActive(),
-                        strategy.getConsumer(),
-                        new ArrayList<>(),
-                        strategy.getDescription(),
-                        ticker.getMinLot(),
-                        strategy.getProducer());
-                newStrategy.setOptions(strategy.getOptions());
-                newStrategy.setCurrentPosition(byBitService.getPosition(newStrategy.getFigi()));
-                strategyList.add(newStrategy);
+            if (!LAST_PRICE.containsKey(ticker.getFigi())) {
+                LAST_PRICE.put(ticker.getFigi(), new LastPrice(null, null));
+            }
+            LastPrice lastPrice = LAST_PRICE.get(ticker.getFigi());
+            lastPrice.addSubscriber(userName);
+            LAST_PRICE.replace(ticker.getFigi(), lastPrice);
+            Strategy newStrategy = new Strategy(
+                    String.valueOf(strategyList.size()),
+                    strategy.getUserName(),
+                    strategy.getName(),
+                    strategy.getDirection(),
+                    strategy.getQuantity(),
+                    ticker.getFigi(),
+                    strategy.getTicker(),
+                    strategy.getIsActive(),
+                    strategy.getConsumer(),
+                    new ArrayList<>(),
+                    strategy.getDescription(),
+                    ticker.getMinLot(),
+                    strategy.getProducer());
+            newStrategy.setOptions(strategy.getOptions());
+            newStrategy.setCurrentPosition(byBitService.getPosition(newStrategy.getFigi()));
+            strategyList.add(newStrategy);
         }
 
         userCache.setStrategies(strategyList);
@@ -221,7 +222,7 @@ public class MainController {
         return ResponseEntity.ok(new ArrayList<>(subscriptionServiceMap.keySet()));
     }
 
-    @Scheduled(fixedDelay = 50000)
+    @Scheduled(fixedDelay = 100000)
     public void getAllTickersTask() {
         LAST_PRICE.forEach((k, v) -> {
             if (v.getUpdateTime() != null) {
@@ -275,17 +276,24 @@ public class MainController {
     }
 
     @DeleteMapping("/app/cancelAllOrders")
-    public void cancelAllOrders(){
+    public void cancelAllOrders() {
         byBitService.cancelOrders("BTC");
     }
 
-    private void sendLogFromTv(Strategy strategy){
+    private void sendLogFromTv(Strategy strategy) {
         Message message = new Message();
         message.setSenderName("server");
-        message.setMessage(String.format("%s => %s, %s, comment: %s, time :%s",strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(), DateUtils.getCurrentTime()));
+        message.setMessage(String.format("%s => %s, %s, comment: %s, time :%s", strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(), DateUtils.getCurrentTime()));
         message.setStatus(Status.JOIN);
         message.setCommand("log");
         marketDataStreamService.sendDataToUser(Set.of("Admin"), message);
+    }
+
+    @Scheduled(fixedDelay = 30000)
+    public void checkCurrentPosition() {
+        var size = byBitService.getPosition("BTCUSDT");
+        var side = size.doubleValue() > 0 ? "buy" : size.doubleValue() < 0 ? "sell" : "None";
+        byBitService.setCurrentPosition(null, null, null, null, side, null, BigDecimal.valueOf(Math.abs(size.doubleValue())), "BTCUSDT");
     }
 }
 

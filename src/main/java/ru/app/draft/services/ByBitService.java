@@ -145,30 +145,44 @@ public class ByBitService extends AbstractTradeService {
             Strategy execStrategy = strategyList
                     .stream()
                     .filter(item -> item.getFigi().equals(symbol)).findFirst().get();
-            executionPrice = LAST_PRICE.get(execStrategy.getFigi()).getPrice();
-            if (Objects.equal(currentPosition.doubleValue(), execStrategy.getCurrentPosition().doubleValue())) {
-                return null;
+            if (side.toLowerCase().equals("buy")){
+                execStrategy.setCurrentPosition(currentPosition);
             }
-            if (execStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) == 0) {
-                execStrategy.setDirection(side.toLowerCase());
+            if (side.toLowerCase().equals("sell")){
+                execStrategy.setCurrentPosition(currentPosition.multiply(BigDecimal.valueOf(-1.0d)));
             }
-            if (side.toLowerCase().equals("buy") && currentPosition.compareTo(execStrategy.getCurrentPosition()) > 0) {
-                execStrategy.setDirection("buy");
+            if(!side.toLowerCase().equals("buy")&&!side.toLowerCase().equals("sell")){
+                execStrategy.setCurrentPosition(currentPosition);
             }
-            if (side.toLowerCase().equals("buy") && currentPosition.compareTo(execStrategy.getCurrentPosition()) < 0) {
-                execStrategy.setDirection("sell");
-            }
-            if (side.toLowerCase().equals("sell") && currentPosition.doubleValue() > Math.abs(execStrategy.getCurrentPosition().doubleValue())) {
-                execStrategy.setDirection("sell");
-            }
-            if (side.toLowerCase().equals("sell") && currentPosition.doubleValue() < Math.abs(execStrategy.getCurrentPosition().doubleValue())) {
-                execStrategy.setDirection("buy");
-            }
-            execQty = BigDecimal.valueOf(Math.abs(Math.abs(execStrategy.getCurrentPosition().doubleValue()) - currentPosition.doubleValue()));
-            if (execQty.compareTo(BigDecimal.ZERO) < 0) {
-                execQty = execQty.multiply(BigDecimal.valueOf(-1.0d));
-            }
-            updateStrategyCache(strategyList, execStrategy, execStrategy, executionPrice, userCache, execQty, DateUtils.getCurrentTime(), false);
+            strategyList.set(Integer.parseInt(execStrategy.getId()), execStrategy);
+            userCache.setStrategies(strategyList);
+            USER_STORE.replace("Admin", userCache);
+
+            sendMessageInSocket(userCache.getStrategies());
+//            executionPrice = LAST_PRICE.get(execStrategy.getFigi()).getPrice();
+//            if (Objects.equal(currentPosition.doubleValue(), execStrategy.getCurrentPosition().doubleValue())) {
+//                return null;
+//            }
+//            if (execStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) == 0) {
+//                execStrategy.setDirection(side.toLowerCase());
+//            }
+//            if (side.toLowerCase().equals("buy") && currentPosition.compareTo(execStrategy.getCurrentPosition()) > 0) {
+//                execStrategy.setDirection("buy");
+//            }
+//            if (side.toLowerCase().equals("buy") && currentPosition.compareTo(execStrategy.getCurrentPosition()) < 0) {
+//                execStrategy.setDirection("sell");
+//            }
+//            if (side.toLowerCase().equals("sell") && currentPosition.doubleValue() > Math.abs(execStrategy.getCurrentPosition().doubleValue())) {
+//                execStrategy.setDirection("sell");
+//            }
+//            if (side.toLowerCase().equals("sell") && currentPosition.doubleValue() < Math.abs(execStrategy.getCurrentPosition().doubleValue())) {
+//                execStrategy.setDirection("buy");
+//            }
+//            execQty = BigDecimal.valueOf(Math.abs(Math.abs(execStrategy.getCurrentPosition().doubleValue()) - currentPosition.doubleValue()));
+//            if (execQty.compareTo(BigDecimal.ZERO) < 0) {
+//                execQty = execQty.multiply(BigDecimal.valueOf(-1.0d));
+//            }
+//            updateStrategyCache(strategyList, execStrategy, execStrategy, executionPrice, userCache, execQty, DateUtils.getCurrentTime(), false);
 //            ORDERS_MAP.forEach((k, v) -> {
 //                if (v.contains(orderLinkedId)) {
 //                    Strategy execStrategy = strategyList
