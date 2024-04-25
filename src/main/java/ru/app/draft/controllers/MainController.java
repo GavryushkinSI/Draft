@@ -283,18 +283,18 @@ public class MainController {
     private void sendLogFromTv(Strategy strategy) {
         Message message = new Message();
         message.setSenderName("server");
-        message.setMessage(String.format("%s => %s, %s, comment: %s, time :%s", strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(), DateUtils.getCurrentTime()));
+        message.setMessage(String.format("%s => %s,лотов должно быть в сделке:%s, comment: %s, triggerPrice:%s, time :%s", strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(),strategy.getTriggerPrice(), DateUtils.getCurrentTime()));
         message.setStatus(Status.JOIN);
         message.setCommand("log");
         marketDataStreamService.sendDataToUser(Set.of("Admin"), message);
     }
 
-    @Scheduled(fixedDelay = 30000)
-    public void checkCurrentPosition() {
-        var size = byBitService.getPosition("BTCUSDT");
-        var side = size.doubleValue() > 0 ? "buy" : size.doubleValue() < 0 ? "sell" : "None";
-        byBitService.setCurrentPosition(null, null, null, null, side, null, BigDecimal.valueOf(Math.abs(size.doubleValue())), "BTCUSDT");
-    }
+//    @Scheduled(fixedDelay = 30000)
+//    public void checkCurrentPosition() {
+//        var size = byBitService.getPosition("BTCUSDT");
+//        var side = size.doubleValue() > 0 ? "buy" : size.doubleValue() < 0 ? "sell" : "None";
+//        byBitService.setCurrentPosition(null, null, null, null, side, null, BigDecimal.valueOf(Math.abs(size.doubleValue())), "BTCUSDT");
+//    }
 }
 
 
