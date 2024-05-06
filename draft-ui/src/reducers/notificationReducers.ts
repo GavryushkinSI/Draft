@@ -15,6 +15,7 @@ export interface INotificationState {
     notifications: INotification[];
 }
 
+
 function notificationReducer(state: INotificationState = initialState, action: any): INotificationState {
     switch (action.type) {
         case ADD_NOTIFICATION: {
