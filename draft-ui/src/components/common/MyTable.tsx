@@ -87,6 +87,10 @@ const MyTable: React.FC = () => {
             if (name === 'description' && value?.length >= 2000) {
                 setValidation({...validation, [name]: 'Описание должно быть не больше 2000 символов!'});
             }
+            if(name==='doReverse'){
+                setEditedRow({...editedRow, doReverse:value === "on" && editedRow?.doReverse == false});
+                return;
+            }
             if (['test', 'telegram', 'terminal'].includes(name) && editedRow.consumer) {
                 if (editedRow.consumer.includes(name)) {
                     const consumer = editedRow.consumer.filter((i: any) => i !== name);
@@ -105,8 +109,7 @@ const MyTable: React.FC = () => {
                 return;
             }
             if(name.includes("options")){
-                if(name==="optionsUseGrid"){
-                    console.log(value);
+                if(name==="optionsUseGrid"){;
                     setEditedRow({...editedRow, options:{...editedRow.options, useGrid:value === "on" && editedRow?.options?.useGrid == false}})
                 }
                 if(name==="optionsCountGrid"){
@@ -275,6 +278,18 @@ const MyTable: React.FC = () => {
                         <Col style={{marginLeft: -23}}>
                             <MyToolTip
                                 text={'Стратегия будет видна всем пользователям в разделе \"Публичные стратегии\". В текущем релизе недоступно.'}/>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col style={{maxWidth: 230}}>
+                            <Form.Check
+                                type="switch"
+                                name='doReverse'
+                                id="custom-switch"
+                                label="doReverse"
+                                onChange={handleChangeEdit}
+                                checked={editedRow?.doReverse}
+                            />
                         </Col>
                     </Row>
                     <Row>

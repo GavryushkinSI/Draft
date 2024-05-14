@@ -42,6 +42,7 @@ public class Strategy implements Serializable {
     private String comment;
     private Boolean isExecution = false;
     private StrategyOptions options=new StrategyOptions();
+    private Boolean doReverse;
 
     public Strategy() {
     }

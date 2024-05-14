@@ -541,21 +541,39 @@ const Admin: React.FC = () => {
                         </ListGroup>
                     </Col>
                 </Row>)}
-                <Row>
-                    <Col className="ps-4">
+                <Row style={{display:"inline-flex", alignItems:"center", marginBottom:5, marginTop:3}}>
+                    <Col>
+                        <Button style={{width:150}} className="ms-2" variant={"dark"} onClick={()=>{actions.getLogs("all")}}>
+                            {"Получить лог"}
+                        </Button>
+                    </Col>
+                    <Col>
+                        <Form.Select onChange={(e) => {
+                            actions.getLogs(e.target.value);
+                        }} name="filter_strategy" style={{width: 150, marginLeft:-15}}>
+                            <option key={'11'} value={'all'}>{'Все'}</option>
+                            <option key={'12'} value={'SIGNAL_FROM_TV'}>{'SIGNAL_FROM_TV'}</option>
+                            <option key={'13'} value={'SET_CURRENT_POS_AFTER_EXECUTE'}>{'SET_CURRENT_POS_AFTER_EXECUTE'}</option>
+                            <option key={'14'} value={'CORRECT_CURRENT_POS'}>{'CORRECT_CURRENT_POS'}</option>
+                            <option key={'15'} value={'QUANTITY_LESS_MIN_LOT'}>{'QUANTITY_LESS_MIN_LOT'}</option>
+                            <option key={'16'} value={'CANCEL_CONDITIONAL_ORDERS'}>{'CANCEL_CONDITIONAL_ORDERS'}</option>
+                            <option key={'17'} value={'CLOSE_OPEN_ORDERS_OR_REVERSE'}>{'CLOSE_OPEN_ORDERS_OR_REVERSE'}</option>
+                            <option key={'18'} value={'MARKET_ORDER_EXECUTE'}>{'MARKET_ORDER_EXECUTE'}</option>
+                        </Form.Select>
+                    </Col>
+                    <Col>
                         <div onClick={(e: any) => {
-                            // setShowLogs(!showLogs)
                         }} className="text-outline custom-text"
-                        >{'Логи c Tradingview: '}</div>
+                        >{'ЛОГИ С ФАЙЛА: '}</div>
                     </Col>
                 </Row>
                 {showLogs && (<Row>
                     <Col>
-                        <ListGroup style={{maxHeight: 200, overflowY: "auto", paddingLeft: 10}}>
-                            {tvLogs?.filter((i: any) => i.startsWith(nameStrategyFilter))?.map((i: any, index: number) => {
+                        <ListGroup style={{maxHeight: 320, overflowY: "auto", paddingLeft: 7}}>
+                            {tvLogs.map((i: any, index: number) => {
                                 return <ListGroup.Item style={{color: "#8C909A", cursor: "pointer"}}
-                                                       className="bg-custom-2"
-                                                       key={index}>{`${i}`}</ListGroup.Item>
+                                                                className="bg-custom-2"
+                                                                key={index}>{`${i}`}</ListGroup.Item>
                             })}
                         </ListGroup>
                     </Col>

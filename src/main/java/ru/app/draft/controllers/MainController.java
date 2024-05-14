@@ -1,7 +1,7 @@
 package ru.app.draft.controllers;
 
 import io.micrometer.core.annotation.Timed;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -13,19 +13,19 @@ import ru.app.draft.annotations.Audit;
 import ru.app.draft.exceptions.AuthorizationException;
 import ru.app.draft.models.*;
 import ru.app.draft.services.*;
+import ru.app.draft.utils.CommonUtils;
 import ru.app.draft.utils.DateUtils;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 
 import javax.servlet.http.HttpServletRequest;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static ru.app.draft.models.EventLog.SIGNAL_FROM_TV;
 import static ru.app.draft.store.Store.*;
 
-@Log4j2
+@Slf4j
 @RestController
 public class MainController {
 
@@ -104,7 +104,7 @@ public class MainController {
     @PostMapping("/app/tv")
     @Timed(value = "myapp.method.execution_time", description = "Execution time of the method")
     public void tradingViewSignalPoint(@RequestBody Strategy strategy) {
-        sendLogFromTv(strategy);
+        log.info(String.format("[%s] Сигнал от TradingView => nameTs: %s, direction:%s, doLots:%s, comment: %s, triggerPrice:%s",SIGNAL_FROM_TV, strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(), strategy.getTriggerPrice()));
         if (Objects.equals(strategy.getProducer(), "BYBIT")) {
             byBitService.sendSignal(strategy);
         } else {
@@ -115,6 +115,7 @@ public class MainController {
     @Audit
     @PostMapping("/app/editStrategy/{userName}")
     public ResponseEntity<Collection<Strategy>> addOrUpdateStrategy(@PathVariable String userName, @RequestBody Strategy strategy) {
+        log.info(String.format("[%s] Обновление стратегии => %s", SIGNAL_FROM_TV, strategy.getName()));
         UserCache userCache = USER_STORE.get(userName);
         List<Strategy> strategyList = userCache.getStrategies();
         if (StringUtils.hasText(strategy.getId())) {
@@ -164,7 +165,7 @@ public class MainController {
 
     @Audit
     @PostMapping("/app/login/{status}")
-    public ResponseEntity<String> registration(@RequestBody User user, @PathVariable String status) throws Exception {
+    public ResponseEntity<String> registration(@RequestBody User user, @PathVariable String status) {
         if (status.equals("enter")) {
             if (!USER_STORE.containsKey(user.getLogin())) {
                 throw new AuthorizationException(new ErrorData("Пользователя с таким именем нет..."));
@@ -195,6 +196,7 @@ public class MainController {
     @GetMapping("/app/clear/{userName}")
     public void clear(@PathVariable String userName) {
         USER_STORE.replace(userName, USER_STORE.get(userName).clearLog());
+        CommonUtils.clearLogFile();
     }
 
     @GetMapping("/app/getAllStrategy/{userName}")
@@ -280,21 +282,24 @@ public class MainController {
         byBitService.cancelOrders("BTC");
     }
 
-    private void sendLogFromTv(Strategy strategy) {
-        Message message = new Message();
-        message.setSenderName("server");
-        message.setMessage(String.format("%s => %s,лотов должно быть в сделке:%s, comment: %s, triggerPrice:%s, time :%s", strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(),strategy.getTriggerPrice(), DateUtils.getCurrentTime()));
-        message.setStatus(Status.JOIN);
-        message.setCommand("log");
-        marketDataStreamService.sendDataToUser(Set.of("Admin"), message);
+//    private void sendLogFromTv(Strategy strategy) {
+//        Message message = new Message();
+//        message.setSenderName("server");
+//        message.setMessage(String.format("%s => %s,лотов должно быть в сделке:%s, comment: %s, triggerPrice:%s, time :%s", strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(), strategy.getTriggerPrice(), DateUtils.getCurrentTime()));
+//        message.setStatus(Status.JOIN);
+//        message.setCommand("log");
+//        marketDataStreamService.sendDataToUser(Set.of("Admin"), message);
+//    }
+
+    @Scheduled(fixedDelay = 3000)
+    public void checkCurrentPosition() {
+        var size = byBitService.getPosition("BTCUSDT");
+        //var side = size.doubleValue() > 0 ? "buy" : size.doubleValue() < 0 ? "sell" : "None";
+        byBitService.setCurrentPosition(null, null, null, null, null, null, size, "BTCUSDT");
     }
 
-//    @Scheduled(fixedDelay = 30000)
-//    public void checkCurrentPosition() {
-//        var size = byBitService.getPosition("BTCUSDT");
-//        var side = size.doubleValue() > 0 ? "buy" : size.doubleValue() < 0 ? "sell" : "None";
-//        byBitService.setCurrentPosition(null, null, null, null, side, null, BigDecimal.valueOf(Math.abs(size.doubleValue())), "BTCUSDT");
-//    }
+    @GetMapping("/app/getLogs/{filter}")
+    public String getLogs(@PathVariable String filter){
+        return CommonUtils.readLogFile(filter);
+    }
 }
-
-

@@ -1,18 +1,15 @@
 import {EActionTypes} from "../index";
 import http from "../utils/http-common";
 import {EConsumer, IArticle, IComment, IStrategy} from "../models/models";
-import {batch, useStore} from "react-redux";
+import {batch} from "react-redux";
 import {removeRow, saveRow} from "../utils/utils";
 import moment from "moment";
-import {addNotification} from "../actions/notificationActions";
 
 export class Service {
 
-    constructor(private dispatch: any) {
-    }
+    constructor(private dispatch: any) {}
 
     public setData(data: any, command: string, callback?: () => void) {
-        console.log("test",data, command);
         switch (command) {
             case "strategy":
                 this.setDataStrategy(data, callback);
@@ -26,9 +23,9 @@ export class Service {
             case "error":
                 this.dispatch({type: EActionTypes.SET_APP_ERROR, payload: data});
                 break;
-            case "log":
+            /*case "log":
                 this.dispatch({type: EActionTypes.SET_TV_LOG, payload: data});
-                break;
+                break;*/
             default:
                 break;
         }
@@ -139,7 +136,7 @@ export class Service {
             .catch((errors: any) => failCallback && failCallback(errors?.message));
     }
 
-    public cancelOrderOrders(){
+    public cancelOrderOrders() {
         http.delete(`/cancelAllOrders`).catch((errors: any) => console.log(errors?.message));
     }
 
@@ -207,10 +204,23 @@ export class Service {
     }
 
     public clearError(strategy: IStrategy, userName: string, successCallback?: () => void, errorCallback?: () => void) {
-        void this.addOrUpdateStrategy(userName, {...strategy, errorData: {message: undefined, time: undefined}}, successCallback, errorCallback);
+        void this.addOrUpdateStrategy(userName, {
+            ...strategy,
+            errorData: {message: undefined, time: undefined}
+        }, successCallback, errorCallback);
     }
 
     public clickError(): void {
         this.dispatch({type: EActionTypes.SET_APP_ERROR, payload: null});
+    }
+
+    /**
+     * Получить лог из файла с сервера
+     */
+    public getLogs( filter?:string) {
+        void http.get(`/getLogs/${filter}`).then((response) => this.dispatch({
+            type: EActionTypes.SET_TV_LOG,
+            payload: response.data,
+        })).catch((error)=>{console.log(error);})
     }
 }

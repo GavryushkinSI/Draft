@@ -169,7 +169,7 @@ const tvLogReducer= (state = {data:[]}, action: IAction): any => {
             return {
                 ...state,
                 //@ts-ignore
-                data: [ ...state?.data,action.payload]};
+                data: action.payload.split("\n").reverse()};
 
         default:
             return state;
