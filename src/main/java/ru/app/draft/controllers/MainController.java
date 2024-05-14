@@ -115,7 +115,6 @@ public class MainController {
     @Audit
     @PostMapping("/app/editStrategy/{userName}")
     public ResponseEntity<Collection<Strategy>> addOrUpdateStrategy(@PathVariable String userName, @RequestBody Strategy strategy) {
-        log.info(String.format("[%s] Обновление стратегии => %s", SIGNAL_FROM_TV, strategy.getName()));
         UserCache userCache = USER_STORE.get(userName);
         List<Strategy> strategyList = userCache.getStrategies();
         if (StringUtils.hasText(strategy.getId())) {
