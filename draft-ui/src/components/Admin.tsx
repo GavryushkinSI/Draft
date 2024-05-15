@@ -518,7 +518,7 @@ const Admin: React.FC = () => {
                         >{'Логи (priceTv - цена срабатывания ордера на Tradingview): '}</div>
                     </Col>
                 </Row>
-                <Row>
+               {/* <Row>
                     <Col>
                         <Form.Select onChange={(e) => {
                             setNameStrategyFilter(e.target.value === 'all' ? "" : e.target.value)
@@ -540,7 +540,7 @@ const Admin: React.FC = () => {
                             })}
                         </ListGroup>
                     </Col>
-                </Row>)}
+                </Row>)}*/}
                 <Row style={{display:"inline-flex", alignItems:"center", marginBottom:5, marginTop:3}}>
                     <Col>
                         <Button style={{width:150}} className="ms-2" variant={"dark"} onClick={()=>{actions.getLogs("all")}}>
