@@ -136,8 +136,8 @@ export class Service {
             .catch((errors: any) => failCallback && failCallback(errors?.message));
     }
 
-    public cancelOrderOrders() {
-        http.delete(`/cancelAllOrders`).catch((errors: any) => console.log(errors?.message));
+    public cancelOrderOrders(ticker:string) {
+        http.post(`/cancelAllOrders/${ticker}`).catch((errors: any) => console.log(errors?.message));
     }
 
     public clear(userName: string, successCallback?: () => void, failCallback?: (error: any) => void) {

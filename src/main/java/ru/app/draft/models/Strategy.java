@@ -25,6 +25,7 @@ public class Strategy implements Serializable {
     private List<String> consumer;
     private List<Order> orders;
     private BigDecimal currentPosition = BigDecimal.ZERO;
+    //private List<ConditionalOrder> conditionalOrders = new ArrayList<>();
     private Long priceTv;
     private String producer;
     @JsonIgnoreProperties

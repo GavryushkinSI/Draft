@@ -66,7 +66,7 @@ const Admin: React.FC = () => {
         state.tvLog.data);
     const [triggerPrice, setTriggerPrice] = useState("");
     const [size, setSize] = useState<any>(window.innerWidth);
-    const [useGrid, setUseGrid] =useState<boolean>(false);
+    const [useGrid, setUseGrid] = useState<boolean>(false);
 
     const userJoin = () => {
         const message = {
@@ -397,7 +397,7 @@ const Admin: React.FC = () => {
                 <RowFiled isAdaptive={size < 917}>
                     <SelectFilter placeholder={'Выберите стратегию'} value={handleStrategy}
                                   options={strategy?.map(i => {
-                                      return {value: i.name, label: i.name}
+                                      return {value: i?.name, label: i?.name}
                                   }) || []}
                                   style={{
                                       maxWidth: 240,
@@ -425,8 +425,8 @@ const Admin: React.FC = () => {
                                     "userName": userName!,
                                     "ticker": found.ticker,
                                     "quantity": ((found.currentPosition || 0) + found.minLot!)?.toFixed(4),
-                                    "comment":`${useGrid==true?'grid':''}`,
-                                    "triggerPrice":triggerPrice
+                                    "comment": `${useGrid == true ? 'grid' : ''}`,
+                                    "triggerPrice": triggerPrice
                                 }
                                 , () => {
                                 }
@@ -451,8 +451,8 @@ const Admin: React.FC = () => {
                                     "userName": userName!,
                                     "ticker": found.ticker,
                                     "quantity": ((found.currentPosition || 0) - found.minLot!).toFixed(4),
-                                    "comment":`${useGrid==true?'grid':''}`,
-                                    "triggerPrice":triggerPrice
+                                    "comment": `${useGrid == true ? 'grid' : ''}`,
+                                    "triggerPrice": triggerPrice
                                 },
                                 () => {
                                 },
@@ -474,7 +474,8 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": 0
+                                    "quantity": 0,
+                                    "comment": "exit",
                                 },
                                 () => {
                                 },
@@ -483,23 +484,34 @@ const Admin: React.FC = () => {
                             <Icon icon={"bi bi-x-lg"} size={15} title={'Hold'}/>
                             {" Закрыть"}
                         </Button>
-                        <Form style={{display:"flex", alignItems:"center", marginTop:5}}>
-                        <Form.Check // prettier-ignore
-                            id="use_grid"
-                            type="switch"
-                            label="use_grid"
-                            checked={useGrid}
-                            style={{marginRight:155}}
-                            onChange={(e:any)=>{setUseGrid(e?.target?.value === "on" && !useGrid)}}
-                        />
+                        <Form style={{display: "flex", alignItems: "center", marginTop: 5}}>
+                            <Form.Check // prettier-ignore
+                                id="use_grid"
+                                type="switch"
+                                label="use_grid"
+                                checked={useGrid}
+                                style={{marginRight: 155}}
+                                onChange={(e: any) => {
+                                    setUseGrid(e?.target?.value === "on" && !useGrid)
+                                }}
+                            />
                             <Form.Control
                                 className="me-2"
-                                style={{width:135}}
+                                style={{width: 135}}
                                 value={triggerPrice}
                                 placeholder="TriggerPrice"
-                                onChange={(e:any)=>{setTriggerPrice(e?.target?.value)}}
+                                onChange={(e: any) => {
+                                    setTriggerPrice(e?.target?.value)
+                                }}
                             />
-                            <Button variant={"dark"} onClick={()=>{actions.cancelOrderOrders()}}>
+                            <Button variant={"dark"} onClick={() => {
+                                const found = strategy.find(i => i.name === handleStrategy?.value)!;
+                                if (!found) {
+                                    dispatch(addNotification("Info", 'Выберите стратегию для проведения ручной сделки!..'))
+                                    return;
+                                }
+                                actions.cancelOrderOrders(found.ticker || "")
+                            }}>
                                 {"Отменить все ордера"}
                             </Button>
                         </Form>
@@ -518,7 +530,7 @@ const Admin: React.FC = () => {
                         >{'Логи (priceTv - цена срабатывания ордера на Tradingview): '}</div>
                     </Col>
                 </Row>
-               {/* <Row>
+                {/* <Row>
                     <Col>
                         <Form.Select onChange={(e) => {
                             setNameStrategyFilter(e.target.value === 'all' ? "" : e.target.value)
@@ -541,16 +553,18 @@ const Admin: React.FC = () => {
                         </ListGroup>
                     </Col>
                 </Row>)}*/}
-                <Row style={{display:"inline-flex", alignItems:"center", marginBottom:5, marginTop:3}}>
+                <Row style={{display: "inline-flex", alignItems: "center", marginBottom: 5, marginTop: 3}}>
                     <Col>
-                        <Button style={{width:150}} className="ms-2" variant={"dark"} onClick={()=>{actions.getLogs("all")}}>
+                        <Button style={{width: 150}} className="ms-2" variant={"dark"} onClick={() => {
+                            actions.getLogs("all")
+                        }}>
                             {"Получить лог"}
                         </Button>
                     </Col>
                     <Col>
                         <Form.Select onChange={(e) => {
                             actions.getLogs(e.target.value);
-                        }} name="filter_strategy" style={{width: 150, marginLeft:-15}}>
+                        }} name="filter_strategy" style={{width: 150, marginLeft: -15}}>
                             <option key={'11'} value={'all'}>{'Все'}</option>
                             <option key={'12'} value={'SIGNAL_FROM_TV'}>{'SIGNAL_FROM_TV'}</option>
                             <option key={'13'} value={'SET_CURRENT_POS_AFTER_EXECUTE'}>{'SET_CURRENT_POS_AFTER_EXECUTE'}</option>
@@ -559,6 +573,9 @@ const Admin: React.FC = () => {
                             <option key={'16'} value={'CANCEL_CONDITIONAL_ORDERS'}>{'CANCEL_CONDITIONAL_ORDERS'}</option>
                             <option key={'17'} value={'CLOSE_OPEN_ORDERS_OR_REVERSE'}>{'CLOSE_OPEN_ORDERS_OR_REVERSE'}</option>
                             <option key={'18'} value={'MARKET_ORDER_EXECUTE'}>{'MARKET_ORDER_EXECUTE'}</option>
+                            <option key={'19'} value={'EXIT_ORDERS'}>{'EXIT_ORDERS'}</option>
+                            <option key={'20'} value={'STREAM_EXECUTE_POSITION'}>{'STREAM_EXECUTE_POSITION'}</option>
+                            <option key={'21'} value={'ORDER_CANNOT_EXECUTE'}>{'ORDER_CANNOT_EXECUTE'}</option>
                         </Form.Select>
                     </Col>
                     <Col>
@@ -572,8 +589,8 @@ const Admin: React.FC = () => {
                         <ListGroup style={{maxHeight: 320, overflowY: "auto", paddingLeft: 7}}>
                             {tvLogs.map((i: any, index: number) => {
                                 return <ListGroup.Item style={{color: "#8C909A", cursor: "pointer"}}
-                                                                className="bg-custom-2"
-                                                                key={index}>{`${i}`}</ListGroup.Item>
+                                                       className="bg-custom-2"
+                                                       key={index}>{`${i}`}</ListGroup.Item>
                             })}
                         </ListGroup>
                     </Col>

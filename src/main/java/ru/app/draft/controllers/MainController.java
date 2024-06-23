@@ -124,6 +124,8 @@ public class MainController {
             strategy.setOrders(changingStrategy.getOrders());
             strategy.setEnterAveragePrice(changingStrategy.getEnterAveragePrice());
             strategyList.set(Integer.parseInt(strategy.getId()), strategy);
+            userCache.setStrategies(strategyList);
+            USER_STORE.replace(userName, userCache);
         } else {
             Ticker ticker;
             if (!Objects.equals(strategy.getProducer(), "BYBIT")) {
@@ -152,12 +154,11 @@ public class MainController {
                     ticker.getMinLot(),
                     strategy.getProducer());
             newStrategy.setOptions(strategy.getOptions());
-            newStrategy.setCurrentPosition(byBitService.getPosition(newStrategy.getFigi()));
             strategyList.add(newStrategy);
+            userCache.setStrategies(strategyList);
+            USER_STORE.replace(userName, userCache);
+            byBitService.getPosition();
         }
-
-        userCache.setStrategies(strategyList);
-        USER_STORE.replace(userName, userCache);
 
         return ResponseEntity.ok(strategyList);
     }
@@ -276,25 +277,14 @@ public class MainController {
         return ResponseEntity.ok(user.getViewedNotifyIds());
     }
 
-    @DeleteMapping("/app/cancelAllOrders")
-    public void cancelAllOrders() {
-        byBitService.cancelOrders("BTC");
+    @PostMapping("/app/cancelAllOrders/{ticker}")
+    public void cancelAllOrders(@PathVariable String ticker) {
+        byBitService.cancelOrders(ticker, false);
     }
 
-//    private void sendLogFromTv(Strategy strategy) {
-//        Message message = new Message();
-//        message.setSenderName("server");
-//        message.setMessage(String.format("%s => %s,лотов должно быть в сделке:%s, comment: %s, triggerPrice:%s, time :%s", strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(), strategy.getTriggerPrice(), DateUtils.getCurrentTime()));
-//        message.setStatus(Status.JOIN);
-//        message.setCommand("log");
-//        marketDataStreamService.sendDataToUser(Set.of("Admin"), message);
-//    }
-
-    @Scheduled(fixedDelay = 3000)
+    @Scheduled(fixedDelay = 5000)
     public void checkCurrentPosition() {
-        var size = byBitService.getPosition("BTCUSDT");
-        //var side = size.doubleValue() > 0 ? "buy" : size.doubleValue() < 0 ? "sell" : "None";
-        byBitService.setCurrentPosition(null, null, null, null, null, null, size, "BTCUSDT");
+        byBitService.getPosition();
     }
 
     @GetMapping("/app/getLogs/{filter}")
