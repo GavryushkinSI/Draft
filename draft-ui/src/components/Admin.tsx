@@ -65,6 +65,7 @@ const Admin: React.FC = () => {
     const tvLogs: any[] = useSelector((state: IAppState) =>
         state.tvLog.data);
     const [triggerPrice, setTriggerPrice] = useState("");
+    const [quantity, setQuantity] = useState<number>(0);
     const [size, setSize] = useState<any>(window.innerWidth);
     const [useGrid, setUseGrid] = useState<boolean>(false);
 
@@ -409,7 +410,9 @@ const Admin: React.FC = () => {
                                       setHandleStrategy(e.target.value ? {
                                           value: e.target.value,
                                           label: e.target.value
-                                      } : null)
+                                      } : null);
+                                      const found = strategy?.find(i => i.name === e.target.value)!;
+                                      setQuantity(found?.minLot || 0);
                                   }}/>
                     <>
                         <Button className="me-2" onClick={() => {
@@ -418,14 +421,15 @@ const Admin: React.FC = () => {
                                 dispatch(addNotification("Info", 'Выберите стратегию для проведения ручной сделки!..'))
                                 return;
                             }
+
                             actions.sendOrder({
                                     "direction": "buy",
                                     "producer": found.producer,
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": ((found.currentPosition || 0) + found.minLot!)?.toFixed(4),
-                                    "comment": `${useGrid == true ? 'grid' : ''}`,
+                                    "quantity": (found.currentPosition || 0) + quantity,
+                                    "comment": `${useGrid ? 'grid' : ''}`,
                                     "triggerPrice": triggerPrice
                                 }
                                 , () => {
@@ -450,8 +454,8 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": ((found.currentPosition || 0) - found.minLot!).toFixed(4),
-                                    "comment": `${useGrid == true ? 'grid' : ''}`,
+                                    "quantity": (found.currentPosition || 0) - quantity,
+                                    "comment": `${useGrid ? 'grid' : ''}`,
                                     "triggerPrice": triggerPrice
                                 },
                                 () => {
@@ -497,9 +501,18 @@ const Admin: React.FC = () => {
                             />
                             <Form.Control
                                 className="me-2"
-                                style={{width: 135}}
+                                style={{width: 100}}
+                                value={quantity}
+                                placeholder="quantity"
+                                onChange={(e: any) => {
+                                    setQuantity(e?.target?.value)
+                                }}
+                            />
+                            <Form.Control
+                                className="me-2"
+                                style={{width: 100}}
                                 value={triggerPrice}
-                                placeholder="TriggerPrice"
+                                placeholder="trigger_Price"
                                 onChange={(e: any) => {
                                     setTriggerPrice(e?.target?.value)
                                 }}
@@ -567,11 +580,14 @@ const Admin: React.FC = () => {
                         }} name="filter_strategy" style={{width: 150, marginLeft: -15}}>
                             <option key={'11'} value={'all'}>{'Все'}</option>
                             <option key={'12'} value={'SIGNAL_FROM_TV'}>{'SIGNAL_FROM_TV'}</option>
-                            <option key={'13'} value={'SET_CURRENT_POS_AFTER_EXECUTE'}>{'SET_CURRENT_POS_AFTER_EXECUTE'}</option>
+                            <option key={'13'}
+                                    value={'SET_CURRENT_POS_AFTER_EXECUTE'}>{'SET_CURRENT_POS_AFTER_EXECUTE'}</option>
                             <option key={'14'} value={'CORRECT_CURRENT_POS'}>{'CORRECT_CURRENT_POS'}</option>
                             <option key={'15'} value={'QUANTITY_LESS_MIN_LOT'}>{'QUANTITY_LESS_MIN_LOT'}</option>
-                            <option key={'16'} value={'CANCEL_CONDITIONAL_ORDERS'}>{'CANCEL_CONDITIONAL_ORDERS'}</option>
-                            <option key={'17'} value={'CLOSE_OPEN_ORDERS_OR_REVERSE'}>{'CLOSE_OPEN_ORDERS_OR_REVERSE'}</option>
+                            <option key={'16'}
+                                    value={'CANCEL_CONDITIONAL_ORDERS'}>{'CANCEL_CONDITIONAL_ORDERS'}</option>
+                            <option key={'17'}
+                                    value={'CLOSE_OPEN_ORDERS_OR_REVERSE'}>{'CLOSE_OPEN_ORDERS_OR_REVERSE'}</option>
                             <option key={'18'} value={'MARKET_ORDER_EXECUTE'}>{'MARKET_ORDER_EXECUTE'}</option>
                             <option key={'19'} value={'EXIT_ORDERS'}>{'EXIT_ORDERS'}</option>
                             <option key={'20'} value={'STREAM_EXECUTE_POSITION'}>{'STREAM_EXECUTE_POSITION'}</option>
