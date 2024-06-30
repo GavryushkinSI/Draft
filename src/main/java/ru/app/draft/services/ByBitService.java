@@ -7,10 +7,12 @@ import com.bybit.api.client.domain.TriggerBy;
 import com.bybit.api.client.domain.account.AccountType;
 import com.bybit.api.client.domain.account.request.AccountDataRequest;
 import com.bybit.api.client.domain.institution.LendingDataRequest;
+import com.bybit.api.client.domain.market.InstrumentStatus;
 import com.bybit.api.client.domain.position.request.PositionDataRequest;
 import com.bybit.api.client.domain.trade.Side;
 import com.bybit.api.client.domain.trade.request.TradeOrderRequest;
 import com.bybit.api.client.restApi.BybitApiAccountRestClient;
+import com.bybit.api.client.restApi.BybitApiAsyncMarketDataRestClient;
 import com.bybit.api.client.restApi.BybitApiLendingRestClient;
 import com.bybit.api.client.restApi.BybitApiMarketRestClient;
 import com.bybit.api.client.restApi.BybitApiPositionRestClient;
@@ -30,8 +32,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.util.CollectionUtils;
 import ru.app.draft.exception.OrderNotExecutedException;
-import ru.app.draft.models.*;
 import org.springframework.stereotype.Service;
+import ru.app.draft.models.ErrorData;
+import ru.app.draft.models.Strategy;
+import ru.app.draft.models.StrategyOptions;
+import ru.app.draft.models.Ticker;
+import ru.app.draft.models.UserCache;
+import ru.app.draft.utils.CommonUtils;
 import ru.app.draft.utils.DateUtils;
 import ru.tinkoff.piapi.contract.v1.*;
 
@@ -41,9 +48,18 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static com.bybit.api.client.constant.Util.generateTransferID;
-import static ru.app.draft.models.EventLog.*;
+import static ru.app.draft.models.EventLog.CANCEL_CONDITIONAL_ORDERS;
+import static ru.app.draft.models.EventLog.CLOSE_OPEN_ORDERS_OR_REVERSE;
+import static ru.app.draft.models.EventLog.CORRECT_CURRENT_POS;
+import static ru.app.draft.models.EventLog.EXIT_ORDERS;
+import static ru.app.draft.models.EventLog.MARKET_ORDER_EXECUTE;
+import static ru.app.draft.models.EventLog.ORDER_CANNOT_EXECUTE;
+import static ru.app.draft.models.EventLog.QUANTITY_LESS_MIN_LOT;
+import static ru.app.draft.models.EventLog.SET_CURRENT_POS_AFTER_EXECUTE;
+import static ru.app.draft.models.EventLog.STREAM_EXECUTE_POSITION;
 import static ru.app.draft.store.Store.LAST_PRICE;
 import static ru.app.draft.store.Store.ORDERS_MAP;
 import static ru.app.draft.store.Store.TICKERS_BYBIT;
@@ -56,6 +72,8 @@ import static ru.app.draft.store.Store.updateLastPrice;
 @Slf4j
 public class ByBitService extends AbstractTradeService {
 
+    private static WebSocket webSocket;
+
     private final TelegramBotService telegramBotService;
     private final MarketDataStreamService streamService;
     private final BybitApiTradeRestClient orderRestClient;
@@ -63,13 +81,15 @@ public class ByBitService extends AbstractTradeService {
     private final BybitApiMarketRestClient marketRestClient;
     private final BybitApiLendingRestClient lendingRestClient;
 
+    private final BybitApiAsyncMarketDataRestClient dataRestClient;
+
     private final BybitApiAccountRestClient accountClient;
 
     private final ObjectMapper mapper;
 
     private static final String PING_DATA = "{\"op\":\"ping\"}";
 
-    public ByBitService(TelegramBotService telegramBotService, MarketDataStreamService streamService, BybitApiTradeRestClient orderRestClient, BybitApiPositionRestClient positionRestClient, BybitApiMarketRestClient marketRestClient, BybitApiLendingRestClient lendingRestClient, BybitApiAccountRestClient accountClient, ObjectMapper mapper) {
+    public ByBitService(TelegramBotService telegramBotService, MarketDataStreamService streamService, BybitApiTradeRestClient orderRestClient, BybitApiPositionRestClient positionRestClient, BybitApiMarketRestClient marketRestClient, BybitApiLendingRestClient lendingRestClient, BybitApiAsyncMarketDataRestClient dataRestClient, BybitApiAccountRestClient accountClient, ObjectMapper mapper) {
         super(telegramBotService, streamService);
         this.telegramBotService = telegramBotService;
         this.streamService = streamService;
@@ -77,6 +97,7 @@ public class ByBitService extends AbstractTradeService {
         this.positionRestClient = positionRestClient;
         this.marketRestClient = marketRestClient;
         this.lendingRestClient = lendingRestClient;
+        this.dataRestClient = dataRestClient;
         this.accountClient = accountClient;
         this.mapper = mapper;
     }
@@ -112,7 +133,7 @@ public class ByBitService extends AbstractTradeService {
                 var ordeId = (String) map.get("orderId");
                 var triggerPrice = (Optional<BigDecimal>) map.get("triggerPrice");
                 var isAmendOrder = (Boolean) map.get("isAmendOrder");
-                Map<String, Object> result = sendOrder(direction, position.toString(), changingStrategy.getTicker(), ordeId, triggerPrice.isPresent() ? String.valueOf(triggerPrice.get()) : null, isAmendOrder, changingStrategy.getOptions(), LAST_PRICE.get(changingStrategy.getFigi()).getPrice(), changingStrategy.getName(), strategy.getComment());
+                Map<String, Object> result = sendOrder(direction, CommonUtils.formatBigDecimalNumber(position), changingStrategy.getTicker(), ordeId, triggerPrice.isPresent() ? String.valueOf(triggerPrice.get()) : null, isAmendOrder, changingStrategy.getOptions(), LAST_PRICE.get(changingStrategy.getFigi()).getPrice(), changingStrategy.getName(), strategy.getComment());
                 executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
             } else if (changingStrategy.getConsumer().contains("test")) {
                 executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
@@ -310,7 +331,7 @@ public class ByBitService extends AbstractTradeService {
                     .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
                     .orderType(TradeOrderType.MARKET)
                     .orderLinkId(orderId)
-                    .qty(String.valueOf(Math.abs(Double.parseDouble(position))))
+                    .qty(position)
                     .build();
             response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
             var retCode3 = response.get("retCode");
@@ -329,7 +350,7 @@ public class ByBitService extends AbstractTradeService {
                         .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
                         .orderType(TradeOrderType.MARKET)
                         .orderLinkId(orderId)
-                        .qty(String.valueOf(Math.abs(Double.parseDouble(position))))
+                        .qty(position)
                         .build();
                 response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
                 log.info(String.format("[%s]=> qty:%s", MARKET_ORDER_EXECUTE, position));
@@ -344,7 +365,7 @@ public class ByBitService extends AbstractTradeService {
                             .triggerPrice(triggerPrice)
                             .triggerDirection(direction == OrderDirection.ORDER_DIRECTION_BUY ? 1 : 2)
                             .tpTriggerBy(TriggerBy.LAST_PRICE)
-                            .qty(String.valueOf(Math.abs(Double.parseDouble(position))))
+                            .qty(position)
                             .build();
                     response = (LinkedHashMap<String, Object>) orderRestClient.amendOrder(tradeOrderRequest);
                 } else {
@@ -359,7 +380,7 @@ public class ByBitService extends AbstractTradeService {
                             .triggerPrice(triggerPrice)
                             .triggerDirection(direction == OrderDirection.ORDER_DIRECTION_BUY ? 1 : 2)
                             .tpTriggerBy(TriggerBy.LAST_PRICE)
-                            .qty(String.valueOf(Math.abs(Double.parseDouble(position))))
+                            .qty(position)
                             .build();
                     response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
 
@@ -385,19 +406,23 @@ public class ByBitService extends AbstractTradeService {
         return TICKERS_BYBIT.get("tickers").stream().filter(i -> i.getValue().equals(tickers.get(0))).findFirst().get();
     }
 
-
+    private static List<String> getAllTickers(){
+        UserCache userCache = USER_STORE.get("Admin");
+        List<Strategy> strategyList = userCache.getStrategies();
+        if(CollectionUtils.isEmpty(strategyList)){
+            return List.of("tickers.BTCUSDT");
+        }
+        return strategyList.stream().map(i->String.format("tickers.%s", i.getTicker())).collect(Collectors.toList());
+    }
     public void setStreamPublic() {
         Request request = new Request.Builder().url("wss://stream.bybit.com/v5/public/linear").build();
         OkHttpClient publicClient = new OkHttpClient.Builder().build();
         Map<String, Object> subscribeMsg = new LinkedHashMap<>();
         subscribeMsg.put("op", "subscribe");
         subscribeMsg.put("req_id", generateTransferID());
-        subscribeMsg.put("args", List.of("tickers.BTCUSDT", "tickers.ETHUSDT", "tickers.APTUSDT", "tickers.ORDIUSDT",
-                "tickers.FETUSDT", "tickers.XRPUSDT", "tickers.AVAXUSDT", "tickers.GRTUSDT",
-                "tickers.ARBUSDT", "tickers.DOTUSDT"
-        ));
+        subscribeMsg.put("args", getAllTickers());
 
-        WebSocket webSocket = publicClient.newWebSocket(request, new WebSocketListener() {
+        webSocket = publicClient.newWebSocket(request, new WebSocketListener() {
 
             @Override
             public void onFailure(@NotNull WebSocket webSocket, @NotNull Throwable t, @Nullable Response response) {
@@ -451,6 +476,15 @@ public class ByBitService extends AbstractTradeService {
         });
     }
 
+    public void sendInPublicWebSocket(String ticker){
+        if(webSocket!=null){
+            Map<String, Object> subscribeMsg = new LinkedHashMap<>();
+            subscribeMsg.put("op", "subscribe");
+            subscribeMsg.put("req_id", generateTransferID());
+            subscribeMsg.put("args", List.of(String.format("tickers.%s", ticker)));
+            webSocket.send(JSON.toJSONString(subscribeMsg));
+        }
+    }
 
     public void setStreamPrivate() {
         OkHttpClient privateClient = new OkHttpClient.Builder().build();
@@ -461,7 +495,7 @@ public class ByBitService extends AbstractTradeService {
         subscribeMsg.put("req_id", generateTransferID());
         //subscribeMsg.put("args", List.of("execution"));
         subscribeMsg.put("args", List.of("execution.linear"
-             /*   "order"*/
+                /*   "order"*/
         ));
         WebSocket privateWebSocket = privateClient.newWebSocket(request, new WebSocketListener() {
             @Override
@@ -480,20 +514,6 @@ public class ByBitService extends AbstractTradeService {
                     try {
                         Map<String, Object> result = (Map<String, Object>) JSON.parse(text);
                         String topic = (String) result.get("topic");
-//                        if (topic != null && topic.equals("order")) {
-//                            var data = ((List<Object>) result.get("data"));
-//                            if (data != null) {
-//                                data.forEach(it -> {
-//                                    //Deactivated
-//                                    //"stopOrderType" -> "UNKNOWN"
-//                                    //"orderStatus" -> "Filled"
-//                                    //"stopOrderType" -> "Stop"
-//                                    //"orderStatus" -> "Untriggered"
-//                                    Map<String, Object> map = ((Map<String, Object>) it);
-//                                    String symbol = (String) map.get("symbol");
-//                                });
-//                            }
-//                        }
                         if (topic != null && topic.equals("execution.linear")) {
                             var data = ((List<Object>) result.get("data"));
                             if (data != null) {
@@ -547,9 +567,9 @@ public class ByBitService extends AbstractTradeService {
     private String createAuthMessage() {
         long expires = Instant.now().toEpochMilli() + 10000;
         String val = "GET/realtime" + expires;
-        String signature = HmacSHA256Signer.auth(val, "r0IVwdjDXNR7gAlkuOycsj0VSsqMpIdhXHin");
+        String signature = HmacSHA256Signer.auth(val, "cEEy2UikJip79bTn2RcPy7Do0dgiZ5LxRPl7");
 
-        var args = List.of("GzLMsbb4tcLt0kCqv7", expires, signature);
+        var args = List.of("g6pMUO4vmwTHZGsotf", expires, signature);
         var authMap = Map.of("req_id", generateTransferID(), "op", "auth", "args", args);
         return JSON.toJSONString(authMap);
     }
@@ -720,5 +740,32 @@ public class ByBitService extends AbstractTradeService {
         userCache.setStrategies(strategyList);
         USER_STORE.replace("Admin", userCache);
         sendMessageInSocket(userCache.getStrategies());
+    }
+
+    public void getInstrumentsInfo() {
+        List<Ticker> byBitTickers = new ArrayList<>();
+        dataRestClient.getInstrumentsInfo(com.bybit.api.client.domain.market.request.MarketDataRequest.builder().category(CategoryType.LINEAR).instrumentStatus(InstrumentStatus.TRADING).limit(500).build(), (data) -> {
+            var response = (LinkedHashMap<String, Object>) data;
+            var result = (LinkedHashMap<String, Object>) response.get("result");
+            var data2 = (List) result.get("list");
+            data2.forEach(new Consumer() {
+                @Override
+                public void accept(Object o) {
+                    var it = (LinkedHashMap<String, Object>) o;
+                    var symbol = (String) it.get("symbol");
+                    var settleCoin = (String) it.get("settleCoin");
+                    var priceScale= (String) it.get("priceScale");
+                    var lotSizeFilter = (LinkedHashMap<String, Object>) it.get("lotSizeFilter");
+                    var minOrderQty = BigDecimal.valueOf(Double.valueOf((String) lotSizeFilter.get("minOrderQty")));
+                    var leverageFilter = (LinkedHashMap<String, Object>) it.get("leverageFilter");
+                    if (settleCoin.equals("USDT") && Double.valueOf((String) leverageFilter.get("maxLeverage")) >= 50d) {
+                        byBitTickers.add(
+                                new Ticker(symbol, symbol, symbol, "BYBITFUT", minOrderQty, priceScale)
+                        );
+                    }
+                }
+            });
+            TICKERS_BYBIT.replace("tickers", byBitTickers);
+        });
     }
 }

@@ -9,8 +9,20 @@ import java.math.BigDecimal;
 public class CommonUtils {
     private static final String FILE_LOG_NAME = "app.log";
 
-    public static String formatNumber(BigDecimal value) {
-        return value.scale() == 0 ? value.toString() : String.format("%.4f", value);
+    public static String formatBigDecimalNumber(BigDecimal value){
+        // Целая часть числа
+        int integerPart = (int) Math.abs(value.doubleValue());
+        // Дробная часть числа
+        double fractionalPart = Math.abs(Math.abs(value.doubleValue()) - integerPart);
+        if (fractionalPart == 0) {
+            return String.valueOf(integerPart);
+        } else {
+            return String.valueOf((integerPart+fractionalPart));
+        }
+    }
+
+    public static String formatNumber(BigDecimal value, String priceScale) {
+        return value.scale() == 0 ? value.toString() : String.format("%." + priceScale + "f", value);
     }
 
     public static BigDecimal getFromMoneyValue(MoneyValue moneyValue) {

@@ -173,6 +173,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         return BybitApiClientFactory.newInstance(key, serial, BybitApiConfig.MAINNET_DOMAIN).newAccountRestClient();
     }
 
+    @Bean
+    public BybitApiAsyncMarketDataRestClient getDate(){
+        return BybitApiClientFactory.newInstance().newAsyncMarketDataRestClient();
+    }
+
 //    @Bean
 //    public BybitApiAsyncTradeRestClient createAsyncClient(@Value("${bybit.key}") String key,@Value("${bybit.serial}") String serial){
 //        return BybitApiClientFactory.newInstance(key, serial, BybitApiConfig.MAINNET_DOMAIN).newAsyncTradeRestClient();

@@ -153,11 +153,13 @@ public class MainController {
                     strategy.getDescription(),
                     ticker.getMinLot(),
                     strategy.getProducer());
+            newStrategy.setPriceScale(ticker.getPriceScale());
             newStrategy.setOptions(strategy.getOptions());
             strategyList.add(newStrategy);
             userCache.setStrategies(strategyList);
             USER_STORE.replace(userName, userCache);
             byBitService.getPosition();
+            byBitService.sendInPublicWebSocket(ticker.getFigi());
         }
 
         return ResponseEntity.ok(strategyList);
@@ -282,10 +284,10 @@ public class MainController {
         byBitService.cancelOrders(ticker, false);
     }
 
-    @Scheduled(fixedDelay = 5000)
-    public void checkCurrentPosition() {
-        byBitService.getPosition();
-    }
+//    @Scheduled(fixedDelay = 10000)
+//    public void checkCurrentPosition() {
+//        byBitService.getPosition();
+//    }
 
     @GetMapping("/app/getLogs/{filter}")
     public String getLogs(@PathVariable String filter){

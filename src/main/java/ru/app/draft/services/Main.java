@@ -1,13 +1,19 @@
 package ru.app.draft.services;
 
+import java.math.BigDecimal;
+
 public class Main {
     public static void main(String[] args) {
-        long x= 1703359252941L-5000L;
-        boolean y = x<=1703359239314L;
-        System.out.println(x);
-        System.out.println(1703359239314L-x);
-        System.out.println(1703359239314L-1703359252941L);
-        System.out.println(y);
-        System.out.println(1703359252941L+1000L);
+        BigDecimal val = new BigDecimal("0.00100");
+        // Целая часть числа
+        long integerPart = val.longValue();
+
+        // Дробная часть числа
+        double fractionalPart = val.doubleValue() - integerPart;
+        if (fractionalPart == 0) {
+            System.out.println(BigDecimal.valueOf(integerPart));
+        } else {
+            System.out.println(BigDecimal.valueOf(integerPart+fractionalPart));
+        }
     }
 }

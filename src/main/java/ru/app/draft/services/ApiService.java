@@ -34,12 +34,14 @@ public class ApiService extends AbstractApiService {
     private final MarketDataStreamService streamService;
     private final TelegramBotService telegramBotService;
     private static Boolean useSandbox;
+    private final ByBitService byBitService;
 
-    public ApiService(MarketDataStreamService streamService, TelegramBotService telegramBotService, @Value("${usesandbox}") Boolean useSandbox) {
+    public ApiService(MarketDataStreamService streamService, TelegramBotService telegramBotService, @Value("${usesandbox}") Boolean useSandbox, ByBitService byBitService) {
         super(streamService);
         this.streamService = streamService;
         this.telegramBotService = telegramBotService;
         this.useSandbox = useSandbox;
+        this.byBitService = byBitService;
     }
 
     public Ticker getFigi(InvestApi api, List<String> tickers) {
@@ -47,29 +49,17 @@ public class ApiService extends AbstractApiService {
     }
 
     public void getAllTickers(InvestApi api, List<String> filter) {
-            List<Ticker> tickers = api.getInstrumentsService().getAllFuturesSync().stream().map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot()))).collect(Collectors.toList());
+            List<Ticker> tickers = api.getInstrumentsService().getAllFuturesSync().stream().map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot()), null)).collect(Collectors.toList());
         tickers.addAll(api.getInstrumentsService()
                 .getAllSharesSync()
                 .stream()
                 .filter(i -> i.getClassCode().equals("TQBR"))
-                .map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot())))
+                .map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot()), null))
                 .collect(Collectors.toList()));
         tickers = tickers.stream().filter(i -> filter.contains(i.getValue())).collect(Collectors.toList());
         TICKERS_TKS.replace("tickers", tickers);
         //ByBit
-        List<Ticker> byBitTickers = List.of(
-                new Ticker("BTCUSDT","BTCUSDT","BTCUSDT","BYBITFUT", BigDecimal.valueOf(0.001)),
-                new Ticker("ETHUSDT","ETHUSDT","ETHUSDT","BYBITFUT", BigDecimal.valueOf(0.01)),
-                new Ticker("APTUSDT","APTUSDT","APTUSDT","BYBITFUT", BigDecimal.valueOf(0.1)),
-                new Ticker("ORDIUSDT","ORDIUSDT","ORDIUSDT","BYBITFUT", BigDecimal.valueOf(0.1)),
-                new Ticker("FETUSDT","FETUSDT","FETUSDT","BYBITFUT", BigDecimal.valueOf(1.0)),
-                new Ticker("XRPUSDT","XRPUSDT","XRPUSDT","BYBITFUT", BigDecimal.valueOf(1.0)),
-                new Ticker("GRTUSDT","GRTUSDT","GRTUSDT","BYBITFUT", BigDecimal.valueOf(1.0)),
-                new Ticker("AVAXUSDT","AVAXUSDT","AVAXUSDT","BYBITFUT", BigDecimal.valueOf(0.1)),
-                new Ticker("ARBUSDT","ARBUSDT","ARBUSDT","BYBITFUT", BigDecimal.valueOf(1.0)),
-                new Ticker("DOTUSDT","DOTUSDT","DOTUSDT","BYBITFUT", BigDecimal.valueOf(1.0))
-        );
-        TICKERS_BYBIT.replace("tickers", byBitTickers);
+        byBitService.getInstrumentsInfo();
     }
 
     @Audit
@@ -299,7 +289,7 @@ public class ApiService extends AbstractApiService {
 
     private void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time) {
         var minLot = changingStrategy.getMinLot();
-        String printPrice = CommonUtils.formatNumber(executionPrice);
+        String printPrice = CommonUtils.formatNumber(executionPrice, changingStrategy.getPriceScale());
 
         if (strategy.getDirection().equals(changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0 ? "buy" : changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "sell" : "hold")) {
             changingStrategy.addEnterAveragePrice(executionPrice, false);

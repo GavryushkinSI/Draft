@@ -30,7 +30,7 @@ public abstract class AbstractTradeService {
     public synchronized void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time, Boolean ordersFromTv) {
         if (executionPrice != null) {
             var minLot = changingStrategy.getMinLot();
-            String printPrice = CommonUtils.formatNumber(executionPrice);
+            String printPrice = CommonUtils.formatNumber(executionPrice, changingStrategy.getPriceScale());
 
             if (strategy.getDirection().equals("buy")) {
                 changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
