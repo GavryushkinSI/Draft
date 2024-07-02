@@ -158,7 +158,7 @@ public class MainController {
             strategyList.add(newStrategy);
             userCache.setStrategies(strategyList);
             USER_STORE.replace(userName, userCache);
-            byBitService.getPosition();
+            byBitService.getPosition(ticker.getValue(), true);
             byBitService.sendInPublicWebSocket(ticker.getFigi());
         }
 

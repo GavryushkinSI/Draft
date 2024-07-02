@@ -176,7 +176,6 @@ public class ByBitService extends AbstractTradeService {
                     userCache.setStrategies(strategyList);
                     USER_STORE.replace("Admin", userCache);
                 }
-                //getAccountInfo();
             }
             return null;
         }
@@ -201,8 +200,9 @@ public class ByBitService extends AbstractTradeService {
                     if (side.toLowerCase().equals("sell")) {
                         execQty = execQty.multiply(BigDecimal.valueOf(-1.0d));
                     }
-                    log.info(String.format("[%s]=> currentPosition:%s, execQty:%s, executionPrice:%s, side:%s", SET_CURRENT_POS_AFTER_EXECUTE, execStrategy.getCurrentPosition(), execQty, executionPrice, side));
+                    log.info(String.format("[%s]=> name:%s, currentPosition:%s, execQty:%s, executionPrice:%s, side:%s", SET_CURRENT_POS_AFTER_EXECUTE, execStrategy.getName(), execStrategy.getCurrentPosition(), execQty, executionPrice, side));
                     updateStrategyCache(strategyList, execStrategy, execStrategy, executionPrice, userCache, execQty, DateUtils.getCurrentTime(), false);
+                    getPosition(execStrategy.getTicker(), false);
                 }
             }
 
@@ -493,7 +493,6 @@ public class ByBitService extends AbstractTradeService {
         subscribeMsg.clear();
         subscribeMsg.put("op", "subscribe");
         subscribeMsg.put("req_id", generateTransferID());
-        //subscribeMsg.put("args", List.of("execution"));
         subscribeMsg.put("args", List.of("execution.linear"
                 /*   "order"*/
         ));
@@ -624,8 +623,8 @@ public class ByBitService extends AbstractTradeService {
         });
     }
 
-    public void getPosition() {
-        var positionListRequest = PositionDataRequest.builder().category(CategoryType.LINEAR).settleCoin("USDT").build();
+    public void getPosition(String symbol, boolean isNew) {
+        var positionListRequest = PositionDataRequest.builder().category(CategoryType.LINEAR).symbol(symbol).settleCoin("USDT").build();
         LinkedHashMap<String, Object> response = (LinkedHashMap<String, Object>) positionRestClient.getPositionInfo(positionListRequest);
         var result = (LinkedHashMap<String, Object>) response.get("result");
         var data = (List) result.get("list");
@@ -638,7 +637,24 @@ public class ByBitService extends AbstractTradeService {
                     var symbol = (String) it.get("symbol");
                     var size = BigDecimal.valueOf(Double.parseDouble((String) it.get("size")))
                             .multiply(side.toLowerCase().equals("buy") ? BigDecimal.ONE : BigDecimal.valueOf(-1.0d));
-                    setCurrentPosition(null, null, null, null, null, null, size, symbol);
+                    UserCache userCache = USER_STORE.get("Admin");
+                    List<Strategy> strategyList = userCache.getStrategies();
+                    if (!CollectionUtils.isEmpty(strategyList)) {
+                        Optional<Strategy> execStrategy = strategyList
+                                .stream()
+                                .filter(item -> item.getFigi().equals(symbol)).findFirst();
+                        if (execStrategy.isPresent()) {
+                            var exec = execStrategy.get();
+                            if (exec.getCurrentPosition().compareTo(size) != 0) {
+                                exec.setCurrentPosition(size);
+                                userCache.setStrategies(strategyList);
+                                USER_STORE.replace("Admin", userCache);
+                                if(!isNew){
+                                    log.info(String.format("[%s]=> currentPosition:%s, newCurrentPosition:%s", CORRECT_CURRENT_POS, exec.getCurrentPosition(), size));
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
