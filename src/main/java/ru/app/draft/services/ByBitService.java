@@ -51,15 +51,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static com.bybit.api.client.constant.Util.generateTransferID;
-import static ru.app.draft.models.EventLog.CANCEL_CONDITIONAL_ORDERS;
-import static ru.app.draft.models.EventLog.CLOSE_OPEN_ORDERS_OR_REVERSE;
-import static ru.app.draft.models.EventLog.CORRECT_CURRENT_POS;
-import static ru.app.draft.models.EventLog.EXIT_ORDERS;
-import static ru.app.draft.models.EventLog.MARKET_ORDER_EXECUTE;
-import static ru.app.draft.models.EventLog.ORDER_CANNOT_EXECUTE;
-import static ru.app.draft.models.EventLog.QUANTITY_LESS_MIN_LOT;
-import static ru.app.draft.models.EventLog.SET_CURRENT_POS_AFTER_EXECUTE;
-import static ru.app.draft.models.EventLog.STREAM_EXECUTE_POSITION;
+import static ru.app.draft.models.EventLog.*;
 import static ru.app.draft.store.Store.LAST_PRICE;
 import static ru.app.draft.store.Store.ORDERS_MAP;
 import static ru.app.draft.store.Store.TICKERS_BYBIT;
@@ -390,12 +382,23 @@ public class ByBitService extends AbstractTradeService {
                 }
             }
         }
-
         var retCode = response.get("retCode");
+
         if (Objects.equal(retCode, 110092) || Objects.equal(retCode, 110093)) {
             log.info(String.format("[%s]=> ticker:%s, triggerPrice:%s", ORDER_CANNOT_EXECUTE, ticker, triggerPrice));
+            tradeOrderRequest = TradeOrderRequest.builder()
+                    .category(CategoryType.LINEAR)
+                    .symbol(ticker)
+                    .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
+                    .orderType(TradeOrderType.MARKET)
+                    .orderLinkId(orderId)
+                    .qty(position)
+                    .build();
+            response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
+            log.info(String.format("[%s]: symbol:%s, qty:%s", MARKET_ORDER_EXECUTE_FORCE,ticker, position));
         }
-        if (!Objects.equal(retCode, 0) && !Objects.equal(retCode, 110092) && !Objects.equal(retCode, 110093)) {
+        var retCode2 = response.get("retCode");
+        if (!Objects.equal(retCode2, 0) && !Objects.equal(retCode2, 110092) && !Objects.equal(retCode2, 110093)) {
             var message = response.get("retMsg");
             throw new OrderNotExecutedException(String.format("Ошибка исполнения ордера %s, %s, %s. Message: %s.", ticker, direction.name(), position, message));
         }
@@ -760,7 +763,8 @@ public class ByBitService extends AbstractTradeService {
 
     public void getInstrumentsInfo() {
         List<Ticker> byBitTickers = new ArrayList<>();
-        dataRestClient.getInstrumentsInfo(com.bybit.api.client.domain.market.request.MarketDataRequest.builder().category(CategoryType.LINEAR).instrumentStatus(InstrumentStatus.TRADING).limit(500).build(), (data) -> {
+        List<Ticker> byBitTickers2 = new ArrayList<>();
+        dataRestClient.getInstrumentsInfo(com.bybit.api.client.domain.market.request.MarketDataRequest.builder().category(CategoryType.LINEAR).instrumentStatus(InstrumentStatus.TRADING).limit(1000).build(), (data) -> {
             var response = (LinkedHashMap<String, Object>) data;
             var result = (LinkedHashMap<String, Object>) response.get("result");
             var data2 = (List) result.get("list");
@@ -774,13 +778,20 @@ public class ByBitService extends AbstractTradeService {
                     var lotSizeFilter = (LinkedHashMap<String, Object>) it.get("lotSizeFilter");
                     var minOrderQty = BigDecimal.valueOf(Double.valueOf((String) lotSizeFilter.get("minOrderQty")));
                     var leverageFilter = (LinkedHashMap<String, Object>) it.get("leverageFilter");
-                    if (settleCoin.equals("USDT") && Double.valueOf((String) leverageFilter.get("maxLeverage")) >= 50d) {
+                    if (settleCoin.equals("USDT") && Double.valueOf((String) leverageFilter.get("maxLeverage")) >= 25d) {
+                        if(Integer.valueOf(priceScale)<=3){
                         byBitTickers.add(
                                 new Ticker(symbol, symbol, symbol, "BYBITFUT", minOrderQty, priceScale)
-                        );
+                        );}
+                        else{
+                            byBitTickers2.add(
+                                    new Ticker(symbol, symbol, symbol, "BYBITFUT", minOrderQty, priceScale)
+                            );
+                        }
                     }
                 }
             });
+            byBitTickers.addAll(byBitTickers2);
             TICKERS_BYBIT.replace("tickers", byBitTickers);
         });
     }

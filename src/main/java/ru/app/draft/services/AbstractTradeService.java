@@ -65,20 +65,18 @@ public abstract class AbstractTradeService {
                 }
             }
             if (strategy.getDirection().equals("hold")) {
-                if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) != 0) {
-                    String text = String.format(changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
-                    userCache.addLogs(text);
-                    if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
-                        telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
-                    }
-                    for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
-                        changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time));
-                    }
-                    if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0) {
-                        changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
-                    } else {
-                        changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
-                    }
+                String text = String.format(changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
+                userCache.addLogs(text);
+                if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                    telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
+                }
+                for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
+                    changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time));
+                }
+                if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0) {
+                    changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
+                } else {
+                    changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
                 }
             }
         }
