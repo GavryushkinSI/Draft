@@ -45,6 +45,7 @@ public class Strategy implements Serializable {
     private StrategyOptions options=new StrategyOptions();
     private Boolean doReverse;
     private String priceScale;
+    private BigDecimal positionTv;
 
     public Strategy() {
     }

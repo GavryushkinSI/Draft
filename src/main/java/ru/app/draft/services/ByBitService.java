@@ -105,6 +105,10 @@ public class ByBitService extends AbstractTradeService {
         UserCache userCache = null;
         List<Strategy> strategyList = null;
         try {
+            if (strategy.getPositionTv() != null) {
+                correctCurrentPosition(strategy);
+                return;
+            }
             map = setCurrentPosition(strategy, null, null, null, null, null, null, null);
 
             if (map != null) {
@@ -149,6 +153,31 @@ public class ByBitService extends AbstractTradeService {
         if (changingStrategy.getConsumer().contains("test")) {
             String time = DateUtils.getCurrentTime();
             updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time, false);
+        }
+    }
+
+    public void correctCurrentPosition(@Nullable Strategy strategy) {
+        UserCache userCache = USER_STORE.get("Admin");
+        List<Strategy> strategyList = userCache.getStrategies();
+
+        Strategy changingStrategy = strategyList
+                .stream()
+                .filter(item -> item.getName().equals(strategy.getName())).findFirst().get();
+
+        if (strategy.getPositionTv().compareTo(changingStrategy.getCurrentPosition()) != 0) {
+            var correctPosition = strategy.getPositionTv().subtract(changingStrategy.getCurrentPosition());
+            OrderDirection direct = null;
+            if (correctPosition.doubleValue() < 0) {
+                direct = OrderDirection.ORDER_DIRECTION_SELL;
+            }
+            if (correctPosition.doubleValue() > 0) {
+                direct = OrderDirection.ORDER_DIRECTION_BUY;
+            }
+            if (correctPosition.doubleValue() == 0) {
+                direct = strategy.getCurrentPosition().doubleValue() > 0 ? OrderDirection.ORDER_DIRECTION_SELL : OrderDirection.ORDER_DIRECTION_BUY;
+            }
+            log.info(String.format("[%s]=> name:%s, currentPosition:%s, tvPosition:%s", NOT_MATCH_POSITION_WITH_TV, changingStrategy.getName(), changingStrategy.getCurrentPosition(), strategy.getPositionTv()));
+            sendOrder(direct, CommonUtils.formatBigDecimalNumber(correctPosition), changingStrategy.getTicker(), UUID.randomUUID().toString(), null, false, changingStrategy.getOptions(), LAST_PRICE.get(changingStrategy.getFigi()).getPrice(), changingStrategy.getName(), null);
         }
     }
 
@@ -209,6 +238,26 @@ public class ByBitService extends AbstractTradeService {
                 .stream()
                 .filter(item -> item.getName().equals(strategy.getName())).findFirst().get();
 
+        OrderDirection direction = null;
+        if (strategy.getDirection().equals("buy")) {
+            if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) <= 0) {
+                throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "покупка", strategy.getQuantity()));
+            }
+            direction = OrderDirection.ORDER_DIRECTION_BUY;
+        } else if (strategy.getDirection().equals("sell")) {
+            if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) >= 0) {
+                throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "продажа", strategy.getQuantity()));
+            }
+            direction = OrderDirection.ORDER_DIRECTION_SELL;
+        }
+//        else {
+//            if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0) {
+//                direction = OrderDirection.ORDER_DIRECTION_BUY;
+//            } else {
+//                direction = OrderDirection.ORDER_DIRECTION_SELL;
+//            }
+//        }
+
         if (strategy.getQuantity().compareTo(BigDecimal.ZERO) != 0 && Math.abs(strategy.getQuantity().doubleValue()) < changingStrategy.getMinLot().doubleValue()) {
             log.info(String.format("[%s]=> quantity:%s", QUANTITY_LESS_MIN_LOT, strategy.getQuantity()));
             return null;
@@ -233,10 +282,10 @@ public class ByBitService extends AbstractTradeService {
 
         //Не открывать ордер если он уже есть такого же объёма
         if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) == 0) {
-//            if (strategy.getQuantity().doubleValue() == 0) {
-//                cancelOrders(changingStrategy.getTicker(), false);
-//                log.info(String.format("[%s]=> quantity:%s", CANCEL_CONDITIONAL_ORDERS, strategy.getQuantity()));
-//            }
+            if (strategy.getQuantity().doubleValue() == 0) {
+                cancelOrders(changingStrategy.getTicker(), false);
+                log.info(String.format("[%s]=> quantity:%s", CANCEL_CONDITIONAL_ORDERS, strategy.getQuantity()));
+            }
             return null;
         }
 
@@ -248,25 +297,6 @@ public class ByBitService extends AbstractTradeService {
                 log.info(String.format("[%s]=> quantity:%s", CLOSE_OPEN_ORDERS_OR_REVERSE, strategy.getQuantity()));
             }
             return null;
-        }
-
-        OrderDirection direction = null;
-        if (strategy.getDirection().equals("buy")) {
-            if (strategy.getTriggerPrice() == null && strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) <= 0) {
-                throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "покупка", strategy.getQuantity()));
-            }
-            direction = OrderDirection.ORDER_DIRECTION_BUY;
-        } else if (strategy.getTriggerPrice() == null && strategy.getDirection().equals("sell")) {
-            if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) >= 0) {
-                throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "продажа", strategy.getQuantity()));
-            }
-            direction = OrderDirection.ORDER_DIRECTION_SELL;
-        } else {
-            if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0) {
-                direction = OrderDirection.ORDER_DIRECTION_BUY;
-            } else {
-                direction = OrderDirection.ORDER_DIRECTION_SELL;
-            }
         }
 
         BigDecimal position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
@@ -395,7 +425,7 @@ public class ByBitService extends AbstractTradeService {
                     .qty(position)
                     .build();
             response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
-            log.info(String.format("[%s]: symbol:%s, qty:%s", MARKET_ORDER_EXECUTE_FORCE,ticker, position));
+            log.info(String.format("[%s]: symbol:%s, qty:%s", MARKET_ORDER_EXECUTE_FORCE, ticker, position));
         }
         var retCode2 = response.get("retCode");
         if (!Objects.equal(retCode2, 0) && !Objects.equal(retCode2, 110092) && !Objects.equal(retCode2, 110093)) {
@@ -409,14 +439,15 @@ public class ByBitService extends AbstractTradeService {
         return TICKERS_BYBIT.get("tickers").stream().filter(i -> i.getValue().equals(tickers.get(0))).findFirst().get();
     }
 
-    private static List<String> getAllTickers(){
+    private static List<String> getAllTickers() {
         UserCache userCache = USER_STORE.get("Admin");
         List<Strategy> strategyList = userCache.getStrategies();
-        if(CollectionUtils.isEmpty(strategyList)){
+        if (CollectionUtils.isEmpty(strategyList)) {
             return List.of("tickers.BTCUSDT");
         }
-        return strategyList.stream().map(i->String.format("tickers.%s", i.getTicker())).collect(Collectors.toList());
+        return strategyList.stream().map(i -> String.format("tickers.%s", i.getTicker())).collect(Collectors.toList());
     }
+
     public void setStreamPublic() {
         Request request = new Request.Builder().url("wss://stream.bybit.com/v5/public/linear").build();
         OkHttpClient publicClient = new OkHttpClient.Builder().build();
@@ -479,8 +510,8 @@ public class ByBitService extends AbstractTradeService {
         });
     }
 
-    public void sendInPublicWebSocket(String ticker){
-        if(webSocket!=null){
+    public void sendInPublicWebSocket(String ticker) {
+        if (webSocket != null) {
             Map<String, Object> subscribeMsg = new LinkedHashMap<>();
             subscribeMsg.put("op", "subscribe");
             subscribeMsg.put("req_id", generateTransferID());
@@ -652,7 +683,7 @@ public class ByBitService extends AbstractTradeService {
                                 exec.setCurrentPosition(size);
                                 userCache.setStrategies(strategyList);
                                 USER_STORE.replace("Admin", userCache);
-                                if(!isNew){
+                                if (!isNew) {
                                     log.info(String.format("[%s]=> currentPosition:%s, newCurrentPosition:%s", CORRECT_CURRENT_POS, exec.getCurrentPosition(), size));
                                 }
                             }
@@ -774,16 +805,16 @@ public class ByBitService extends AbstractTradeService {
                     var it = (LinkedHashMap<String, Object>) o;
                     var symbol = (String) it.get("symbol");
                     var settleCoin = (String) it.get("settleCoin");
-                    var priceScale= (String) it.get("priceScale");
+                    var priceScale = (String) it.get("priceScale");
                     var lotSizeFilter = (LinkedHashMap<String, Object>) it.get("lotSizeFilter");
                     var minOrderQty = BigDecimal.valueOf(Double.valueOf((String) lotSizeFilter.get("minOrderQty")));
                     var leverageFilter = (LinkedHashMap<String, Object>) it.get("leverageFilter");
                     if (settleCoin.equals("USDT") && Double.valueOf((String) leverageFilter.get("maxLeverage")) >= 25d) {
-                        if(Integer.valueOf(priceScale)<=3){
-                        byBitTickers.add(
-                                new Ticker(symbol, symbol, symbol, "BYBITFUT", minOrderQty, priceScale)
-                        );}
-                        else{
+                        if (Integer.valueOf(priceScale) <= 3) {
+                            byBitTickers.add(
+                                    new Ticker(symbol, symbol, symbol, "BYBITFUT", minOrderQty, priceScale)
+                            );
+                        } else {
                             byBitTickers2.add(
                                     new Ticker(symbol, symbol, symbol, "BYBITFUT", minOrderQty, priceScale)
                             );

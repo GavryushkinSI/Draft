@@ -593,6 +593,7 @@ const Admin: React.FC = () => {
                             <option key={'20'} value={'STREAM_EXECUTE_POSITION'}>{'STREAM_EXECUTE_POSITION'}</option>
                             <option key={'21'} value={'ORDER_CANNOT_EXECUTE'}>{'ORDER_CANNOT_EXECUTE'}</option>
                             <option key={'22'} value={'MARKET_ORDER_EXECUTE_FORCE'}>{'MARKET_ORDER_EXECUTE_FORCE'}</option>
+                            <option key={'23'} value={'NOT_MATCH_POSITION_WITH_TV'}>{' NOT_MATCH_POSITION_WITH_TV'}</option>
                         </Form.Select>
                     </Col>
                     <Col>
