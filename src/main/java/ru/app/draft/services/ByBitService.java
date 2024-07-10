@@ -164,6 +164,15 @@ public class ByBitService extends AbstractTradeService {
                 .stream()
                 .filter(item -> item.getName().equals(strategy.getName())).findFirst().get();
 
+        if (strategy.getQuantity().compareTo(BigDecimal.ZERO) != 0 && Math.abs(strategy.getQuantity().doubleValue()) < changingStrategy.getMinLot().doubleValue()) {
+            log.info(String.format("[%s]=> quantity:%s", QUANTITY_LESS_MIN_LOT, strategy.getQuantity()));
+            if (changingStrategy.getCurrentPosition().doubleValue() != 0) {
+                log.info(String.format("[%s]=> ticker:%s, newCurrentPosition:0", EXIT_ORDERS, changingStrategy.getTicker()));
+                closeOpenOrders(changingStrategy, userCache);
+            }
+            return;
+        }
+
         if (strategy.getPositionTv().compareTo(changingStrategy.getCurrentPosition()) != 0) {
             var correctPosition = strategy.getPositionTv().subtract(changingStrategy.getCurrentPosition());
             OrderDirection direct = null;
@@ -239,24 +248,6 @@ public class ByBitService extends AbstractTradeService {
                 .filter(item -> item.getName().equals(strategy.getName())).findFirst().get();
 
         OrderDirection direction = null;
-        if (strategy.getDirection().equals("buy")) {
-            if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) <= 0) {
-                throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "покупка", strategy.getQuantity()));
-            }
-            direction = OrderDirection.ORDER_DIRECTION_BUY;
-        } else if (strategy.getDirection().equals("sell")) {
-            if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) >= 0) {
-                throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "продажа", strategy.getQuantity()));
-            }
-            direction = OrderDirection.ORDER_DIRECTION_SELL;
-        }
-//        else {
-//            if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0) {
-//                direction = OrderDirection.ORDER_DIRECTION_BUY;
-//            } else {
-//                direction = OrderDirection.ORDER_DIRECTION_SELL;
-//            }
-//        }
 
         if (strategy.getQuantity().compareTo(BigDecimal.ZERO) != 0 && Math.abs(strategy.getQuantity().doubleValue()) < changingStrategy.getMinLot().doubleValue()) {
             log.info(String.format("[%s]=> quantity:%s", QUANTITY_LESS_MIN_LOT, strategy.getQuantity()));
@@ -267,8 +258,8 @@ public class ByBitService extends AbstractTradeService {
         //Закрываем текущую позицию в ноль
         if (comment != null && comment.contains("exit")) {
             if (changingStrategy.getCurrentPosition().doubleValue() != 0) {
-                closeOpenOrders(changingStrategy, userCache);
                 log.info(String.format("[%s]=> ticker:%s, newCurrentPosition:0", EXIT_ORDERS, changingStrategy.getTicker()));
+                closeOpenOrders(changingStrategy, userCache);
             }
             return null;
         }
@@ -297,6 +288,18 @@ public class ByBitService extends AbstractTradeService {
                 log.info(String.format("[%s]=> quantity:%s", CLOSE_OPEN_ORDERS_OR_REVERSE, strategy.getQuantity()));
             }
             return null;
+        }
+
+        if (strategy.getDirection().equals("buy")) {
+            if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) <= 0) {
+                throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "покупка", strategy.getQuantity()));
+            }
+            direction = OrderDirection.ORDER_DIRECTION_BUY;
+        } else if (strategy.getDirection().equals("sell")) {
+            if (strategy.getQuantity().compareTo(changingStrategy.getCurrentPosition()) >= 0) {
+                throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "продажа", strategy.getQuantity()));
+            }
+            direction = OrderDirection.ORDER_DIRECTION_SELL;
         }
 
         BigDecimal position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
