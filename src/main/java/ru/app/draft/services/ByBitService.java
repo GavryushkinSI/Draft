@@ -157,6 +157,9 @@ public class ByBitService extends AbstractTradeService {
     }
 
     public void correctCurrentPosition(@Nullable Strategy strategy) {
+
+        getPosition(strategy.getTicker(), false);
+
         UserCache userCache = USER_STORE.get("Admin");
         List<Strategy> strategyList = userCache.getStrategies();
 

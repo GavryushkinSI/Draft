@@ -232,6 +232,8 @@ export function calcDataForGraphProfit(strategy: any[]) {
             });
         }
 
+        console.log(item?.name, array);
+
         let result: any[] = [];
         array.reduce((res, value) => {
             // @ts-ignore
@@ -245,6 +247,8 @@ export function calcDataForGraphProfit(strategy: any[]) {
             res[value.closeDate].profit += value.profit;
             return res;
         }, {});
+
+        console.log("reduce",item?.name, array);
 
         let graphResult: any[] = [];
         for (let i = 0; i < result.length; i++) {
