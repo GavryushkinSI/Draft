@@ -30,8 +30,10 @@ export enum EActionTypes {
     CHANGE_VIEWED_NOTIFY_IDS = "CHANGE_VIEWED_NOTIFY_IDS",
     GET_TICKER = "GET_TICKER",
     SET_PORTFOLIO = "SET_PORTFOLIO",
-    SET_APP_ERROR='SET_APP_ERROR',
-    SET_TV_LOG='SET_TV_LOG',
+    SET_APP_ERROR = 'SET_APP_ERROR',
+    SET_TV_LOG = 'SET_TV_LOG',
+    GET_CLOSED_PNL = 'GET_CLOSED_PNL',
+    SET_IS_LOADING_GET_CLOSED_PNL = 'SET_IS_LOADING_GET_CLOSED_PNL',
 }
 
 /**
@@ -107,8 +109,9 @@ export interface IAppState {
     notifications: INotificationState;
     strategy: any;
     portfolio: any;
-    appError:any;
-    tvLog:any;
+    appError: any;
+    tvLog: any;
+    closedPnl: any;
 }
 
 /**
@@ -151,7 +154,7 @@ const portfolioReducer = (state = [], action: IAction): any => {
     }
 }
 
-const appErrorReducer= (state = null, action: IAction): any => {
+const appErrorReducer = (state = null, action: IAction): any => {
     switch (action.type) {
         case EActionTypes.SET_APP_ERROR:
             return {
@@ -163,13 +166,14 @@ const appErrorReducer= (state = null, action: IAction): any => {
     }
 }
 
-const tvLogReducer= (state = {data:[]}, action: IAction): any => {
+const tvLogReducer = (state = {data: []}, action: IAction): any => {
     switch (action.type) {
         case EActionTypes.SET_TV_LOG:
             return {
                 ...state,
                 //@ts-ignore
-                data: action.payload.split("\n").reverse()};
+                data: action.payload.split("\n").reverse()
+            };
 
         default:
             return state;
@@ -198,6 +202,27 @@ const userReducer = (state = {}, action: any): any => {
     }
 };
 
+const closedPnlReducer = (state = [{data:[], isLoading:false}], action: any): any => {
+    switch (action.type) {
+        case EActionTypes.SET_IS_LOADING_GET_CLOSED_PNL: {
+            return {
+                ...state,
+                isLoading: action.payload,
+            };
+        }
+
+        case EActionTypes.GET_CLOSED_PNL: {
+            return {
+                ...state,
+                data: action.payload,
+            };
+        }
+
+        default:
+            return state;
+    }
+}
+
 /**
  * Настройка redux-стора.
  */
@@ -213,7 +238,8 @@ const configureStore = () => {
                 user: userReducer,
                 portfolio: portfolioReducer,
                 appError: appErrorReducer,
-                tvLog:tvLogReducer,
+                tvLog: tvLogReducer,
+                closedPnl: closedPnlReducer,
             }),
             devToolsEnhancer()
         )
@@ -226,6 +252,7 @@ const MainPage = React.lazy(() => import(/* webpackChunkName: "MainPage" */ './c
 const AdminPanel = React.lazy(() => import(/* webpackChunkName: "AdminPanel" */ './components/AdminPanel'));
 const Articles = React.lazy(() => import(/* webpackChunkName: "Articles" */ './components/Articles'));
 const PublicStrategy = React.lazy(() => import(/* webpackChunkName: "PublicStrategy" */ './components/PublicStrategy'));
+const ClosedPnl = React.lazy(() => import(/* webpackChunkName: "ClosedPnl" */ './components/ClosedPnl'));
 
 function Root() {
     return (
@@ -237,6 +264,7 @@ function Root() {
                         <Route path={ROOT().DRAFT.ADMIN_PANEL.PATH} element={<AdminPanel/>}/>
                         <Route path={ROOT().DRAFT.PAGE_WITH_ARTICLES.PATH} element={<Articles/>}/>
                         <Route path={ROOT().DRAFT.PUBLIC_STRATEGY.PATH} element={<PublicStrategy/>}/>
+                        <Route path={ROOT().DRAFT.EQUITY.PATH} element={<ClosedPnl/>}/>
                     </Routes>
                 </BrowserRouter>
             </React.Suspense>

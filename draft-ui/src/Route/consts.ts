@@ -11,6 +11,9 @@ const getRoutes = (prefix: string) => ({
         },
         PUBLIC_STRATEGY: {
             PATH: '/publicStrategy',
+        },
+        EQUITY:{
+            PATH:'/equity',
         }
     },
 });

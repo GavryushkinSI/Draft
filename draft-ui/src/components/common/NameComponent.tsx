@@ -21,7 +21,8 @@ const NameComponent: React.FC<IProps> = ({row}: IProps) => {
             marginTop: "-4px",
             borderBottom: "1px dashed black",
             color: "black"
-        }} text={row?.description} textInner={row?.name + " "}/>) : row?.name! + " "}
+        }} text={row?.description}
+                    textInner={row?.name + " (" + new Date(row?.createdDate)?.toLocaleDateString()+")"}/>) : row?.name! + " (" + new Date(row?.createdDate)?.toLocaleDateString()+")"}
         {row.errorData?.message ?
             (<MyToolTip
                 text={row.errorData.message}

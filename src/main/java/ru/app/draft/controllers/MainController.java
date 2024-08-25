@@ -19,6 +19,8 @@ import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -104,7 +106,7 @@ public class MainController {
     @PostMapping("/app/tv")
     @Timed(value = "myapp.method.execution_time", description = "Execution time of the method")
     public void tradingViewSignalPoint(@RequestBody Strategy strategy) {
-        log.info(String.format("[%s] Сигнал от TradingView => nameTs: %s, direction:%s, doLots:%s, comment: %s, triggerPrice:%s",SIGNAL_FROM_TV, strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(), strategy.getTriggerPrice()));
+        log.info(String.format("[%s] Сигнал от TradingView => nameTs: %s, direction:%s, doLots:%s, comment: %s, triggerPrice:%s", SIGNAL_FROM_TV, strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(), strategy.getTriggerPrice()));
         if (Objects.equals(strategy.getProducer(), "BYBIT")) {
             byBitService.sendSignal(strategy);
         } else {
@@ -153,6 +155,7 @@ public class MainController {
                     strategy.getDescription(),
                     ticker.getMinLot(),
                     strategy.getProducer());
+            newStrategy.setCreatedDate(LocalDateTime.now().minusDays(3).toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
             newStrategy.setPriceScale(ticker.getPriceScale());
             newStrategy.setOptions(strategy.getOptions());
             strategyList.add(newStrategy);
@@ -284,13 +287,14 @@ public class MainController {
         byBitService.cancelOrders(ticker, false);
     }
 
-//    @Scheduled(fixedDelay = 10000)
-//    public void checkCurrentPosition() {
-//        byBitService.getPosition();
-//    }
 
     @GetMapping("/app/getLogs/{filter}")
-    public String getLogs(@PathVariable String filter){
+    public String getLogs(@PathVariable String filter) {
         return CommonUtils.readLogFile(filter);
+    }
+
+    @GetMapping("app/getClosedPnl/{date}")
+    public Map<String, Set<Pnl>> getClosedPnl(@PathVariable Long date) {
+        return byBitService.getClosedPnl(date);
     }
 }

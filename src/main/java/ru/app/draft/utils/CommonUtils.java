@@ -1,6 +1,5 @@
 package ru.app.draft.utils;
 
-import org.springframework.util.StringUtils;
 import ru.tinkoff.piapi.contract.v1.MoneyValue;
 
 import java.io.*;
@@ -8,6 +7,10 @@ import java.math.BigDecimal;
 
 public class CommonUtils {
     private static final String FILE_LOG_NAME = "app.log";
+
+    public static BigDecimal getBigDecimal(String value){
+        return BigDecimal.valueOf(Double.parseDouble(value));
+    }
 
     public static String formatBigDecimalNumber(BigDecimal value){
         // Целая часть числа

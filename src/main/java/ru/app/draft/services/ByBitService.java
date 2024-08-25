@@ -33,18 +33,14 @@ import org.jetbrains.annotations.Nullable;
 import org.springframework.util.CollectionUtils;
 import ru.app.draft.exception.OrderNotExecutedException;
 import org.springframework.stereotype.Service;
-import ru.app.draft.models.ErrorData;
-import ru.app.draft.models.Strategy;
-import ru.app.draft.models.StrategyOptions;
-import ru.app.draft.models.Ticker;
-import ru.app.draft.models.UserCache;
+import ru.app.draft.models.*;
 import ru.app.draft.utils.CommonUtils;
 import ru.app.draft.utils.DateUtils;
 import ru.tinkoff.piapi.contract.v1.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -831,5 +827,100 @@ public class ByBitService extends AbstractTradeService {
             byBitTickers.addAll(byBitTickers2);
             TICKERS_BYBIT.replace("tickers", byBitTickers);
         });
+    }
+
+    public Map<String, Set<Pnl>> getClosedPnl(Long date) {
+        Comparator comparator = new Comparator<Pnl>() {
+            @Override
+            public int compare(Pnl o1, Pnl o2) {
+                if (o1.getTime() == o2.getTime()) {
+                    return 0;
+                }
+                if (o1.getTime() > o2.getTime()) {
+                    return 1;
+                }
+                return -1;
+            }
+        };
+
+        Set<Pnl> pnlList = new TreeSet<>(comparator);
+        Map<String, Pnl> feeMap = new HashMap<>();
+
+        int plusDay = 0;
+        LocalDateTime start = Instant.ofEpochMilli(date).atZone(ZoneId.systemDefault()).toLocalDateTime();
+        long startOfDay = start.toLocalDate().plusDays(plusDay).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long midddleDay = start.plusDays(plusDay + 1).toLocalDate().atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endOfDay = LocalDateTime.now().plusDays(1).toLocalDate().atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+        do {
+            var tradeFee = PositionDataRequest.builder().category(CategoryType.LINEAR).startTime(startOfDay).endTime(midddleDay).limit(500).build();
+            var response = (LinkedHashMap<String, Object>) positionRestClient.getExecutionList(tradeFee);
+            if(!response.get("retCode").equals(0)){
+                setErrorAndSetOnUi("Ошибка загрзуки");
+            }
+            var result = (LinkedHashMap<String, Object>) response.get("result");
+            var nextPageCursor = (String) result.get("nextPageCursor");
+            var data = (List) result.get("list");
+            if (data != null && data.size() > 0) {
+                data.forEach(it -> {
+                    Map<String, Object> map = ((Map<String, Object>) it);
+                    var symbol = (String) map.get("symbol");
+                    var orderId = (String) map.get("orderId");
+                    var fee = CommonUtils.getBigDecimal((String) map.get("execFee"));
+                    var time = Long.valueOf((String) map.get("execTime"));
+                    feeMap.put(orderId, new Pnl(symbol, null, orderId, time, fee));
+                });
+            }
+            plusDay++;
+            startOfDay = start.toLocalDate().plusDays(plusDay).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            midddleDay = start.plusDays(plusDay).toLocalDate().atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        } while (midddleDay != endOfDay);
+
+        plusDay = 0;
+        startOfDay = start.toLocalDate().plusDays(plusDay).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        midddleDay = start.plusDays(plusDay + 1).toLocalDate().atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        pnlList.add(new Pnl("COMMON", BigDecimal.ZERO, "", start.toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), BigDecimal.ZERO));
+        do {
+            var closPnlRequest = PositionDataRequest.builder().category(CategoryType.LINEAR).startTime(startOfDay).endTime(midddleDay).limit(500).build();
+            var response = (LinkedHashMap<String, Object>) positionRestClient.getClosePnlList(closPnlRequest);
+            var result = (LinkedHashMap<String, Object>) response.get("result");
+            if(!response.get("retCode").equals(0)){
+                setErrorAndSetOnUi("Ошибка загрзуки");
+            }
+            var nextPageCursor = (String) result.get("nextPageCursor");
+            var data = (List) result.get("list");
+            if (data != null && data.size() > 0) {
+                data.forEach(it -> {
+                    Map<String, Object> map = ((Map<String, Object>) it);
+                    var symbol = (String) map.get("symbol");
+                    var orderId = (String) map.get("orderId");
+                    var closedPnl = CommonUtils.getBigDecimal((String) map.get("closedPnl"));
+                    var updatedTime = Long.valueOf((String) map.get("updatedTime"));
+                    var fee = feeMap.get(orderId) != null ? feeMap.get(orderId).getFee() : BigDecimal.ZERO;
+                    pnlList.add(new Pnl(symbol, closedPnl, orderId, updatedTime, fee));
+                });
+            }
+            plusDay++;
+            startOfDay = start.toLocalDate().plusDays(plusDay).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            midddleDay = start.plusDays(plusDay).toLocalDate().atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        } while (midddleDay != endOfDay);
+
+        Map<String, Set<Pnl>> map = new HashMap<>();
+        UserCache userCache = USER_STORE.get("Admin");
+        List<Strategy> strategyList = userCache.getStrategies();
+        if (!CollectionUtils.isEmpty(strategyList)) {
+            Map<String, Set<Pnl>> groupedBySymbol = pnlList.stream().collect(Collectors.groupingBy(Pnl::getSymbol, Collectors.toCollection(HashSet::new)));
+            for(Strategy item:strategyList){
+                Set<Pnl> res=groupedBySymbol.get(item.getTicker()).stream().filter(i->i.getTime()>=item.getCreatedDate()).collect(Collectors.toSet());
+                res.add(new Pnl(item.getTicker(), BigDecimal.ZERO, "",  start.toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), BigDecimal.ZERO));
+                Set<Pnl> setOfSymbol = new TreeSet<>(comparator);
+                setOfSymbol.addAll(res);
+                groupedBySymbol.replace(item.getTicker(), setOfSymbol);
+            }
+            map.putAll(groupedBySymbol);
+        }
+        map.put("COMMON", pnlList);
+
+        return map;
     }
 }

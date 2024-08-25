@@ -38,6 +38,7 @@ export interface IStrategy {
     comment?:string;
     triggerPrice?:string|null;
     doReverse?:boolean;
+    createdDate?:number;
 }
 
 export interface IStrategyOptions{

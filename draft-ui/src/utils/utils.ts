@@ -248,7 +248,7 @@ export function calcDataForGraphProfit(strategy: any[]) {
             return res;
         }, {});
 
-        console.log("reduce",item?.name, array);
+        //console.log("reduce",item?.name, array);
 
         let graphResult: any[] = [];
         for (let i = 0; i < result.length; i++) {
@@ -310,3 +310,4 @@ export function formatNumber(value:any, fraction:number=4){
         return isInteger?value:value.toFixed(fraction);
     }
 }
+

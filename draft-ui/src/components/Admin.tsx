@@ -26,7 +26,7 @@ import {over} from "stompjs";
 import {webSocketUrl} from "../utils/http-common";
 import SelectFilter from "./common/SelectFilter";
 import ModalView from "./common/ModalView";
-import {ButtonLink, Checkbox} from "@paljs/ui";
+import {ButtonLink} from "@paljs/ui";
 import RowFiled from "./common/RowFiled";
 import PreLoad from "./common/PreLoad";
 import ViewDescriptionNotification from "./common/ViewDescriptionNotification";
@@ -209,6 +209,12 @@ const Admin: React.FC = () => {
                         navigate(ROOT().DRAFT.PUBLIC_STRATEGY.PATH)
                     }}
                     hoverColor={"lightgreen"} icon={"bi bi-robot"} size={17} title={''}/>}/>
+                <Gap/>
+                <MyToolTip text={'Equity'} textInner={<Icon
+                    onClick={async () => {
+                        navigate(ROOT().DRAFT.EQUITY.PATH)
+                    }}
+                    hoverColor={"lightgreen"} icon={"bi bi-bar-chart-line"} size={17} title={''}/>}/>
                 <Gap/>
                 <MyToolTip text={'Очистить лог'} textInner={<Icon onClick={() => {
                     actions.clear(userName!, () => {

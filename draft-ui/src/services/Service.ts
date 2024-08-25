@@ -223,4 +223,20 @@ export class Service {
             payload: response.data,
         })).catch((error)=>{console.log(error);})
     }
+
+    public getClosedPnl(date:number){
+        this.dispatch({
+            type: EActionTypes.SET_IS_LOADING_GET_CLOSED_PNL,
+            payload: false,
+        });
+        void http.get(`/getClosedPnl/${date}`).then((response) => this.dispatch({
+            type: EActionTypes.GET_CLOSED_PNL,
+            payload: response.data,
+        })).catch((error)=>{console.log(error);}).finally(()=>{
+            this.dispatch({
+                type: EActionTypes.SET_IS_LOADING_GET_CLOSED_PNL,
+                payload: true,
+            });
+        })
+    }
 }
