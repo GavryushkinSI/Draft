@@ -47,13 +47,14 @@ const ClosedPnl: React.FC = () => {
     const isLoading = useSelector((state: IAppState) => state.closedPnl.isLoading);
     const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
     const commonData: any[] = useMemo(() => {
+        // @ts-ignore
         return isLoading === true ? data['COMMON'] : [];
     }, [isLoading, data]);
 
     useEffect(() => {
         actions.getClosedPnl(new Date(date)?.getTime())
     }, []);
-
+// @ts-ignore
     const memoizedData: Map<string, any[]> = useMemo(() => {
         if (isLoading === true) {
             return convertData(commonData || [])
@@ -61,13 +62,15 @@ const ClosedPnl: React.FC = () => {
         return null;
     }, [commonData, isLoading]);
 
-
+// @ts-ignore
     const memoizedDataForSymbol: Map<string, Map<string, any[]>> = useMemo(() => {
         const map = new Map<string, any[]>();
         if (isLoading === true) {
             for (const key in data) {
                 if (strategy?.length>0&&strategy.find(i=>i.figi===key)) {
+                    // @ts-ignore
                     const res: Map<string, any[]> = convertData(data[key]);
+                    // @ts-ignore
                     map.set(key, res);
                 }
             }
