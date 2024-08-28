@@ -913,11 +913,14 @@ public class ByBitService extends AbstractTradeService {
         if (!CollectionUtils.isEmpty(strategyList)) {
             Map<String, Set<Pnl>> groupedBySymbol = pnlList.stream().collect(Collectors.groupingBy(Pnl::getSymbol, Collectors.toCollection(HashSet::new)));
             for(Strategy item:strategyList){
-                Set<Pnl> res=groupedBySymbol.get(item.getTicker()).stream().filter(i->i.getTime()>=item.getCreatedDate()).collect(Collectors.toSet());
-                res.add(new Pnl(item.getTicker(), BigDecimal.ZERO, "",  start.toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), BigDecimal.ZERO));
+                Set<Pnl> res=groupedBySymbol.get(item.getTicker());
                 Set<Pnl> setOfSymbol = new TreeSet<>(comparator);
-                setOfSymbol.addAll(res);
-                groupedBySymbol.replace(item.getTicker(), setOfSymbol);
+                if(!CollectionUtils.isEmpty(res)) {
+                    res=res.stream().filter(i->i.getTime()>=item.getCreatedDate()).collect(Collectors.toSet());
+                    res.add(new Pnl(item.getTicker(), BigDecimal.ZERO, "", start.toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), BigDecimal.ZERO));
+                    setOfSymbol.addAll(res);
+                    groupedBySymbol.replace(item.getTicker(), setOfSymbol);
+                }
             }
             map.putAll(groupedBySymbol);
         }
