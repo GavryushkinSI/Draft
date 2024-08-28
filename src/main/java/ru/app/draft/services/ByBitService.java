@@ -856,6 +856,7 @@ public class ByBitService extends AbstractTradeService {
             var tradeFee = PositionDataRequest.builder().category(CategoryType.LINEAR).startTime(startOfDay).endTime(midddleDay).limit(500).build();
             var response = (LinkedHashMap<String, Object>) positionRestClient.getExecutionList(tradeFee);
             if(!response.get("retCode").equals(0)){
+                log.info(String.format("[%s]=> message:%s", ERROR, response.get("message")));
                 setErrorAndSetOnUi("Ошибка загрзуки");
             }
             var result = (LinkedHashMap<String, Object>) response.get("result");
@@ -885,6 +886,7 @@ public class ByBitService extends AbstractTradeService {
             var response = (LinkedHashMap<String, Object>) positionRestClient.getClosePnlList(closPnlRequest);
             var result = (LinkedHashMap<String, Object>) response.get("result");
             if(!response.get("retCode").equals(0)){
+                log.info(String.format("[%s]=> message:%s", ERROR, response.get("message")));
                 setErrorAndSetOnUi("Ошибка загрзуки");
             }
             var nextPageCursor = (String) result.get("nextPageCursor");

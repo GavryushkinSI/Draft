@@ -24,7 +24,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static ru.app.draft.models.EventLog.SIGNAL_FROM_TV;
+import static ru.app.draft.models.EventLog.*;
 import static ru.app.draft.store.Store.*;
 
 @Slf4j
@@ -295,6 +295,11 @@ public class MainController {
 
     @GetMapping("app/getClosedPnl/{date}")
     public Map<String, Set<Pnl>> getClosedPnl(@PathVariable Long date) {
-        return byBitService.getClosedPnl(date);
+        try {
+           return byBitService.getClosedPnl(date);
+        }catch (Exception e){
+            log.info(String.format("[%s]=> message:%s", ERROR, e.getMessage()+e.getCause()+ " TRACE: "+Arrays.toString(e.getStackTrace())));
+            throw e;
+        }
     }
 }

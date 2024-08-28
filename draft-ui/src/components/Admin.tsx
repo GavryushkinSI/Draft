@@ -600,6 +600,7 @@ const Admin: React.FC = () => {
                             <option key={'21'} value={'ORDER_CANNOT_EXECUTE'}>{'ORDER_CANNOT_EXECUTE'}</option>
                             <option key={'22'} value={'MARKET_ORDER_EXECUTE_FORCE'}>{'MARKET_ORDER_EXECUTE_FORCE'}</option>
                             <option key={'23'} value={'NOT_MATCH_POSITION_WITH_TV'}>{' NOT_MATCH_POSITION_WITH_TV'}</option>
+                            <option key={'24'} value={'ERROR'}>{'ERROR'}</option>
                         </Form.Select>
                     </Col>
                     <Col>

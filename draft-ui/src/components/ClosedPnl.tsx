@@ -27,7 +27,7 @@ const convertData = (data: any[]): Map<string, any[]> => {
     data.forEach((i: any, index): void => {
         sum = sum + i.closedPnl;
         sumFee = sumFee + i.fee;
-        const label: string = i.symbol.concat(" : ").concat(i.time!=null?new Date(i.time).toLocaleDateString():"");
+        const label: string = i.symbol.concat(" - ").concat(i.time!=null?new Date(i.time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }):"");
         dataSum.push({x: index, y: sum, label});
         dataPnlInOrder.push({x: index, y: i.closedPnl, label, color:i.closedPnl>=0?"green":"red"});
         dataFee.push({x: index, y: sumFee, label});
@@ -51,9 +51,6 @@ const ClosedPnl: React.FC = () => {
         return isLoading === true ? data['COMMON'] : [];
     }, [isLoading, data]);
 
-    useEffect(() => {
-        actions.getClosedPnl(new Date(date)?.getTime())
-    }, []);
 // @ts-ignore
     const memoizedData: Map<string, any[]> = useMemo(() => {
         if (isLoading === true) {

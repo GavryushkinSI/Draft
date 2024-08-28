@@ -15,4 +15,5 @@ public enum EventLog implements Serializable {
     EXIT_ORDERS,
     STREAM_EXECUTE_POSITION,
     ORDER_CANNOT_EXECUTE,
+    ERROR,
 }
