@@ -491,14 +491,21 @@ const MyTable: React.FC = () => {
             show={showGraph.show}
             cancel={() => setShowGraph({show: false, nameStrategy: undefined})}
             header={`График доходности: ${showGraph.nameStrategy || ""}`}
-            text={<Chart data={
+            text={<Chart
+                data={
                 calcChart.find((i: any) => {
                     const id = strategy?.find((i: any) => {
                         return i.name === showGraph?.nameStrategy
                     })!.id;
                     return i.id === Number(id)
                 })?.graphResult || []
-            }/>}
+            }
+                         data4={calcChart.find((i: any) => {
+                const id = strategy?.find((i: any) => {
+                    return i.name === showGraph?.nameStrategy
+                })!.id;
+                return i.id === Number(id)
+            })?.graphResultWithFee || []}/>}
         />)}
         <RowFiled>
             <Button
@@ -572,7 +579,7 @@ const MyTable: React.FC = () => {
                                 <td className={"align-middle text-center"}>
                                     {formatNumber(calcChart.find((i: any) => {
                                         return i.id === Number(row.id)
-                                    })?.graphResult?.slice(-1)[0]?.y) || 0}
+                                    })?.graphResultWithFee?.slice(-1)[0]?.y) || 0}
                                 </td>
                                 {/*<td className={"align-middle text-center"}>*/}
                                 {/*    {formatNumber(calcLastAvrPrice(row), 4)}*/}

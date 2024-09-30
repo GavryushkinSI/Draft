@@ -7,8 +7,7 @@ import lombok.ToString;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Getter
 @Setter
@@ -24,8 +23,8 @@ public class Strategy implements Serializable {
     private Boolean isActive;
     private List<String> consumer;
     private List<Order> orders;
+    private Set<Pnl> closedPnl= new HashSet<>();
     private BigDecimal currentPosition = BigDecimal.ZERO;
-    //private List<ConditionalOrder> conditionalOrders = new ArrayList<>();
     private Long priceTv;
     private String producer;
     @JsonIgnoreProperties
@@ -36,6 +35,7 @@ public class Strategy implements Serializable {
     private BigDecimal minLot;
     private String description;
     private BigDecimal triggerPrice;
+    private BigDecimal prevTriggerPrice;
     private String orderName;
     private String orderLinkedId;
     private ErrorData errorData = new ErrorData();

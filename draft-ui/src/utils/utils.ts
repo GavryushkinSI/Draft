@@ -1,4 +1,4 @@
-import {includes, isEmpty, isInteger, max, min, pick, sum} from "lodash";
+import {includes, isEmpty, isEqual, isInteger, max, min, pick, sum, uniqWith} from "lodash";
 import {IBackTestResultStartegy, IStrategy} from "../models/models";
 import moment from "moment";
 // import {closeStrategy, trendMagicStrategy} from "../strategies/strategy";
@@ -214,57 +214,99 @@ function applyStrategy(strategy: string, data: any[], paramsTs: any, isCommissio
     // }
 }
 
+export const convertData = (data: any[]): Map<string, any[]> => {
+    const map = new Map<string, any[]>();
+    let sum = 0;
+    let sumFee = 0;
+    const dataSum: any[] = [];
+    const dataPnlInOrder: any[] = [];
+    const dataFee: any[] = [];
+
+    uniqWith(data,isEqual).forEach((i: any, index): void => {
+        sum = sum + i.closedPnl;
+        sumFee = sumFee + i.fee;
+        const label: string = i.symbol.concat(": ").concat(i?.size).concat(" - ").concat(i.time!=null?moment(new Date(i.time)).locale('ru').format('DD.MM.YYYY HH:mm'):"");
+        dataSum.push({x: index, y: sum, label, color:sum>=0?"green":"red"});
+        dataPnlInOrder.push({x: index, y: i.closedPnl, label, color:i.closedPnl>=0?"green":"red"});
+        dataFee.push({x: index, y: sumFee, label});
+    });
+    map.set("dataSum", dataSum);
+    map.set("dataPnlInOrder", dataPnlInOrder);
+    map.set("dataFee", dataFee);
+
+    return map;
+};
+
+interface IOrder{
+    price:number;
+    quantity?:number;
+    direction?:string;
+    date?:string;
+    orderLinkId:string;
+}
+
 export function calcDataForGraphProfit(strategy: any[]) {
-    const total: { id: number; result: any[]; graphResult: any[]; }[] = [];
+    const total: { id: number; result: any[]; graphResult: any[];graphResultWithFee:any[] }[] = [];
 
     strategy.forEach((item: IStrategy, index) => {
-        const orders = item?.orders || [];
-        const buy = orders.filter(i => i.direction === 'buy');
-        const sell = orders.filter(i => i.direction === 'sell');
+        const orders:IOrder[] = item?.orders || [];
+        const buy:IOrder[] = orders.filter(i => i.direction === 'buy');
+        const sell:IOrder[] = orders.filter(i => i.direction === 'sell');
 
         const len = buy.length > sell.length ? sell.length : buy.length;
         let array = [];
         for (let i = 0; i < len; i++) {
+            console.log("buy",buy[i], "\nsell",sell[i]);
             array.push({
                 openDate: moment(buy[i].date) > moment(sell[i].date) ? sell[i].date : buy[i].date,
                 closeDate: moment(buy[i].date) > moment(sell[i].date) ? buy[i].date : sell[i].date,
                 profit: buy[i].price * (-1) + sell[i].price,
+                fee: (buy[i].price  + sell[i].price)*0.001*(-1),
+                orderLinkId:buy[i].orderLinkId.concat(sell[i].orderLinkId)
             });
         }
-
-        console.log(item?.name, array);
 
         let result: any[] = [];
         array.reduce((res, value) => {
             // @ts-ignore
             if (!res[value.closeDate]) {
                 // @ts-ignore
-                res[value.closeDate] = {closeDate: value.closeDate, profit: 0};
+                res[value.closeDate] = {closeDate: value.closeDate, profit: 0, profitWithFee: 0};
                 // @ts-ignore
-                result.push(res[value.closeDate])
+                result.push(res[value.closeDate]);
             }
             // @ts-ignore
-            res[value.closeDate].profit += value.profit;
+            res[value.closeDate].profit += value.profit*item.minLot;
+            // @ts-ignore
+            res[value.closeDate].profitWithFee +=(value.profit+value.fee)*item.minLot;
             return res;
         }, {});
 
-        //console.log("reduce",item?.name, array);
-
         let graphResult: any[] = [];
+        let graphResultWithFee: any[] = [];
         for (let i = 0; i < result.length; i++) {
             let time = moment(result[i].closeDate).toDate();
+            let label= moment(new Date(time)).locale('ru').format('DD.MM.YYYY HH:mm:ss');
             if (graphResult[i - 1]?.y) {
                 graphResult.push({
                     x: i + 1,
-                    label: time,
-                    y: graphResult[i - 1].y + result[i].profit
+                    label,
+                    y: graphResult[i - 1].y + result[i].profit,
+                    color: (graphResult[i - 1].y + result[i].profit)>0?"green":"red",
+                });
+                graphResultWithFee.push({
+                    x: i + 1,
+                    label,
+                    y: graphResultWithFee[i - 1].y + result[i].profitWithFee,
+                    color: (graphResultWithFee[i - 1].y + result[i].profitWithFee)>0?"lime":"pink",
                 });
             } else {
-                graphResult.push({x: i + 1, label: time, y: result[i].profit});
+                graphResult.push({x: i + 1, label, y: result[i].profit, color:(result[i].profit>0?"green":"red")});
+                graphResultWithFee.push({x: i + 1, label, y: result[i].profitWithFee, color:(result[i].profitWithFee>0?"lime":"pink")});
             }
         }
 
-        total.push({id: index, result, graphResult});
+        total.push({id: index, result, graphResult, graphResultWithFee});
     });
 
     return total;

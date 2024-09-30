@@ -7,6 +7,7 @@ import {Chart} from "./Chart";
 import {useNavigate} from "react-router-dom";
 import Icon from "./common/Icon";
 import {ROOT} from "../Route/consts";
+import moment from 'moment';
 import {
     Button,
     Col, Container,
@@ -15,35 +16,15 @@ import {
 } from "react-bootstrap";
 import AppError from "./AppError";
 import {IStrategy} from "../models/models";
+import {uniqWith, isEqual} from "lodash";
+import {convertData} from "../utils/utils";
 
-const convertData = (data: any[]): Map<string, any[]> => {
-    const map = new Map<string, any[]>();
-    let sum = 0;
-    let sumFee = 0;
-    const dataSum: any[] = [];
-    const dataPnlInOrder: any[] = [];
-    const dataFee: any[] = [];
-
-    data.forEach((i: any, index): void => {
-        sum = sum + i.closedPnl;
-        sumFee = sumFee + i.fee;
-        const label: string = i.symbol.concat(" - ").concat(i.time!=null?new Date(i.time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }):"");
-        dataSum.push({x: index, y: sum, label});
-        dataPnlInOrder.push({x: index, y: i.closedPnl, label, color:i.closedPnl>=0?"green":"red"});
-        dataFee.push({x: index, y: sumFee, label});
-    });
-    map.set("dataSum", dataSum);
-    map.set("dataPnlInOrder", dataPnlInOrder);
-    map.set("dataFee", dataFee);
-
-    return map;
-};
+const r=new Map<string, any>;
 
 const ClosedPnl: React.FC = () => {
     const actions: Service = useActions(Service);
     const navigate = useNavigate();
     const data: Map<string, any[]> = useSelector((state: IAppState) => state.closedPnl.data);
-    const strategy: IStrategy[] = useSelector((state: IAppState) => state.strategy.data);
     const isLoading = useSelector((state: IAppState) => state.closedPnl.isLoading);
     const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
     const commonData: any[] = useMemo(() => {
@@ -64,9 +45,11 @@ const ClosedPnl: React.FC = () => {
         const map = new Map<string, any[]>();
         if (isLoading === true) {
             for (const key in data) {
-                if (strategy?.length>0&&strategy.find(i=>i.figi===key)) {
+                if(key!=="COMMON") {
                     // @ts-ignore
                     const res: Map<string, any[]> = convertData(data[key]);
+                    // @ts-ignore
+                    r.set(key, res.get("dataSum")?.slice(-1)?.[0]?.y);
                     // @ts-ignore
                     map.set(key, res);
                 }
@@ -74,7 +57,6 @@ const ClosedPnl: React.FC = () => {
         }
         return map;
     }, [data, isLoading]);
-
 
     return <Container fluid>
         <AppError/>
@@ -97,6 +79,12 @@ const ClosedPnl: React.FC = () => {
                         }} className="ms-2" variant={"dark"}>{"GET"}</Button>
                     </div>
                 </Col>
+            </Row>
+            <Row className="mb-2 ms-2" style={{fontWeight: "bold"}}>
+                {r.size>0&&Array.from(r.entries()).map(([key, value]) => (
+                    `${key}: ${value.toFixed(2)} |`
+                ))
+                }
             </Row>
             {isLoading === true ?
                 <>

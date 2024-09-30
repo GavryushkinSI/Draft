@@ -5,15 +5,14 @@ import com.google.protobuf.Timestamp;
 import lombok.extern.log4j.Log4j2;
 import ru.app.draft.models.*;
 import ru.app.draft.services.MarketDataStreamService;
+import ru.tinkoff.piapi.contract.v1.OrderDirection;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 
 @Log4j2
 public class Store {
@@ -64,9 +63,9 @@ public class Store {
             .<String, List<MetricItem>>build()
             .asMap();
 
-    public final static ConcurrentMap<String, List<String>> ORDERS_MAP = CacheBuilder.newBuilder()
+    public final static ConcurrentMap<String, List<ConditionalOrder>> ORDERS_MAP = CacheBuilder.newBuilder()
             .maximumSize(1000)
-            .<String, List<String>>build()
+            .<String, List<ConditionalOrder>>build()
             .asMap();
 
     public static void updateLastPrice(String figi, BigDecimal newValue, Timestamp time) {
@@ -116,10 +115,11 @@ public class Store {
         }
     }
 
-    public static void modifyOrdersMap(String orderId, String name){
-        ORDERS_MAP.computeIfPresent(name, (s, strings) -> {
-            strings.add(orderId);
-            return strings;
+    public static void modifyOrdersMap(String orderLinkId, String name, OrderDirection direction, String size) {
+        ORDERS_MAP.computeIfPresent(name, (s, conditionalOrders) -> {
+
+            conditionalOrders.add(new ConditionalOrder(null, orderLinkId, size, direction));
+            return conditionalOrders;
         });
     }
 }

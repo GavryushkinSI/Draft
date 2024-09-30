@@ -18,17 +18,18 @@ public class Pnl implements Serializable {
     String orderId;
     Long time;
     BigDecimal fee;
+    String size;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Pnl pnl = (Pnl) o;
-        return Objects.equals(symbol, pnl.symbol) && Objects.equals(closedPnl, pnl.closedPnl) && Objects.equals(orderId, pnl.orderId) && Objects.equals(time, pnl.time) && Objects.equals(fee, pnl.fee);
+        return Objects.equals(symbol, pnl.symbol) && Objects.equals(closedPnl, pnl.closedPnl) && Objects.equals(orderId, pnl.orderId) && Objects.equals(time, pnl.time) && Objects.equals(fee, pnl.fee) && Objects.equals(size, pnl.size);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(symbol, closedPnl, orderId, time, fee);
+        return Objects.hash(symbol, closedPnl, orderId, time, fee, size);
     }
 }

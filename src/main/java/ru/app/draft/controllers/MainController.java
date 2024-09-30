@@ -155,7 +155,7 @@ public class MainController {
                     strategy.getDescription(),
                     ticker.getMinLot(),
                     strategy.getProducer());
-            newStrategy.setCreatedDate(LocalDateTime.now().minusDays(3).toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            newStrategy.setCreatedDate(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             newStrategy.setPriceScale(ticker.getPriceScale());
             newStrategy.setOptions(strategy.getOptions());
             strategyList.add(newStrategy);
@@ -192,6 +192,7 @@ public class MainController {
         UserCache userCache = USER_STORE.get(userName);
         List<Strategy> strategyList = userCache.getStrategies();
         Strategy findStrategy = strategyList.stream().filter(strategy -> strategy.getName().equals(name)).findFirst().get();
+        ORDERS_MAP.remove(findStrategy.getName());
         strategyList.remove(findStrategy);
         userCache.setStrategies(strategyList);
         USER_STORE.replace(userName, userCache);
@@ -284,7 +285,7 @@ public class MainController {
 
     @PostMapping("/app/cancelAllOrders/{ticker}")
     public void cancelAllOrders(@PathVariable String ticker) {
-        byBitService.cancelOrders(ticker, false);
+        byBitService.cancelOrders(ticker, false, null);
     }
 
 

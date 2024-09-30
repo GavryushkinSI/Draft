@@ -11,6 +11,7 @@ interface IProps {
     data: any[];
     data2?:any[];
     data3?:any[];
+    data4?:any[];
     isAdmin?: boolean;
 }
 
@@ -70,13 +71,18 @@ export class Chart extends Component<IProps, never> {
                     labelFontSize: 12,
                 },
                 data: [{
-                    type: "splineArea",
+                    //type: "splineArea",
                     color: "green",
                     dataPoints: this.props.data || [],
                 },
                     {
+                        //type: "splineArea",
+                        color: "green",
+                        dataPoints: this.props.data4 || [],
+                    },
+                    {
                     type: "splineArea",
-                    color: "red",
+                    color: "lightblue",
                     dataPoints: this.props.data3 || [],
                 }]
             },

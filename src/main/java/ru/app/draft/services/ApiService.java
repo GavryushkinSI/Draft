@@ -278,7 +278,7 @@ public class ApiService extends AbstractApiService {
             position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
         }
         userCache.addCommission(commissions);
-        updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time);
+        updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time, null);
         Message message = new Message();
         message.setSenderName("server");
         message.setMessage(userCache.getStrategies());
@@ -287,7 +287,7 @@ public class ApiService extends AbstractApiService {
         streamService.sendDataToUser(Set.of(strategy.getUserName()), message);
     }
 
-    private void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time) {
+    private void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time, String orderLinkId) {
         var minLot = changingStrategy.getMinLot();
         String printPrice = CommonUtils.formatNumber(executionPrice, changingStrategy.getPriceScale());
 
@@ -300,7 +300,7 @@ public class ApiService extends AbstractApiService {
         if (strategy.getDirection().equals("buy")) {
             changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
             for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
-                changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
+                changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time, orderLinkId));
             }
             String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
             userCache.addLogs(text);
@@ -311,7 +311,7 @@ public class ApiService extends AbstractApiService {
         if (strategy.getDirection().equals("sell")) {
             changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
             for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
-                changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time));
+                changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time, orderLinkId));
             }
             String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
             userCache.addLogs(text);
@@ -327,7 +327,7 @@ public class ApiService extends AbstractApiService {
                     telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
                 }
                 for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
-                    changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time));
+                    changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time, orderLinkId));
                 }
                 changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
             }
