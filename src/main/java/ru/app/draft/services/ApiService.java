@@ -50,13 +50,13 @@ public class ApiService extends AbstractApiService {
 
     public void getAllTickers(InvestApi api, List<String> filter) {
             List<Ticker> tickers = api.getInstrumentsService().getAllFuturesSync().stream().map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot()), null)).collect(Collectors.toList());
-        tickers.addAll(api.getInstrumentsService()
-                .getAllSharesSync()
-                .stream()
-                .filter(i -> i.getClassCode().equals("TQBR"))
-                .map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot()), null))
-                .collect(Collectors.toList()));
-        tickers = tickers.stream().filter(i -> filter.contains(i.getValue())).collect(Collectors.toList());
+//        tickers.addAll(api.getInstrumentsService()
+//                .getAllSharesSync()
+//                .stream()
+//                .filter(i -> i.getClassCode().equals("TQBR"))
+//                .map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot()), null))
+//                .collect(Collectors.toList()));
+//        tickers = tickers.stream().filter(i -> filter.contains(i.getValue())).collect(Collectors.toList());
         TICKERS_TKS.replace("tickers", tickers);
         //ByBit
         byBitService.getInstrumentsInfo();
