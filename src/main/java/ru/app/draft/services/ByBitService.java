@@ -102,7 +102,7 @@ public class ByBitService extends AbstractTradeService {
         UserCache userCache = null;
         List<Strategy> strategyList = null;
         try {
-            if(!strategy.getIsActive()){
+            if(Boolean.FALSE.equals(strategy.getIsActive())){
                 return;
             }
             if (strategy.getPositionTv() != null) {
