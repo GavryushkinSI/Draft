@@ -6,7 +6,7 @@ import org.springframework.util.CollectionUtils;
 import ru.app.draft.entity.Comment;
 import ru.app.draft.entity.LastPrice;
 import ru.app.draft.entity.Order;
-import ru.app.draft.models.Strategy;
+import ru.app.draft.models.StrategyTv;
 import ru.app.draft.models.User;
 import ru.app.draft.models.UserCache;
 import ru.app.draft.repository.*;
@@ -62,10 +62,10 @@ public class DbService {
                 userEntity.setLastVisit(userDto.getLastVisit());
             }
             ru.app.draft.entity.User userSaved = userRepository.save(userEntity);
-            List<Strategy> strategyDto = i.getStrategies();
-            List<ru.app.draft.entity.Strategy> strategyEntity = new ArrayList<>(strategyDto.size());
+            List<StrategyTv> strategyTvDto = i.getStrategies();
+            List<ru.app.draft.entity.Strategy> strategyEntity = new ArrayList<>(strategyTvDto.size());
             List<Order> ordersEntity=new ArrayList<>();
-            strategyDto.forEach(s -> {
+            strategyTvDto.forEach(s -> {
                 ru.app.draft.entity.Strategy strategy = new ru.app.draft.entity.Strategy();
                 strategy.setActive(s.getIsActive());
                 strategy.setUsers(userSaved);
@@ -112,18 +112,18 @@ public class DbService {
         entities.forEach(i -> {
             User user = new User(i.getLogin(), i.getPassword(), i.getEmail(), i.getChartid());
             List<ru.app.draft.entity.Strategy> strategyEntity = i.getStrategies();
-            List<Strategy> strategyList = new ArrayList<>(strategyEntity.size());
+            List<StrategyTv> strategyTvList = new ArrayList<>(strategyEntity.size());
             strategyEntity.forEach(n -> {
-                Strategy strategy = new Strategy(String.valueOf(n.getIdStrategy()), n.getUsers().getLogin(),
+                StrategyTv strategyTv = new StrategyTv(String.valueOf(n.getIdStrategy()), n.getUsers().getLogin(),
                         n.getName(), n.getDirection(), BigDecimal.ZERO, n.getFigi(), n.getTicker(),
                         n.getActive(), null, null, n.getDescription(), n.getMinLot(), n.getProducer());
-                strategy.setCurrentPosition(n.getPosition() != null ? n.getPosition() : null);
-                strategyList.add(strategy);
+                strategyTv.setCurrentPosition(n.getPosition() != null ? n.getPosition() : null);
+                strategyTvList.add(strategyTv);
 
                 new ru.app.draft.models.Order();
-                strategy.setConsumer(List.of(n.getConsumers().split(",")));
-                strategy.setEnterAveragePrice(List.of(n.getEnterAveragePrice().split(",")));
-                strategy.setOrders(n.getOrders().stream().map(o-> ru.app.draft.models.Order.builder()
+                strategyTv.setConsumer(List.of(n.getConsumers().split(",")));
+                strategyTv.setEnterAveragePrice(List.of(n.getEnterAveragePrice().split(",")));
+                strategyTv.setOrders(n.getOrders().stream().map(o-> ru.app.draft.models.Order.builder()
                         .price(o.getPrice())
                         .quantity(o.getQuantity())
                         .direction(o.getDirection())
@@ -136,7 +136,7 @@ public class DbService {
                 user.setIsAdmin(true);
             }
             UserCache userCache = new UserCache(user);
-            userCache.setStrategies(strategyList);
+            userCache.setStrategies(strategyTvList);
             USER_STORE.put(user.getLogin(), userCache);
         });
         List<ru.app.draft.entity.LastPrice> lastPricesEntity = lastPriceRepository.findAll();

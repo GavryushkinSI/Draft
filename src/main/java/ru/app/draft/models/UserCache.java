@@ -13,7 +13,7 @@ import java.util.*;
 @Setter
 @ToString
 public class UserCache {
-    private List<Strategy> strategies = new ArrayList<>();
+    private List<StrategyTv> strategies = new ArrayList<>();
     private List<Portfolio> portfolios = new ArrayList<>();
     private List<String> logs = new ArrayList<>();
     private Timestamp updateTime;

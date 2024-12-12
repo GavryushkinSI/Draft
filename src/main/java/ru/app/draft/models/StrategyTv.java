@@ -12,7 +12,7 @@ import java.util.*;
 @Getter
 @Setter
 @ToString
-public class Strategy implements Serializable {
+public class StrategyTv implements Serializable {
     private String id;
     private String userName;
     private String name;
@@ -23,6 +23,7 @@ public class Strategy implements Serializable {
     private Boolean isActive;
     private List<String> consumer;
     private List<Order> orders;
+    private TelegramSignal telegramSignal;
     private Set<Pnl> closedPnl= new HashSet<>();
     private BigDecimal currentPosition = BigDecimal.ZERO;
     private Long priceTv;
@@ -48,10 +49,10 @@ public class Strategy implements Serializable {
     private BigDecimal positionTv;
     private Long createdDate;
 
-    public Strategy() {
+    public StrategyTv() {
     }
 
-    public Strategy(String id, String userName, String name, String direction, BigDecimal quantity, String figi, String ticker, Boolean isActive, List<String> consumer, List<Order> orders, String description, BigDecimal minLot, String producer) {
+    public StrategyTv(String id, String userName, String name, String direction, BigDecimal quantity, String figi, String ticker, Boolean isActive, List<String> consumer, List<Order> orders, String description, BigDecimal minLot, String producer) {
         this.id = id;
         this.userName = userName;
         this.name = name;

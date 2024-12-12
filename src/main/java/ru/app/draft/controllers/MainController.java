@@ -19,6 +19,9 @@ import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.stream.MarketDataSubscriptionService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -105,35 +108,35 @@ public class MainController {
     @Audit
     @PostMapping("/app/tv")
     @Timed(value = "myapp.method.execution_time", description = "Execution time of the method")
-    public void tradingViewSignalPoint(@RequestBody Strategy strategy) {
-        log.info(String.format("[%s] Сигнал от TradingView => nameTs: %s, direction:%s, doLots:%s, comment: %s, triggerPrice:%s", SIGNAL_FROM_TV, strategy.getName(), strategy.getDirection(), strategy.getQuantity(), strategy.getComment(), strategy.getTriggerPrice()));
-        if (Objects.equals(strategy.getProducer(), "BYBIT")) {
-            byBitService.sendSignal(strategy);
+    public void tradingViewSignalPoint(@RequestBody StrategyTv strategyTv) throws InterruptedException {
+        log.info(String.format("[%s] Сигнал от TradingView => nameTs: %s, direction:%s, doLots:%s, comment: %s, triggerPrice:%s", SIGNAL_FROM_TV, strategyTv.getName(), strategyTv.getDirection(), strategyTv.getQuantity(), strategyTv.getComment(), strategyTv.getTriggerPrice()));
+        if (Objects.equals(strategyTv.getProducer(), "BYBIT")) {
+            byBitService.sendSignal(strategyTv);
         } else {
-            apiService.sendOrder(api, strategy);
+            apiService.sendSignal(api, strategyTv);
         }
     }
 
     @Audit
     @PostMapping("/app/editStrategy/{userName}")
-    public ResponseEntity<Collection<Strategy>> addOrUpdateStrategy(@PathVariable String userName, @RequestBody Strategy strategy) {
+    public ResponseEntity<Collection<StrategyTv>> addOrUpdateStrategy(@PathVariable String userName, @RequestBody StrategyTv strategyTv) {
         UserCache userCache = USER_STORE.get(userName);
-        List<Strategy> strategyList = userCache.getStrategies();
-        if (StringUtils.hasText(strategy.getId())) {
-            Strategy changingStrategy = strategyList.get(Integer.parseInt(strategy.getId()));
-            strategy.setFigi(strategy.getTicker());
-            strategy.setMinLot(changingStrategy.getMinLot());
-            strategy.setOrders(changingStrategy.getOrders());
-            strategy.setEnterAveragePrice(changingStrategy.getEnterAveragePrice());
-            strategyList.set(Integer.parseInt(strategy.getId()), strategy);
-            userCache.setStrategies(strategyList);
+        List<StrategyTv> strategyTvList = userCache.getStrategies();
+        if (StringUtils.hasText(strategyTv.getId())) {
+            StrategyTv changingStrategyTv = strategyTvList.get(Integer.parseInt(strategyTv.getId()));
+            strategyTv.setFigi(strategyTv.getTicker());
+            strategyTv.setMinLot(changingStrategyTv.getMinLot());
+            strategyTv.setOrders(changingStrategyTv.getOrders());
+            strategyTv.setEnterAveragePrice(changingStrategyTv.getEnterAveragePrice());
+            strategyTvList.set(Integer.parseInt(strategyTv.getId()), strategyTv);
+            userCache.setStrategies(strategyTvList);
             USER_STORE.replace(userName, userCache);
         } else {
             Ticker ticker;
-            if (!Objects.equals(strategy.getProducer(), "BYBIT")) {
-                ticker = apiService.getFigi(api, List.of(strategy.getTicker()));
+            if (!Objects.equals(strategyTv.getProducer(), "BYBIT")) {
+                ticker = apiService.getFigi(List.of(strategyTv.getTicker()));
             } else {
-                ticker = byBitService.getFigi(List.of(strategy.getTicker()));
+                ticker = byBitService.getFigi(List.of(strategyTv.getTicker()));
             }
             if (!LAST_PRICE.containsKey(ticker.getFigi())) {
                 LAST_PRICE.put(ticker.getFigi(), new LastPrice(null, null));
@@ -141,31 +144,35 @@ public class MainController {
             LastPrice lastPrice = LAST_PRICE.get(ticker.getFigi());
             lastPrice.addSubscriber(userName);
             LAST_PRICE.replace(ticker.getFigi(), lastPrice);
-            Strategy newStrategy = new Strategy(
-                    String.valueOf(strategyList.size()),
-                    strategy.getUserName(),
-                    strategy.getName(),
-                    strategy.getDirection(),
-                    strategy.getQuantity(),
+            StrategyTv newStrategyTv = new StrategyTv(
+                    String.valueOf(strategyTvList.size()),
+                    strategyTv.getUserName(),
+                    strategyTv.getName(),
+                    strategyTv.getDirection(),
+                    strategyTv.getQuantity(),
                     ticker.getFigi(),
-                    strategy.getTicker(),
-                    strategy.getIsActive(),
-                    strategy.getConsumer(),
+                    strategyTv.getTicker(),
+                    strategyTv.getIsActive(),
+                    strategyTv.getConsumer(),
                     new ArrayList<>(),
-                    strategy.getDescription(),
+                    strategyTv.getDescription(),
                     ticker.getMinLot(),
-                    strategy.getProducer());
-            newStrategy.setCreatedDate(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-            newStrategy.setPriceScale(ticker.getPriceScale());
-            newStrategy.setOptions(strategy.getOptions());
-            strategyList.add(newStrategy);
-            userCache.setStrategies(strategyList);
+                    strategyTv.getProducer());
+            newStrategyTv.setCreatedDate(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            newStrategyTv.setPriceScale(ticker.getPriceScale());
+            newStrategyTv.setOptions(strategyTv.getOptions());
+            strategyTvList.add(newStrategyTv);
+            userCache.setStrategies(strategyTvList);
             USER_STORE.replace(userName, userCache);
-            byBitService.getPosition(ticker.getValue(), true);
-            byBitService.sendInPublicWebSocket(ticker.getFigi());
+            if (!Objects.equals(strategyTv.getProducer(), "BYBIT")) {
+                apiService.setSubscriptionOnCandle(api, List.of(ticker.getFigi()));
+            } else {
+                byBitService.getPosition(ticker.getValue(), true);
+                byBitService.sendInPublicWebSocket(ticker.getFigi());
+            }
         }
 
-        return ResponseEntity.ok(strategyList);
+        return ResponseEntity.ok(strategyTvList);
     }
 
     @Audit
@@ -188,15 +195,15 @@ public class MainController {
     }
 
     @PostMapping("/app/deleteStrategy/{userName}/{name}")
-    public ResponseEntity<Collection<Strategy>> removeStrategy(@PathVariable String userName, @PathVariable String name) {
+    public ResponseEntity<Collection<StrategyTv>> removeStrategy(@PathVariable String userName, @PathVariable String name) {
         UserCache userCache = USER_STORE.get(userName);
-        List<Strategy> strategyList = userCache.getStrategies();
-        Strategy findStrategy = strategyList.stream().filter(strategy -> strategy.getName().equals(name)).findFirst().get();
-        ORDERS_MAP.remove(findStrategy.getName());
-        strategyList.remove(findStrategy);
-        userCache.setStrategies(strategyList);
+        List<StrategyTv> strategyTvList = userCache.getStrategies();
+        StrategyTv findStrategyTv = strategyTvList.stream().filter(strategy -> strategy.getName().equals(name)).findFirst().get();
+        ORDERS_MAP.remove(findStrategyTv.getName());
+        strategyTvList.remove(findStrategyTv);
+        userCache.setStrategies(strategyTvList);
         USER_STORE.replace(userName, userCache);
-        return ResponseEntity.ok(strategyList);
+        return ResponseEntity.ok(strategyTvList);
     }
 
     @GetMapping("/app/clear/{userName}")
@@ -206,7 +213,7 @@ public class MainController {
     }
 
     @GetMapping("/app/getAllStrategy/{userName}")
-    public ResponseEntity<Collection<Strategy>> getAllStrategyByUser(@PathVariable String userName, HttpServletRequest request) {
+    public ResponseEntity<Collection<StrategyTv>> getAllStrategyByUser(@PathVariable String userName, HttpServletRequest request) {
         if (USER_STORE.containsKey(userName)) {
             return ResponseEntity.ok(USER_STORE.get(userName).getStrategies());
         }
@@ -243,6 +250,12 @@ public class MainController {
                 marketDataStreamService.sendDataToUser(subscriber, message);
             }
         });
+    }
+
+    @Scheduled(fixedDelay = 1000000)
+    public void getPositionInfo() {
+        log.debug("Вызов автопроцедуры...");
+        byBitService.getPositionInfoByPeriod();
     }
 
     @GetMapping("/app/getQuotes")
@@ -297,10 +310,43 @@ public class MainController {
     @GetMapping("app/getClosedPnl/{date}")
     public Map<String, Set<Pnl>> getClosedPnl(@PathVariable Long date) {
         try {
-           return byBitService.getClosedPnl(date);
-        }catch (Exception e){
-            log.info(String.format("[%s]=> message:%s", ERROR, e.getMessage()+e.getCause()+ " TRACE: "+Arrays.toString(e.getStackTrace())));
+            return byBitService.getClosedPnl(date);
+        } catch (Exception e) {
+            log.info(String.format("[%s]=> message:%s", ERROR, e.getMessage() + e.getCause() + " TRACE: " + Arrays.toString(e.getStackTrace())));
             throw e;
         }
+    }
+
+    @PostMapping("/app/testTelegramChannel")
+    public ResponseEntity<Map<String, BigDecimal>> testTelegramCryptoChannel(@RequestBody List<TelegramSignal> listOfSignals) throws IOException {
+        SimpleDateFormat dF = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+        Map<String, BigDecimal> map = new LinkedHashMap<>();
+        int count = 0;
+        for (TelegramSignal signal : listOfSignals) {
+            try {
+                var res = byBitService.getMarketDataForTelegramTest(signal);
+                var time = dF.format(new Date(signal.getTime()));
+                var timeClose = res.getTimeClose() != null ? dF.format(new Date(res.getTimeClose())) : null;
+                var pnl=res.getPnl()!=null?Math.ceil(res.getPnl().doubleValue()):0;
+//                if(res.getOpen()!=null) {
+                map.put(count + ":" + signal.getSymbol() + "||:" + signal.getDirection() + "||open:" + res.getOpen() + "||time:" + time + "||timeClose:" + timeClose + "||quantity:" + res.getQuantity() + "||countAdd:" + res.getCountAdd() + "||countFix:" + res.getCountFix() + "||closePrice:" + res.getClosePrice() + "||avrOpenPrice:" + res.getAverageOpenPrice() + "||fixByStop:" + res.getFixByStop() + "||positionFix:" + res.getPositionFix() + "||pnl:" + pnl + "%", res.getProfit());
+                count++;
+//                }
+                log.debug(signal.getSymbol() + "=>" + "success..." + time);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        BigDecimal totalSum = map.values()
+                .stream()
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        LinkedHashMap<String, BigDecimal> newMap = new LinkedHashMap<>();
+        newMap.put("TotalSum", totalSum);
+        newMap.putAll(map);
+
+        return ResponseEntity.ok(newMap);
     }
 }

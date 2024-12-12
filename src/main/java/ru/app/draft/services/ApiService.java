@@ -1,10 +1,18 @@
 package ru.app.draft.services;
 
+import com.bybit.api.client.domain.CategoryType;
+import com.bybit.api.client.domain.TradeOrderType;
+import com.bybit.api.client.domain.TriggerBy;
+import com.bybit.api.client.domain.trade.Side;
+import com.bybit.api.client.domain.trade.request.TradeOrderRequest;
+import com.google.common.collect.ImmutableMap;
 import lombok.extern.log4j.Log4j2;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import ru.app.draft.annotations.Audit;
+import ru.app.draft.exception.OrderNotExecutedException;
 import ru.app.draft.models.*;
 import ru.app.draft.models.Order;
 import ru.app.draft.store.Store;
@@ -24,7 +32,10 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static io.prometheus.client.Counter.build;
+import static ru.app.draft.models.EventLog.*;
 import static ru.app.draft.store.Store.*;
+import static ru.app.draft.utils.CommonUtils.getBigDecimal;
 
 @Log4j2
 @Component
@@ -34,36 +45,32 @@ public class ApiService extends AbstractApiService {
     private final MarketDataStreamService streamService;
     private final TelegramBotService telegramBotService;
     private static Boolean useSandbox;
-    private final ByBitService byBitService;
 
-    public ApiService(MarketDataStreamService streamService, TelegramBotService telegramBotService, @Value("${usesandbox}") Boolean useSandbox, ByBitService byBitService) {
+    public ApiService(MarketDataStreamService streamService, TelegramBotService telegramBotService, @Value("${usesandbox}") Boolean useSandbox) {
         super(streamService);
         this.streamService = streamService;
         this.telegramBotService = telegramBotService;
         this.useSandbox = useSandbox;
-        this.byBitService = byBitService;
     }
 
-    public Ticker getFigi(InvestApi api, List<String> tickers) {
+    public Ticker getFigi(List<String> tickers) {
         return TICKERS_TKS.get("tickers").stream().filter(i -> i.getValue().equals(tickers.get(0))).findFirst().get();
     }
 
     public void getAllTickers(InvestApi api, List<String> filter) {
-            List<Ticker> tickers = api.getInstrumentsService().getAllFuturesSync().stream().map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot()), null)).collect(Collectors.toList());
+        List<Ticker> tickers = api.getInstrumentsService().getTradableFuturesSync().stream().map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot()), null)).collect(Collectors.toList());
 //        tickers.addAll(api.getInstrumentsService()
-//                .getAllSharesSync()
+//                .getTradableSharesSync()
 //                .stream()
 //                .filter(i -> i.getClassCode().equals("TQBR"))
 //                .map(i -> new Ticker(i.getTicker(), i.getTicker(), i.getFigi(), i.getClassCode(), BigDecimal.valueOf(i.getLot()), null))
 //                .collect(Collectors.toList()));
 //        tickers = tickers.stream().filter(i -> filter.contains(i.getValue())).collect(Collectors.toList());
         TICKERS_TKS.replace("tickers", tickers);
-        //ByBit
-        byBitService.getInstrumentsInfo();
     }
 
     @Audit
-    public void setSubscriptionOnCandle(InvestApi api, List<String> figs) {
+    public void setSubscriptionOnCandle(InvestApi api, List<String> tickers) {
         StreamProcessor<MarketDataResponse> processor = (response) -> {
             if (response.hasTradingStatus()) {
                 log.info("Новые данные по статусам: {}", response);
@@ -116,11 +123,11 @@ public class ApiService extends AbstractApiService {
             try {
                 throw new Exception(message);
             } catch (Exception e) {
-                List<String> figsList = new ArrayList<>();
-                TICKERS_TKS.get("tickers").forEach(i -> figsList.add(i.getFigi()));
-                this.setSubscriptionOnCandle(api, figsList);
+                //List<String> figsList = new ArrayList<>();
+                //TICKERS_TKS.get("tickers").forEach(i -> figsList.add(i.getFigi()));
+                //this.setSubscriptionOnCandle(figsList);
             }
-        }).subscribeLastPrices(figs);
+        }).subscribeLastPrices(tickers);
     }
 
     public void getHistoryByFigi(InvestApi api, List<String> figs) {
@@ -183,159 +190,483 @@ public class ApiService extends AbstractApiService {
         }
     }
 
-    public void sendOrderDb(InvestApi api, Strategy strategy) {
-
-    }
-
-    public void sendOrder(InvestApi api, Strategy strategy) {
-        //Выставляем заявку
-        UserCache userCache = USER_STORE.get(strategy.getUserName());
-        List<Strategy> strategyList = userCache.getStrategies();
-        Strategy changingStrategy = strategyList
-                .stream()
-                .filter(str -> str.getName().equals(strategy.getName())).findFirst().get();
-        if (!changingStrategy.getIsActive()) {
-            return;
-        }
-        BigDecimal position = BigDecimal.ZERO;
+    public void sendSignal(InvestApi api, StrategyTv strategyTv) {
+        ErrorData errorData = null;
+        StrategyTv changingStrategyTv = null;
+        Map<String, Object> map = null;
         BigDecimal executionPrice = null;
-        String time = null;
-        ErrorData errorData = changingStrategy.getErrorData();
-        long commissions=0L;
-        OrderDirection direction = null;
-
-        if (changingStrategy.getConsumer().contains("terminal")) {
-            if (strategy.getDirection().equals("buy")) {
-                direction = OrderDirection.ORDER_DIRECTION_BUY;
-            } else if (strategy.getDirection().equals("sell")) {
-                direction = OrderDirection.ORDER_DIRECTION_SELL;
-            } else {
-                if (changingStrategy.getCurrentPosition().longValue()<0) {
-                    direction = OrderDirection.ORDER_DIRECTION_BUY;
-                } else {
-                    direction = OrderDirection.ORDER_DIRECTION_SELL;
-                }
-            }
-
-            var accounts = api.getUserService().getAccountsSync();
-            if (accounts.size() == 0) {
-                //Открываем счёт
-                String accountId = api.getSandboxService().openAccountSync();
-                //Пополнить счёт
-                api.getSandboxService().payIn(accountId, MoneyValue.newBuilder().setUnits(5000000).setCurrency("RUB").build());
-                accounts = api.getUserService().getAccountsSync();
-            }
-            var mainAccount = accounts.get(0).getId();
-            var price = Quotation.newBuilder().build();
-            position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
-//            //Выставляем заявку на покупку по рыночной цене
-            PostOrderResponse orderResponse = null;
-            time = DateUtils.getCurrentTime();
-            try {
-                orderResponse = api.getOrdersService()
-                        .postOrderSync(
-                                changingStrategy.getFigi(),
-                                Math.abs(position.longValue()),
-                                price,
-                                direction,
-                                mainAccount,
-                                OrderType.ORDER_TYPE_MARKET,
-                                UUID.randomUUID().toString());
-            } catch (Exception e) {
-                errorData.setMessage(e.getMessage());
-                errorData.setTime(time);
+        BigDecimal position = null;
+        UserCache userCache = null;
+        List<StrategyTv> strategyTvList = null;
+        try {
+            if(Boolean.FALSE.equals(strategyTv.getIsActive())){
                 return;
             }
-            executionPrice = CommonUtils.getFromMoneyValue(orderResponse.getExecutedOrderPrice());
-            commissions = orderResponse.getExecutedCommission().getUnits();
-            if (useSandbox) {
-                Optional<PortfolioPosition> portfolioPosition = getPortfolio(api, mainAccount).getPositionsList().stream().filter(i -> i.getFigi().equals(changingStrategy.getFigi())).findFirst();
+//            if (strategyTv.getPositionTv() != null) {
+//                correctCurrentPosition(strategyTv);
+//                return;
+//            }
+            map = setCurrentPosition(strategyTv, null, null, null, null, null, null, null, null);
 
-                if (portfolioPosition.isPresent()) {
-                    var realQuantity = portfolioPosition.get().getQuantity();
-                    if (realQuantity.getUnits() != strategy.getQuantity().longValue()) {
-                        errorData.setMessage(String.format("Фактическое вол-во лотов:%s, планируемое:%s", realQuantity.getUnits(), strategy.getQuantity()));
-                        errorData.setTime(time);
-                        changingStrategy.setErrorData(errorData);
-                        return;
-                    }
-                } else {
-                    if (strategy.getQuantity().longValue() != 0) {
-                        errorData.setMessage(String.format("Фактическое вол-во лотов:%s, планируемое:%s", 0, strategy.getQuantity()));
-                        errorData.setTime(time);
-                        changingStrategy.setErrorData(errorData);
-                        return;
-                    }
-                }
-                if (!CollectionUtils.isEmpty(getOrders(api, mainAccount))) {
-                    errorData.setMessage("Есть неисполненные ордера!");
-                    errorData.setTime(time);
-                    return;
-                }
+            if (map != null) {
+                userCache = USER_STORE.get(strategyTv.getUserName());
+                strategyTvList = userCache.getStrategies();
+            } else {
+                return;
             }
-        } else if (changingStrategy.getConsumer().contains("test")) {
-            executionPrice = LAST_PRICE.get(changingStrategy.getFigi()).getPrice();
-            position = strategy.getQuantity().subtract(changingStrategy.getCurrentPosition());
+
+            changingStrategyTv = (StrategyTv) map.get("changingStrategy");
+            if (!changingStrategyTv.getIsActive()) {
+                return;
+            }
+
+            position = (BigDecimal) map.get("position");
+            OrderDirection direction = (OrderDirection) map.get("direction");
+            if (changingStrategyTv.getConsumer().contains("terminal")) {
+                var ordeId = (String) map.get("orderId");
+                var triggerPrice = (Optional<BigDecimal>) map.get("triggerPrice");
+                var isAmendOrder = (Boolean) map.get("isAmendOrder");
+                var lastPrice=LAST_PRICE.get(changingStrategyTv.getFigi());
+                Map<String, Object> result = sendOrderTKS(api, direction, CommonUtils.formatBigDecimalNumber(position), changingStrategyTv.getFigi(), ordeId, triggerPrice.map(String::valueOf).orElse(null), isAmendOrder, changingStrategyTv.getOptions(), lastPrice!=null?lastPrice.getPrice():null, changingStrategyTv.getName(), strategyTv.getComment(), changingStrategyTv.getCurrentPosition());
+                executionPrice = LAST_PRICE.get(changingStrategyTv.getFigi()).getPrice();
+            } else if (changingStrategyTv.getConsumer().contains("test")) {
+                executionPrice = LAST_PRICE.get(changingStrategyTv.getFigi()).getPrice();
+            }
+        } catch (Exception e) {
+            if (changingStrategyTv == null) {
+                userCache = USER_STORE.get(strategyTv.getUserName());
+                strategyTvList = userCache.getStrategies();
+                changingStrategyTv = strategyTvList
+                        .stream()
+                        .filter(str -> str.getName().equals(strategyTv.getName())).findFirst().get();
+            }
+            errorData = new ErrorData();
+            errorData.setMessage("Ошибка: " + e.getMessage());
+            errorData.setTime(DateUtils.getCurrentTime());
+            changingStrategyTv.setErrorData(errorData);
         }
-        userCache.addCommission(commissions);
-        updateStrategyCache(strategyList, strategy, changingStrategy, executionPrice, userCache, position, time, null);
-        Message message = new Message();
-        message.setSenderName("server");
-        message.setMessage(userCache.getStrategies());
-        message.setCommand("strategy");
-        message.setStatus(Status.JOIN);
-        streamService.sendDataToUser(Set.of(strategy.getUserName()), message);
+//        if (errorData != null) {
+//            sendMessageInSocket(strategyTvList);
+//        }
+        if (changingStrategyTv.getConsumer().contains("test")) {
+            String time = DateUtils.getCurrentTime();
+            //updateStrategyCache(strategyTvList, strategyTv, changingStrategyTv, executionPrice, userCache, position, time, false, null);
+        }
     }
 
-    private void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time, String orderLinkId) {
-        var minLot = changingStrategy.getMinLot();
-        String printPrice = CommonUtils.formatNumber(executionPrice, changingStrategy.getPriceScale());
+    public synchronized Map<String, Object> setCurrentPosition(@Nullable StrategyTv strategyTv, String orderLinkedId, BigDecimal executionPrice, BigDecimal lastPrice, String side, BigDecimal execQty, BigDecimal currentPosition, String symbol, String orderId) {
+        UserCache userCache = USER_STORE.get("Admin");
+        List<StrategyTv> strategyTvList = userCache.getStrategies();
 
-        if (strategy.getDirection().equals(changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0 ? "buy" : changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "sell" : "hold")) {
-            changingStrategy.addEnterAveragePrice(executionPrice, false);
+        if (symbol != null && !CollectionUtils.isEmpty(strategyTvList)) {
+            Optional<StrategyTv> execStrategy = strategyTvList
+                    .stream()
+                    .filter(item -> item.getFigi().equals(symbol)).findFirst();
+            if (execStrategy.isPresent()) {
+                var exec = execStrategy.get();
+                if (exec.getCurrentPosition().compareTo(currentPosition) != 0) {
+                    log.info(String.format("[%s]=> currentPosition:%s, newCurrentPosition:%s", CORRECT_CURRENT_POS, exec.getCurrentPosition(), currentPosition));
+                    exec.setCurrentPosition(currentPosition);
+                    userCache.setStrategies(strategyTvList);
+                    USER_STORE.replace("Admin", userCache);
+                }
+            }
+            return null;
+        }
+
+        if (orderLinkedId != null) {
+            Optional<Map.Entry<String, List<ConditionalOrder>>> result = ORDERS_MAP.entrySet()
+                    .stream()
+                    .filter((it) -> {
+                        return it.getValue().stream().map(i->i.getOrderLinkId()).collect(Collectors.toList()).contains(orderLinkedId);
+                    })
+                    .findFirst();
+
+            if (result.isPresent()) {
+                StrategyTv execStrategyTv = strategyTvList
+                        .stream()
+                        .filter(item -> item.getName().equals(result.get().getKey()))
+                        .findFirst()
+                        .get();
+
+                if (execStrategyTv != null) {
+                    execStrategyTv.setDirection(side.toLowerCase());
+                    if (side.toLowerCase().equals("sell")) {
+                        execQty = execQty.multiply(BigDecimal.valueOf(-1.0d));
+                    }
+                    log.info(String.format("[%s]=> name:%s, currentPosition:%s, execQty:%s, executionPrice:%s, side:%s", SET_CURRENT_POS_AFTER_EXECUTE, execStrategyTv.getName(), execStrategyTv.getCurrentPosition(), execQty, executionPrice, side));
+                    //updateStrategyCache(strategyTvList, execStrategyTv, execStrategyTv, executionPrice, userCache, execQty, DateUtils.getCurrentTime(), false, orderLinkedId);
+                    //getPosition(execStrategyTv.getTicker(), false);
+                }
+            }
+
+            return null;
+        }
+
+        if (strategyTv == null) {
+            return null;
+        }
+
+        StrategyTv changingStrategyTv = strategyTvList
+                .stream()
+                .filter(item -> item.getName().equals(strategyTv.getName())).findFirst().get();
+
+        OrderDirection direction = null;
+
+        if (strategyTv.getQuantity().compareTo(BigDecimal.ZERO) != 0 && Math.abs(strategyTv.getQuantity().doubleValue()) < changingStrategyTv.getMinLot().doubleValue()) {
+            log.info(String.format("[%s]=> quantity:%s", QUANTITY_LESS_MIN_LOT, strategyTv.getQuantity()));
+            return null;
+        }
+
+        var comment = strategyTv.getComment();
+        //Закрываем текущую позицию в ноль
+        if (comment != null && comment.contains("exit")) {
+            if (changingStrategyTv.getCurrentPosition().doubleValue() != 0) {
+                log.info(String.format("[%s]=> ticker:%s, newCurrentPosition:0", EXIT_ORDERS, changingStrategyTv.getTicker()));
+                //closeOpenOrders(changingStrategyTv, userCache);
+            }
+            return null;
+        }
+
+        //Закрываем ордеры которые не исполнены
+        if (comment != null && comment.contains("cancel")) {
+            //cancelOrders(changingStrategyTv.getTicker(), false, null);
+            log.info(String.format("[%s]=> ticker:%s, close_condition_orders", CANCEL_CONDITIONAL_ORDERS, changingStrategyTv.getTicker()));
+            return null;
+        }
+
+        //Не открывать ордер если он уже есть такого же объёма
+        if (strategyTv.getQuantity().compareTo(changingStrategyTv.getCurrentPosition()) == 0) {
+            if (strategyTv.getQuantity().doubleValue() == 0) {
+                //cancelOrders(changingStrategyTv.getTicker(), false, null);
+                log.info(String.format("[%s]=> quantity:%s", CANCEL_CONDITIONAL_ORDERS, strategyTv.getQuantity()));
+            }
+            return null;
+        }
+
+        //REVERSE
+        if ((strategyTv.getDirection().equals("buy") && changingStrategyTv.getCurrentPosition().doubleValue() > 0
+                || strategyTv.getDirection().equals("sell") && changingStrategyTv.getCurrentPosition().doubleValue() < 0) && Boolean.TRUE.equals(changingStrategyTv.getDoReverse())) {
+            if (changingStrategyTv.getCurrentPosition().doubleValue() != 0) {
+                //closeOpenOrders(changingStrategyTv, userCache);
+                log.info(String.format("[%s]=> quantity:%s", CLOSE_OPEN_ORDERS_OR_REVERSE, strategyTv.getQuantity()));
+            }
+            return null;
+        }
+
+        if (strategyTv.getDirection().equals("buy")) {
+            if (strategyTv.getQuantity().compareTo(changingStrategyTv.getCurrentPosition()) <= 0) {
+                throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "покупка", strategyTv.getQuantity()));
+            }
+            direction = OrderDirection.ORDER_DIRECTION_BUY;
+        } else if (strategyTv.getDirection().equals("sell")) {
+            if (strategyTv.getQuantity().compareTo(changingStrategyTv.getCurrentPosition()) >= 0) {
+                throw new OrderNotExecutedException(String.format("Неверный порядок ордеров, либо дублирование ордера: %s, %s!", "продажа", strategyTv.getQuantity()));
+            }
+            direction = OrderDirection.ORDER_DIRECTION_SELL;
+        }
+
+        BigDecimal position = strategyTv.getQuantity().subtract(changingStrategyTv.getCurrentPosition());
+
+        strategyTvList.set(Integer.parseInt(changingStrategyTv.getId()), changingStrategyTv);
+        userCache.setStrategies(strategyTvList);
+        USER_STORE.replace(strategyTv.getUserName(), userCache);
+
+        Map<String, Object> map = ImmutableMap.of(
+                "userCache", userCache,
+                "strategyList", strategyTvList,
+                "changingStrategy", changingStrategyTv,
+                "position", position,
+                "direction", direction,
+                "orderId", orderLinkedId == null ? UUID.randomUUID().toString() : orderLinkedId,
+                "isAmendOrder", false,
+                "triggerPrice", Optional.ofNullable(strategyTv.getTriggerPrice())
+        );
+
+        return map;
+    }
+
+    private LinkedHashMap<String, Object> sendOrderTKS(InvestApi api, OrderDirection direction, String position, String ticker, String orderId, String triggerPrice, Boolean isAmendOrder, StrategyOptions options, BigDecimal executionPrice, String name, String comment, BigDecimal currentPosition) {
+        var accounts = api.getUserService().getAccountsSync();
+        var triggerPr = CommonUtils.getBigDecimal(triggerPrice);
+        var max= triggerPr.add(BigDecimal.valueOf(500));
+        Quotation quotation = Quotation.newBuilder()
+                .setUnits(triggerPr.longValue())
+                .setNano(triggerPr.remainder(BigDecimal.ONE).multiply(BigDecimal.valueOf(1_000_000_000)).intValue())
+                .build();
+
+        Quotation quotation2 = Quotation.newBuilder()
+                .setUnits(max.longValue())
+                .setNano(max.remainder(BigDecimal.ONE).multiply(BigDecimal.valueOf(1_000_000_000)).intValue())
+                .build();
+
+        TradeOrderRequest tradeOrderRequest = null;
+        LinkedHashMap<String, Object> response = null;
+        List<ConditionalOrder> list = ORDERS_MAP.get(name);
+        if (CollectionUtils.isEmpty(list)) {
+            list = new ArrayList<>();
+            ORDERS_MAP.put(name, list);
+        }
+
+        if (options.getUseGrid() && comment != null && comment.contains("grid")) {
+            if (CommonUtils.getBigDecimal(position).doubleValue() == 0) {
+                //cancelOrders(ticker, false, null);
+                tradeOrderRequest = TradeOrderRequest.builder()
+                        .category(CategoryType.LINEAR)
+                        .symbol(ticker)
+                        .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
+                        .orderType(TradeOrderType.MARKET)
+                        .orderLinkId(orderId)
+                        .qty(position)
+                        .build();
+                //response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
+                var retCode3 = response.get("retCode");
+                if (!com.google.common.base.Objects.equal(retCode3, 0)) {
+                    var message = response.get("retMsg");
+                    throw new OrderNotExecutedException(String.format("Ошибка исполнения рыночного ордера. Message: %s.", message));
+                }
+                return null;
+            }
+            if (triggerPrice == null) {
+                tradeOrderRequest = TradeOrderRequest.builder()
+                        .category(CategoryType.LINEAR)
+                        .symbol(ticker)
+                        .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
+                        .orderType(TradeOrderType.MARKET)
+                        .orderLinkId(orderId)
+                        .qty(position)
+                        .build();
+                //response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
+                var retCode3 = response.get("retCode");
+                if (!com.google.common.base.Objects.equal(retCode3, 0)) {
+                    var message = response.get("retMsg");
+                    throw new OrderNotExecutedException(String.format("Ошибка исполнения рыночного ордера. Message: %s.", message));
+                }
+                //gridOrders(direction, ticker, options, executionPrice, name, false, null, null);
+            } else {
+                //gridOrders(direction, ticker, options, getBigDecimal(triggerPrice), name, true, currentPosition, CommonUtils.getBigDecimal(position));
+            }
+        }
+        if (comment == null || !comment.contains("grid")) {
+            if (triggerPrice == null) {
+                modifyOrdersMap(orderId, name, null, null);
+                tradeOrderRequest = TradeOrderRequest.builder()
+                        .category(CategoryType.LINEAR)
+                        .symbol(ticker)
+                        .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
+                        .orderType(TradeOrderType.MARKET)
+                        .orderLinkId(orderId)
+                        .qty(position)
+                        .build();
+                //response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
+                log.info(String.format("[%s]=> qty:%s", MARKET_ORDER_EXECUTE, position));
+            } else {
+                if (isAmendOrder) {
+                    tradeOrderRequest = TradeOrderRequest.builder()
+                            .category(CategoryType.LINEAR)
+                            .symbol(ticker)
+                            .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
+                            .orderType(TradeOrderType.MARKET)
+                            .orderLinkId(orderId)
+                            .triggerPrice(triggerPrice)
+                            .triggerDirection(direction == OrderDirection.ORDER_DIRECTION_BUY ? 1 : 2)
+                            .tpTriggerBy(TriggerBy.LAST_PRICE)
+                            .qty(position)
+                            .build();
+                    //response = (LinkedHashMap<String, Object>) orderRestClient.amendOrder(tradeOrderRequest);
+                } else {
+                    modifyOrdersMap(orderId, name, null, null);
+                    //trigerPrice!=null
+                    //cancelOrders(ticker, false, null);
+                    var string = api.getStopOrdersService().postStopOrderGoodTillCancel(
+                            ticker,
+                            Long.parseLong(position),
+                            quotation2,
+                            quotation,
+                            direction == OrderDirection.ORDER_DIRECTION_BUY?StopOrderDirection.STOP_ORDER_DIRECTION_BUY:StopOrderDirection.STOP_ORDER_DIRECTION_SELL,
+                            accounts.get(0).getId(),
+                            StopOrderType.STOP_ORDER_TYPE_STOP_LIMIT
+                    ).join();
+                    //response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
+
+//                    if (options.getUseGrid() && comment != null && comment.contains("grid")) {
+//                        gridOrders(direction, ticker, options, executionPrice, name, false, null);
+//                    }
+                }
+            }
+        }
+        var retCode = response.get("retCode");
+
+        if (com.google.common.base.Objects.equal(retCode, 110092) || com.google.common.base.Objects.equal(retCode, 110093)) {
+            log.info(String.format("[%s]=> ticker:%s, triggerPrice:%s", ORDER_CANNOT_EXECUTE, ticker, triggerPrice));
+            tradeOrderRequest = TradeOrderRequest.builder()
+                    .category(CategoryType.LINEAR)
+                    .symbol(ticker)
+                    .side(direction == OrderDirection.ORDER_DIRECTION_BUY ? Side.BUY : Side.SELL)
+                    .orderType(TradeOrderType.MARKET)
+                    .orderLinkId(orderId)
+                    .qty(position)
+                    .build();
+            //response = (LinkedHashMap<String, Object>) orderRestClient.createOrder(tradeOrderRequest);
+            log.info(String.format("[%s]: symbol:%s, qty:%s", MARKET_ORDER_EXECUTE_FORCE, ticker, position));
+        }
+        var retCode2 = response.get("retCode");
+        if (!com.google.common.base.Objects.equal(retCode2, 0) && !com.google.common.base.Objects.equal(retCode2, 110092) && !com.google.common.base.Objects.equal(retCode2, 110093)) {
+            var message = response.get("retMsg");
+            throw new OrderNotExecutedException(String.format("Ошибка исполнения ордера %s, %s, %s. Message: %s.", ticker, direction.name(), position, message));
+        }
+        return response;
+    }
+
+//    public void sendOrder(InvestApi api, StrategyTv strategyTv) {
+//        //Выставляем заявку
+//        UserCache userCache = USER_STORE.get(strategyTv.getUserName());
+//        List<StrategyTv> strategyTvList = userCache.getStrategies();
+//        StrategyTv changingStrategyTv = strategyTvList
+//                .stream()
+//                .filter(str -> str.getName().equals(strategyTv.getName())).findFirst().get();
+//        if (!changingStrategyTv.getIsActive()) {
+//            return;
+//        }
+//        BigDecimal position = BigDecimal.ZERO;
+//        BigDecimal executionPrice = null;
+//        String time = null;
+//        ErrorData errorData = changingStrategyTv.getErrorData();
+//        long commissions=0L;
+//        OrderDirection direction = null;
+//
+//        if (changingStrategyTv.getConsumer().contains("terminal")) {
+//            if (strategyTv.getDirection().equals("buy")) {
+//                direction = OrderDirection.ORDER_DIRECTION_BUY;
+//            } else if (strategyTv.getDirection().equals("sell")) {
+//                direction = OrderDirection.ORDER_DIRECTION_SELL;
+//            } else {
+//                if (changingStrategyTv.getCurrentPosition().longValue()<0) {
+//                    direction = OrderDirection.ORDER_DIRECTION_BUY;
+//                } else {
+//                    direction = OrderDirection.ORDER_DIRECTION_SELL;
+//                }
+//            }
+//
+//            var accounts = api.getUserService().getAccountsSync();
+////            if (accounts.size() == 0) {
+////                //Открываем счёт
+////                String accountId = api.getSandboxService().openAccountSync();
+////                //Пополнить счёт
+////                api.getSandboxService().payIn(accountId, MoneyValue.newBuilder().setUnits(5000000).setCurrency("RUB").build());
+////                accounts = api.getUserService().getAccountsSync();
+////            }
+//            var mainAccount = accounts.get(0).getId();
+//            var price = Quotation.newBuilder().build();
+//            position = strategyTv.getQuantity().subtract(changingStrategyTv.getCurrentPosition());
+////            //Выставляем заявку на покупку по рыночной цене
+//            PostOrderResponse orderResponse = null;
+//            time = DateUtils.getCurrentTime();
+//            try {
+//                orderResponse = api.getOrdersService()
+//                        .postOrderSync(
+//                                changingStrategyTv.getFigi(),
+//                                Math.abs(position.longValue()),
+//                                price,
+//                                direction,
+//                                mainAccount,
+//                                OrderType.ORDER_TYPE_MARKET,
+//                                UUID.randomUUID().toString());
+//            } catch (Exception e) {
+//                errorData.setMessage(e.getMessage());
+//                errorData.setTime(time);
+//                return;
+//            }
+//            executionPrice = CommonUtils.getFromMoneyValue(orderResponse.getExecutedOrderPrice());
+//            commissions = orderResponse.getExecutedCommission().getUnits();
+//            if (useSandbox) {
+//                Optional<PortfolioPosition> portfolioPosition = getPortfolio(api, mainAccount).getPositionsList().stream().filter(i -> i.getFigi().equals(changingStrategyTv.getFigi())).findFirst();
+//
+//                if (portfolioPosition.isPresent()) {
+//                    var realQuantity = portfolioPosition.get().getQuantity();
+//                    if (realQuantity.getUnits() != strategyTv.getQuantity().longValue()) {
+//                        errorData.setMessage(String.format("Фактическое вол-во лотов:%s, планируемое:%s", realQuantity.getUnits(), strategyTv.getQuantity()));
+//                        errorData.setTime(time);
+//                        changingStrategyTv.setErrorData(errorData);
+//                        return;
+//                    }
+//                } else {
+//                    if (strategyTv.getQuantity().longValue() != 0) {
+//                        errorData.setMessage(String.format("Фактическое вол-во лотов:%s, планируемое:%s", 0, strategyTv.getQuantity()));
+//                        errorData.setTime(time);
+//                        changingStrategyTv.setErrorData(errorData);
+//                        return;
+//                    }
+//                }
+//                if (!CollectionUtils.isEmpty(getOrders(api, mainAccount))) {
+//                    errorData.setMessage("Есть неисполненные ордера!");
+//                    errorData.setTime(time);
+//                    return;
+//                }
+//            }
+//        } else if (changingStrategyTv.getConsumer().contains("test")) {
+//            executionPrice = LAST_PRICE.get(changingStrategyTv.getFigi()).getPrice();
+//            position = strategyTv.getQuantity().subtract(changingStrategyTv.getCurrentPosition());
+//        }
+//        userCache.addCommission(commissions);
+//        updateStrategyCache(strategyTvList, strategyTv, changingStrategyTv, executionPrice, userCache, position, time, null);
+//        Message message = new Message();
+//        message.setSenderName("server");
+//        message.setMessage(userCache.getStrategies());
+//        message.setCommand("strategy");
+//        message.setStatus(Status.JOIN);
+//        streamService.sendDataToUser(Set.of(strategyTv.getUserName()), message);
+//    }
+
+    private void updateStrategyCache(List<StrategyTv> strategyTvList, StrategyTv strategyTv, StrategyTv changingStrategyTv, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time, String orderLinkId) {
+        var minLot = changingStrategyTv.getMinLot();
+        String printPrice = CommonUtils.formatNumber(executionPrice, changingStrategyTv.getPriceScale());
+
+        if (strategyTv.getDirection().equals(changingStrategyTv.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0 ? "buy" : changingStrategyTv.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "sell" : "hold")) {
+            changingStrategyTv.addEnterAveragePrice(executionPrice, false);
         } else {
-            changingStrategy.addEnterAveragePrice(executionPrice, true);
+            changingStrategyTv.addEnterAveragePrice(executionPrice, true);
         }
 
-        if (strategy.getDirection().equals("buy")) {
-            changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+        if (strategyTv.getDirection().equals("buy")) {
+            changingStrategyTv.setCurrentPosition(changingStrategyTv.getCurrentPosition().add(position));
             for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
-                changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time, orderLinkId));
+                changingStrategyTv.addOrder(new Order(executionPrice, minLot, strategyTv.getDirection(), time, orderLinkId));
             }
-            String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
+            String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategyTv.getName(), Math.abs(position.doubleValue()), printPrice, strategyTv.getPriceTv(), time);
             userCache.addLogs(text);
-            if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+            if (userCache.getUser().getChatId() != null && changingStrategyTv.getConsumer().contains("telegram")) {
                 telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
             }
         }
-        if (strategy.getDirection().equals("sell")) {
-            changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+        if (strategyTv.getDirection().equals("sell")) {
+            changingStrategyTv.setCurrentPosition(changingStrategyTv.getCurrentPosition().add(position));
             for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
-                changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time, orderLinkId));
+                changingStrategyTv.addOrder(new Order(executionPrice, minLot, strategyTv.getDirection(), time, orderLinkId));
             }
-            String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
+            String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategyTv.getName(), Math.abs(position.doubleValue()), printPrice, strategyTv.getPriceTv(), time);
             userCache.addLogs(text);
-            if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+            if (userCache.getUser().getChatId() != null && changingStrategyTv.getConsumer().contains("telegram")) {
                 telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
             }
         }
-        if (strategy.getDirection().equals("hold")) {
-            if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) != 0) {
-                String text = String.format(changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
+        if (strategyTv.getDirection().equals("hold")) {
+            if (changingStrategyTv.getCurrentPosition().compareTo(BigDecimal.ZERO) != 0) {
+                String text = String.format(changingStrategyTv.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategyTv.getName(), Math.abs(position.doubleValue()), printPrice, strategyTv.getPriceTv(), time);
                 userCache.addLogs(text);
-                if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                if (userCache.getUser().getChatId() != null && changingStrategyTv.getConsumer().contains("telegram")) {
                     telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
                 }
                 for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
-                    changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time, orderLinkId));
+                    changingStrategyTv.addOrder(new Order(executionPrice, minLot, changingStrategyTv.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time, orderLinkId));
                 }
-                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+                changingStrategyTv.setCurrentPosition(changingStrategyTv.getCurrentPosition().add(position));
             }
         }
 
-        strategyList.set(Integer.parseInt(changingStrategy.getId()), changingStrategy);
-        userCache.setStrategies(strategyList);
-        USER_STORE.replace(strategy.getUserName(), userCache);
+        strategyTvList.set(Integer.parseInt(changingStrategyTv.getId()), changingStrategyTv);
+        userCache.setStrategies(strategyTvList);
+        USER_STORE.replace(strategyTv.getUserName(), userCache);
     }
 
     private static List<OrderState> getOrders(InvestApi api, String accountId) {

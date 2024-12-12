@@ -21,78 +21,78 @@ public abstract class AbstractTradeService {
     }
 
 
-    public void sendSignal(Strategy strategy) {
+    public void sendSignal(StrategyTv strategyTv) throws InterruptedException {
 
     }
 
     abstract Object getPositionInfo();
 
-    public synchronized void updateStrategyCache(List<Strategy> strategyList, Strategy strategy, Strategy changingStrategy, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time, Boolean ordersFromTv, String orderLinkId) {
+    public synchronized void updateStrategyCache(List<StrategyTv> strategyTvList, StrategyTv strategyTv, StrategyTv changingStrategyTv, BigDecimal executionPrice, UserCache userCache, BigDecimal position, String time, Boolean ordersFromTv, String orderLinkId) {
         if (executionPrice != null) {
-            var minLot = changingStrategy.getMinLot();
-            String printPrice = CommonUtils.formatNumber(executionPrice, changingStrategy.getPriceScale());
+            var minLot = changingStrategyTv.getMinLot();
+            String printPrice = CommonUtils.formatNumber(executionPrice, changingStrategyTv.getPriceScale());
 
-            if (strategy.getDirection().equals("buy")) {
-                changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+            if (strategyTv.getDirection().equals("buy")) {
+                changingStrategyTv.setCurrentPosition(changingStrategyTv.getCurrentPosition().add(position));
                 for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
-                    changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time, orderLinkId));
+                    changingStrategyTv.addOrder(new Order(executionPrice, minLot, strategyTv.getDirection(), time, orderLinkId));
                 }
-                String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
+                String text = String.format("%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s.", strategyTv.getName(), Math.abs(position.doubleValue()), printPrice, strategyTv.getPriceTv(), time);
                 userCache.addLogs(text);
                 try {
-                    if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                    if (userCache.getUser().getChatId() != null && changingStrategyTv.getConsumer().contains("telegram")) {
                         telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
                     }
                 } catch (Exception ignored) {
                 }
             }
-            if (strategy.getDirection().equals("sell")) {
+            if (strategyTv.getDirection().equals("sell")) {
                 if (position.compareTo(BigDecimal.ZERO) < 0) {
-                    changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+                    changingStrategyTv.setCurrentPosition(changingStrategyTv.getCurrentPosition().add(position));
                 } else {
-                    changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
+                    changingStrategyTv.setCurrentPosition(changingStrategyTv.getCurrentPosition().subtract(position));
                 }
                 for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
-                    changingStrategy.addOrder(new Order(executionPrice, minLot, strategy.getDirection(), time, orderLinkId));
+                    changingStrategyTv.addOrder(new Order(executionPrice, minLot, strategyTv.getDirection(), time, orderLinkId));
                 }
-                String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
+                String text = String.format("%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategyTv.getName(), Math.abs(position.doubleValue()), printPrice, strategyTv.getPriceTv(), time);
                 userCache.addLogs(text);
                 try {
-                    if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                    if (userCache.getUser().getChatId() != null && changingStrategyTv.getConsumer().contains("telegram")) {
                         telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
                     }
                 } catch (Exception ignored) {
                 }
             }
-            if (strategy.getDirection().equals("hold")) {
-                if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) != 0) {
-                    String text = String.format(changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategy.getName(), Math.abs(position.doubleValue()), printPrice, strategy.getPriceTv(), time);
+            if (strategyTv.getDirection().equals("hold")) {
+                if (changingStrategyTv.getCurrentPosition().compareTo(BigDecimal.ZERO) != 0) {
+                    String text = String.format(changingStrategyTv.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "%s => Покупка %s лотов по цене %s (priceTV:%s). Время %s." : "%s => Продажа %s лотов по цене %s (priceTV:%s). Время %s.", strategyTv.getName(), Math.abs(position.doubleValue()), printPrice, strategyTv.getPriceTv(), time);
                     userCache.addLogs(text);
-                    if (userCache.getUser().getChatId() != null && changingStrategy.getConsumer().contains("telegram")) {
+                    if (userCache.getUser().getChatId() != null && changingStrategyTv.getConsumer().contains("telegram")) {
                         telegramBotService.sendMessage(Long.parseLong(userCache.getUser().getChatId()), text);
                     }
                     for (int i = 1; i <= Math.abs(position.divide(minLot, RoundingMode.CEILING).doubleValue()); i++) {
-                        changingStrategy.addOrder(new Order(executionPrice, minLot, changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time, orderLinkId));
+                        changingStrategyTv.addOrder(new Order(executionPrice, minLot, changingStrategyTv.getCurrentPosition().compareTo(BigDecimal.ZERO) < 0 ? "buy" : "sell", time, orderLinkId));
                     }
-                    if (changingStrategy.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0) {
-                        changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().subtract(position));
+                    if (changingStrategyTv.getCurrentPosition().compareTo(BigDecimal.ZERO) > 0) {
+                        changingStrategyTv.setCurrentPosition(changingStrategyTv.getCurrentPosition().subtract(position));
                     } else {
-                        changingStrategy.setCurrentPosition(changingStrategy.getCurrentPosition().add(position));
+                        changingStrategyTv.setCurrentPosition(changingStrategyTv.getCurrentPosition().add(position));
                     }
                 }
             }
         }
-        strategyList.set(Integer.parseInt(changingStrategy.getId()), changingStrategy);
-        userCache.setStrategies(strategyList);
+        strategyTvList.set(Integer.parseInt(changingStrategyTv.getId()), changingStrategyTv);
+        userCache.setStrategies(strategyTvList);
         USER_STORE.replace("Admin", userCache);
 
         sendMessageInSocket(userCache.getStrategies());
     }
 
-    public void sendMessageInSocket(List<Strategy> strategyList) {
+    public void sendMessageInSocket(List<StrategyTv> strategyTvList) {
         Message message = new Message();
         message.setSenderName("server");
-        message.setMessage(strategyList);
+        message.setMessage(strategyTvList);
         message.setStatus(Status.JOIN);
         message.setCommand("strategy");
         message.setStatus(Status.JOIN);

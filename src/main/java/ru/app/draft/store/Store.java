@@ -3,6 +3,7 @@ package ru.app.draft.store;
 import com.google.common.cache.CacheBuilder;
 import com.google.protobuf.Timestamp;
 import lombok.extern.log4j.Log4j2;
+import ru.app.draft.entity.Candle;
 import ru.app.draft.models.*;
 import ru.app.draft.services.MarketDataStreamService;
 import ru.tinkoff.piapi.contract.v1.OrderDirection;
@@ -57,6 +58,8 @@ public class Store {
             .maximumSize(100)
             .<String, List<Ticker>>build()
             .asMap();
+
+    public static Map<String, Set<Candle>> CANDLE_TEST = new HashMap<>();
 
     public final static ConcurrentMap<String, List<MetricItem>> METRICS = CacheBuilder.newBuilder()
             .maximumSize(10000)

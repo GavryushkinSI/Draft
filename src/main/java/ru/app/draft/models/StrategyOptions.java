@@ -12,7 +12,7 @@ public class StrategyOptions implements Serializable {
 
     private Boolean useGrid=Boolean.FALSE;
 
-    private Integer countOfGrid=3;
+    private Integer countOfGrid=5;
 
     private BigDecimal offsetOfGrid= BigDecimal.valueOf(0.6);
 
