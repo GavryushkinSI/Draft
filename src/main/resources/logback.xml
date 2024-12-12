@@ -3,7 +3,7 @@
         <file>app.log</file>
         <append>true</append>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
-            <level>INFO</level>
+            <level>ERROR</level>
             <onMatch>ACCEPT</onMatch>
             <onMismatch>DENY</onMismatch>
         </filter>
@@ -15,7 +15,7 @@
             <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} [%thread] %-5level %logger{20} - %msg%n</pattern>
         </encoder>
     </appender>
-    <root level="INFO">
+    <root level="ERROR">
         <appender-ref ref="FILE"/>
     </root>
 
@@ -24,7 +24,7 @@
             <pattern>%-5relative %-5level %logger{35} - %msg%n</pattern>
         </encoder>
     </appender>
-    <root level="DEBUG">
+    <root level="ERROR">
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
