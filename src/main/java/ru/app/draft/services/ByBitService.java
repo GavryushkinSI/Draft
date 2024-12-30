@@ -773,9 +773,9 @@ public class ByBitService extends AbstractTradeService {
     private String createAuthMessage() {
         long expires = Instant.now().toEpochMilli() + 10000;
         String val = "GET/realtime" + expires;
-        String signature = HmacSHA256Signer.auth(val, "4aveJtjDsT7x9Bmz1Qo7s2YENXaQOOODXnPs");
+        String signature = HmacSHA256Signer.auth(val, "DRXDC0Kenvh3AcgoqnqWq7UXNPY8693lodTf");
 
-        var args = List.of("thyjS9XxWTLDbPvpUU", expires, signature);
+        var args = List.of("VkmwrZwHuHilLIUMBg", expires, signature);
         var authMap = Map.of("req_id", generateTransferID(), "op", "auth", "args", args);
         return JSON.toJSONString(authMap);
     }
@@ -875,10 +875,10 @@ public class ByBitService extends AbstractTradeService {
             if (i != null) {
                 if (i.getCanReplace()) {
                     if (doRemove) {
-                        cancelOrders(ticker, false, i.getOrderId());
+                        cancelOrders(ticker, false, i.getOrderLinkId());
                         iterator.remove();
                     } else {
-                        cancelOrders(ticker, false, i.getOrderId());
+                        cancelOrders(ticker, false, i.getOrderLinkId());
                         iterator.remove();
                     }
                 }
@@ -918,6 +918,9 @@ public class ByBitService extends AbstractTradeService {
                     .build();
             response = (LinkedHashMap<String, Object>) orderRestClient.cancelAllOrder(tradeOrderRequest);
         } else {
+            if(orderId==null){
+                return;
+            }
             tradeOrderRequest = TradeOrderRequest.builder()
                     .symbol(ticker)
                     .orderLinkId(orderId)
@@ -929,7 +932,7 @@ public class ByBitService extends AbstractTradeService {
         var retCode = response.get("retCode");
         if (!Objects.equal(retCode, 0)) {
             var message = response.get("retMsg");
-            throw new OrderNotExecutedException(String.format("Ошибка отмены ордеров. Message: %s.", message));
+//            throw new OrderNotExecutedException(String.format("Ошибка отмены ордеров. Message: %s.", message));
         }
     }
 
@@ -937,33 +940,33 @@ public class ByBitService extends AbstractTradeService {
         List<ConditionalOrder> list = ORDERS_MAP.get(name);
 
         //Если мы в длинной позиции то не трогаем уловные ордера на покупку и оредра tpl -> перевыставляем только ордера на продажу
-        if (currentPosition != null && currentPosition.doubleValue() > 0) {
+        if (direction==OrderDirection.ORDER_DIRECTION_SELL) {
             Iterator<ConditionalOrder> iterator = list.iterator();
             while (iterator.hasNext()) {
                 ConditionalOrder i = iterator.next();
                 if (i.getDirection() == OrderDirection.ORDER_DIRECTION_SELL && java.util.Objects.equals(i.getCanReplace(), Boolean.FALSE)) {
-                    cancelOrders(ticker, false, i.getOrderId());
+                    cancelOrders(ticker, false, i.getOrderLinkId());
                     iterator.remove();
                 }
             }
         }
 
-        if (currentPosition != null && currentPosition.doubleValue() < 0) {
+        if (direction == OrderDirection.ORDER_DIRECTION_BUY) {
             Iterator<ConditionalOrder> iterator = list.iterator();
             while (iterator.hasNext()) {
                 ConditionalOrder i = iterator.next();
                 if (i.getDirection() == OrderDirection.ORDER_DIRECTION_BUY && java.util.Objects.equals(i.getCanReplace(), Boolean.FALSE)) {
-                    cancelOrders(ticker, false, i.getOrderId());
+                    cancelOrders(ticker, false, i.getOrderLinkId());
                     iterator.remove();
                 }
             }
         }
 
-        //удалить все условные ордера по инструменту
-        if (currentPosition == null || currentPosition.doubleValue() == 0) {
-            cancelOrders(ticker, true, null);
-            list.clear();
-        }
+       //удалить все условные ордера по инструменту
+//        if (currentPosition == null || currentPosition.doubleValue() == 0) {
+//            cancelOrders(ticker, true, null);
+//            list.clear();
+//        }
 
         var countGrids = options.getCountOfGrid();
         for (int i = 0; i < countGrids; i++) {
