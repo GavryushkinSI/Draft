@@ -32,4 +32,6 @@ public class TestTelegramChannel {
     private Boolean positionFix=false;
 
     private  BigDecimal pnl=null;
+
+    private BigDecimal drawdown=null;
 }

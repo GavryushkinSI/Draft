@@ -298,7 +298,7 @@ public class MainController {
 
     @PostMapping("/app/cancelAllOrders/{ticker}")
     public void cancelAllOrders(@PathVariable String ticker) {
-        byBitService.cancelOrders(ticker, false, null);
+        byBitService.cancelOrders(ticker, true, null);
     }
 
 
@@ -329,7 +329,7 @@ public class MainController {
                 var timeClose = res.getTimeClose() != null ? dF.format(new Date(res.getTimeClose())) : null;
                 var pnl=res.getPnl()!=null?Math.ceil(res.getPnl().doubleValue()):0;
 //                if(res.getOpen()!=null) {
-                map.put(count + ":" + signal.getSymbol() + "||:" + signal.getDirection() + "||open:" + res.getOpen() + "||time:" + time + "||timeClose:" + timeClose + "||quantity:" + res.getQuantity() + "||countAdd:" + res.getCountAdd() + "||countFix:" + res.getCountFix() + "||closePrice:" + res.getClosePrice() + "||avrOpenPrice:" + res.getAverageOpenPrice() + "||fixByStop:" + res.getFixByStop() + "||positionFix:" + res.getPositionFix() + "||pnl:" + pnl + "%", res.getProfit());
+                map.put(count + ":" + signal.getSymbol() + "||:" + signal.getDirection() + "||open:" + res.getOpen() + "||time:" + time + "||timeClose:" + timeClose + "||quantity:" + res.getQuantity() + "||countAdd:" + res.getCountAdd() + "||countFix:" + res.getCountFix() + "||closePrice:" + res.getClosePrice() + "||avrOpenPrice:" + res.getAverageOpenPrice() + "||fixByStop:" + res.getFixByStop() + "||positionFix:" + res.getPositionFix() + "||pnl:" + pnl + "%"+"||drowdawn:"+ (res.getDrawdown()!=null?Math.ceil(res.getDrawdown().doubleValue()):null), res.getProfit());
                 count++;
 //                }
                 log.debug(signal.getSymbol() + "=>" + "success..." + time);

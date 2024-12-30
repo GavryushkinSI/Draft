@@ -24,11 +24,14 @@ public class ConditionalOrder implements Serializable {
 
     private int status;
 
-    public ConditionalOrder(String orderId,String orderLinkId, String size, OrderDirection direction) {
+    private Boolean canReplace;
+
+    public ConditionalOrder(String orderId,String orderLinkId, String size, OrderDirection direction, Boolean canReplace) {
         this.orderId = orderId;
         this.size = size;
         this.direction = direction;
         this.orderLinkId=orderLinkId;
+        this.canReplace=canReplace;
     }
 
     @Override

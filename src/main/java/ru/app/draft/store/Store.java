@@ -118,10 +118,10 @@ public class Store {
         }
     }
 
-    public static void modifyOrdersMap(String orderLinkId, String name, OrderDirection direction, String size) {
+    public static void modifyOrdersMap(String orderLinkId, String name, OrderDirection direction, String size, Boolean canReplace) {
         ORDERS_MAP.computeIfPresent(name, (s, conditionalOrders) -> {
 
-            conditionalOrders.add(new ConditionalOrder(null, orderLinkId, size, direction));
+            conditionalOrders.add(new ConditionalOrder(null, orderLinkId, size, direction, canReplace));
             return conditionalOrders;
         });
     }

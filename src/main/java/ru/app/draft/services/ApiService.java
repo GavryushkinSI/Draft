@@ -449,7 +449,7 @@ public class ApiService extends AbstractApiService {
         }
         if (comment == null || !comment.contains("grid")) {
             if (triggerPrice == null) {
-                modifyOrdersMap(orderId, name, null, null);
+                modifyOrdersMap(orderId, name, null, null, false);
                 tradeOrderRequest = TradeOrderRequest.builder()
                         .category(CategoryType.LINEAR)
                         .symbol(ticker)
@@ -475,7 +475,7 @@ public class ApiService extends AbstractApiService {
                             .build();
                     //response = (LinkedHashMap<String, Object>) orderRestClient.amendOrder(tradeOrderRequest);
                 } else {
-                    modifyOrdersMap(orderId, name, null, null);
+                    modifyOrdersMap(orderId, name, null, null, false);
                     //trigerPrice!=null
                     //cancelOrders(ticker, false, null);
                     var string = api.getStopOrdersService().postStopOrderGoodTillCancel(

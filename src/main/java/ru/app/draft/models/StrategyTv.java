@@ -26,6 +26,7 @@ public class StrategyTv implements Serializable {
     private TelegramSignal telegramSignal;
     private Set<Pnl> closedPnl= new HashSet<>();
     private BigDecimal currentPosition = BigDecimal.ZERO;
+    private BigDecimal tpl;
     private Long priceTv;
     private String producer;
     @JsonIgnoreProperties
