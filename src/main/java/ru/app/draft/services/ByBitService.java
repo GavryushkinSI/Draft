@@ -278,8 +278,8 @@ public class ByBitService extends AbstractTradeService {
 //                }
             }
         } else {
-            if (strategyTv.getQuantity().compareTo(BigDecimal.ZERO) != 0 && Math.abs(strategyTv.getQuantity().doubleValue()) < changingStrategyTv.getMinLot().doubleValue()) {
-                log.info(String.format("[%s]=> quantity:%s", QUANTITY_LESS_MIN_LOT, strategyTv.getQuantity()));
+            if (strategyTv.getPositionTv().compareTo(BigDecimal.ZERO) != 0 && Math.abs(strategyTv.getPositionTv().doubleValue()) < changingStrategyTv.getMinLot().doubleValue()) {
+                log.info(String.format("[%s]=> quantity:%s", QUANTITY_LESS_MIN_LOT, strategyTv.getPositionTv()));
                 if (changingStrategyTv.getCurrentPosition().doubleValue() != 0) {
                     log.info(String.format("[%s]=> ticker:%s, newCurrentPosition:0", EXIT_ORDERS, changingStrategyTv.getTicker()));
                     closeOpenOrders(changingStrategyTv, userCache);
@@ -561,7 +561,7 @@ public class ByBitService extends AbstractTradeService {
                 } else {
                     modifyOrdersMap(orderId, name, null, null, false);
                     //trigerPrice!=null
-                    cancelOrders(ticker, false, null);
+                    cancelOrders(ticker, true, null);
                     tradeOrderRequest = TradeOrderRequest.builder()
                             .category(CategoryType.LINEAR)
                             .symbol(ticker)
