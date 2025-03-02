@@ -1,4 +1,3 @@
- Use a newer Gradle version that supports Java 21
 FROM gradle:8-jdk-alpine AS build
 
 # Copy the project files to the container
