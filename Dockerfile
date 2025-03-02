@@ -7,7 +7,7 @@ COPY --chown=gradle:gradle . /home/gradle/src
 WORKDIR /home/gradle/src
 
 # Build the project
-RUN gradle build --no-daemon
+RUN gradle build
 
 FROM bellsoft/liberica-openjdk-alpine:21
 
