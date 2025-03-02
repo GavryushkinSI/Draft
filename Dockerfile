@@ -9,8 +9,14 @@ WORKDIR /home/gradle/src
 # Build the project
 RUN gradle build --no-daemon
 
-# Use a compatible JDK for running the application
-FROM bellsoft/liberica-openjdk-alpine:15.0.1-9
+# Use a compatible JDK for running the application (Java 21)
+FROM bellsoft/liberica-openjdk-alpine:21
 
 # Copy the built JAR file to the final image
 COPY --from=build /home/gradle/src/build/libs/*.jar /app/fenix-0.0.1-SNAPSHOT.jar
+
+# Expose the application port
+EXPOSE 9000
+
+# Set the entry point for the application
+ENTRYPOINT ["java", "-jar", "/app/fenix-0.0.1-SNAPSHOT.jar"]
