@@ -11,7 +11,7 @@ services:
       - POSTGRES_PASSWORD=1
 
   draft-back:
-    image: "parsesignal/draft:back_01.000.000"
+    image: "parsesignal/draft:back_02.000.000"
     container_name: draft-back
     ports:
       - 9000:9000
@@ -19,7 +19,7 @@ services:
       - fenix-postgres
 
   draft-ui:
-    image: "parsesignal/draft:ui_01.000.000"
+    image: "parsesignal/draft:ui_02.000.000"
     container_name: draft-ui
     ports:
       - 80:80
