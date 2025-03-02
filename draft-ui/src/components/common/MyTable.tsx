@@ -178,7 +178,9 @@ const MyTable: React.FC = () => {
                                 onChange={handleChangeEdit}
                                 className="mb-2"
                                 name="producer"
-                                style={{width: 351}}>
+                                style={{width: 351}}
+                                value={editedRow?.producer==="BYBIT"?2:1}
+                            >
                                 <option value="1">{EProducer.TKS}</option>
                                 <option value="2">{EProducer.BYBIT}</option>
                             </Form.Select>
@@ -524,7 +526,7 @@ const MyTable: React.FC = () => {
                     <Table style={{color: "rgb(140, 144, 154)"}} bordered
                            variant="outline">
                         <thead>
-                        <tr key={"header"}>
+                        <tr key={"header_1"}>
                             {columns.map((column, index) => {
                                 return <th key={column.field}>{column.fieldName}</th>
                             })}

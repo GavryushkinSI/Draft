@@ -117,7 +117,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         METRICS.put("methods", new ArrayList<>());
         TICKERS_TKS.put("tickers", new ArrayList<>());
         TICKERS_BYBIT.put("tickers", new ArrayList<>());
-        apiService.getAllTickers(api, myTickers);
+        //apiService.getAllTickers(api, myTickers);
         byBitService.getAllTickers(null);
         dbService.getAllUsers();
 

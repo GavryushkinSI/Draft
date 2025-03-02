@@ -314,11 +314,12 @@ const Admin: React.FC = () => {
                                             <h2>Всего уведомлений: <span
                                                 className="badge rounded-pill bg-danger">{user?.notifications?.length}</span>
                                             </h2>
-                                            {user?.notifications?.map((item: any) => {
+                                            {user?.notifications?.map((item: any, index:number) => {
                                                 let notViewed: boolean = !includeInArray(user?.viewedNotifyIds, item.id);
                                                 switch (item.type) {
                                                     case "info":
                                                         return <div
+                                                            key={index}
                                                             style={{backgroundColor: notViewed ? "rgb(30 30 47 / 58%)" : ""}}
                                                             className="notifications-item" onClick={() => {
                                                             if (item.typeView === "modal") {
@@ -343,6 +344,7 @@ const Admin: React.FC = () => {
                                                         </div>
                                                     case "info_success":
                                                         return <div
+                                                            key={index}
                                                             style={{backgroundColor: notViewed ? "rgb(30 30 47 / 58%)" : ""}}
                                                             className="notifications-item" onClick={() => {
                                                             if (item.typeView === "modal") {
@@ -368,6 +370,7 @@ const Admin: React.FC = () => {
                                                         </div>
                                                     case "error":
                                                         return <div
+                                                            key={index}
                                                             style={{backgroundColor: notViewed ? "rgb(30 30 47 / 58%)" : ""}}
                                                             className="notifications-item" onClick={() => {
                                                             if (item.typeView === "modal") {
@@ -434,7 +437,7 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": (found.currentPosition || 0) + quantity,
+                                    "quantity": Number(found.currentPosition || 0) + Number(quantity),
                                     "comment": `${useGrid ? 'grid' : ''}`,
                                     "triggerPrice": triggerPrice
                                 }
@@ -460,7 +463,7 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": (found.currentPosition || 0) - quantity,
+                                    "quantity": Number(found.currentPosition || 0) - Number(quantity),
                                     "comment": `${useGrid ? 'grid' : ''}`,
                                     "triggerPrice": triggerPrice
                                 },
@@ -484,7 +487,7 @@ const Admin: React.FC = () => {
                                     "name": found.name,
                                     "userName": userName!,
                                     "ticker": found.ticker,
-                                    "quantity": 0,
+                                    "quantity": 0 as number,
                                     "comment": "exit",
                                 },
                                 () => {
