@@ -10,7 +10,7 @@ RUN rm -rf /home/gradle/.gradle/caches/
 # Выполняем сборку
 RUN gradle build --no-daemon --refresh-dependencies
 
-FROM bellsoft/liberica-openjdk-alpine:15.0.1-9
+FROM bellsoft/liberica-openjdk-alpine:21
 
 # Копируем собранный JAR файл в новый образ
 COPY --from=build /home/gradle/src/build/libs/*.jar /app/fenix-0.0.1-SNAPSHOT.jar
