@@ -6,8 +6,8 @@ plugins {
 
 group = 'ru.app'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = "21"
-targetCompatibility = JavaVersion.VERSION_21
+sourceCompatibility = "11"
+targetCompatibility = JavaVersion.VERSION_11
 
 configurations {
     compileOnly {
