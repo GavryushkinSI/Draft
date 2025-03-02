@@ -1,8 +1,7 @@
 plugins {
-    id 'org.springframework.boot' version '2.3.4.RELEASE'
-    id 'io.spring.dependency-management' version '1.0.13.RELEASE'
+    id 'org.springframework.boot' version '2.6.8' // Обновите до последней версии
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE' // Обновите до последней версии
     id 'java'
-    id 'maven-publish'
 }
 
 group = 'ru.app'

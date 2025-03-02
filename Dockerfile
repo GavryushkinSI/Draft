@@ -7,7 +7,7 @@ COPY --chown=gradle:gradle . /home/gradle/src
 WORKDIR /home/gradle/src
 
 # Build the project
-RUN gradle build --refresh-dependencies
+RUN gradle build --refresh-dependencies --stacktrace
 
 FROM bellsoft/liberica-openjdk-alpine:21
 
