@@ -49,7 +49,7 @@ dependencies {
 //дополнительные зависимости
     implementation 'com.yahoofinance-api:YahooFinanceAPI:3.17.0'
     implementation 'com.google.guava:guava:31.1-jre'
-    annotationProcessor 'org.projectlombok:lombok:1.18.26'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
     //Тинкофф API
     implementation 'ru.tinkoff.piapi:java-sdk-core:1.5'
     //ByBit API
