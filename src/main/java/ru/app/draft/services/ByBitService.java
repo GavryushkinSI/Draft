@@ -11,6 +11,7 @@ import com.bybit.api.client.domain.market.InstrumentStatus;
 import com.bybit.api.client.domain.market.MarketInterval;
 import com.bybit.api.client.domain.market.request.MarketDataRequest;
 import com.bybit.api.client.domain.position.request.PositionDataRequest;
+import com.bybit.api.client.domain.trade.PositionIdx;
 import com.bybit.api.client.domain.trade.Side;
 import com.bybit.api.client.domain.trade.StopOrderType;
 import com.bybit.api.client.domain.trade.request.TradeOrderRequest;
@@ -28,6 +29,7 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.CollectionUtils;
 import ru.app.draft.entity.Candle;
 import ru.app.draft.exception.OrderNotExecutedException;
@@ -90,7 +92,10 @@ import static ru.app.draft.utils.CommonUtils.*;
 @Slf4j
 public class ByBitService extends AbstractTradeService {
 
-
+    @Value("${bybit.key}")
+    private String key;
+    @Value("${bybit.serial}")
+    private String serial;
     private static final String FILE_NAME = "candles.dat";
 
     private static List<String> telegramSignalList = new ArrayList();
@@ -468,7 +473,8 @@ public class ByBitService extends AbstractTradeService {
     }
 
     void getAccountInfo() {
-        var walletBalanceRequest = AccountDataRequest.builder().accountType(AccountType.CONTRACT).coin("USDT").build();
+        var walletBalanceRequest = AccountDataRequest.builder().accountType(AccountType.UNIFIED).coin("USDT").build();
+        var info = ((Map<String, Object>) (accountClient.getAccountInfo()));
         var data = ((Map<String, Object>) (accountClient.getWalletBalance(walletBalanceRequest)));
     }
 
@@ -773,9 +779,9 @@ public class ByBitService extends AbstractTradeService {
     private String createAuthMessage() {
         long expires = Instant.now().toEpochMilli() + 10000;
         String val = "GET/realtime" + expires;
-        String signature = HmacSHA256Signer.auth(val, "DRXDC0Kenvh3AcgoqnqWq7UXNPY8693lodTf");
+        String signature = HmacSHA256Signer.auth(val, serial);
 
-        var args = List.of("VkmwrZwHuHilLIUMBg", expires, signature);
+        var args = List.of(key, expires, signature);
         var authMap = Map.of("req_id", generateTransferID(), "op", "auth", "args", args);
         return JSON.toJSONString(authMap);
     }
