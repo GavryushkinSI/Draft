@@ -210,6 +210,7 @@ public class ByBitService extends AbstractTradeService {
                 return;
             }
             if (strategyTv.getPositionTv() != null) {
+                Thread.sleep(3000);
                 correctCurrentPosition(strategyTv);
                 return;
             }
