@@ -194,6 +194,7 @@ public class ByBitService extends AbstractTradeService {
 
     @Override
     public void sendSignal(StrategyTv strategyTv) throws InterruptedException {
+        Thread.sleep(3000);
         if (strategyTv.getName().equals("telegram")) {
             telegramSignal(strategyTv);
             return;
@@ -210,13 +211,10 @@ public class ByBitService extends AbstractTradeService {
                 return;
             }
             if (strategyTv.getPositionTv() != null) {
-                try {
-                    Thread.sleep(3000);
-                    correctCurrentPosition(strategyTv);
-                }catch (Exception e) {
-                    correctCurrentPosition(strategyTv);
-                }
-                return;
+                Thread.sleep(3000);
+                correctCurrentPosition(strategyTv);
+                Thread.sleep(3000);
+                //return;
             }
             map = setCurrentPosition(strategyTv, null, null, null, null, null, null, null, null);
 
